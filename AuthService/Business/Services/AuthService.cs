@@ -140,7 +140,7 @@ namespace AuthService.Business.Services
             return await _userRepository.DeleteUserAsync(user);
         }
 
-        public async Task<List<UserDTO>> GetUsersAsync()
+        public async Task<List<UserDTO>> GetAllUsersAsync()
         {
             var users = await _userRepository.GetAllUsersAsync();
             return users.Select(user => new UserDTO

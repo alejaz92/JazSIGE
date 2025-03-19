@@ -111,7 +111,7 @@ namespace AuthService.Controllers
             //var isAdmin = User.IsInRole("Admin");
             //if (!isAdmin)
             //    return Forbid("No puedes ver todos los usuarios.");
-            var users = await _authService.GetUsersAsync();
+            var users = await _authService.GetAllUsersAsync();
             return Ok(users);
         }
     }
