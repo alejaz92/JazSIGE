@@ -6,8 +6,9 @@ namespace AuthService.Infrastructure.Models
     {
         public string FirstName { get; set; }
         public string LastName { get; set; }
-        public bool IsActive { get; set; } = true;
-        public decimal SaleCommission { get; set; }
+        public bool IsActive { get; set; }
+        public decimal SalesCommission { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     }
