@@ -23,10 +23,7 @@ namespace AuthService.Infrastructure.Repositories
         public async Task<string> GeneratePasswordResetTokenAsync(User user) => await _userManager.GeneratePasswordResetTokenAsync(user);
 
         // Nuevo método: Resetear contraseña utilizando un token (Admin)
-        public async Task<IdentityResult> ResetPasswordAsync(User user, string token, string newPassword)
-        {
-            return await _userManager.ResetPasswordAsync(user, token, newPassword);
-        }
+        public async Task<IdentityResult> ResetPasswordAsync(User user, string token, string newPassword) => await _userManager.ResetPasswordAsync(user, token, newPassword);
 
         public async Task<IList<string>> GetRolesAsync(User user) => await _userManager.GetRolesAsync(user);
 
