@@ -65,7 +65,7 @@ namespace AuthService.Controllers
         //}
 
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [Authorize]
         [HttpPut("change-password/{id:int}")]
         public async Task<IActionResult> ChangePassword(int id, ChangePasswordDTO dto)
         {
