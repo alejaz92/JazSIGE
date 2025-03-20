@@ -2,6 +2,6 @@
 {
     public class UpdateUserRoleDTO
     {
-        public string Role { get; set; } = null;
+        public string Role { get; set; } = string.Empty;
     }
 }

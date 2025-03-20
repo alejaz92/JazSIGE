@@ -4,8 +4,8 @@ namespace AuthService.Infrastructure.Models
 {
     public class User : IdentityUser<int>
     {
-        public string FirstName { get; set; }
-        public string LastName { get; set; }
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
         public bool IsActive { get; set; }
         public decimal SalesCommission { get; set; }
 

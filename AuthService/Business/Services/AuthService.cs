@@ -36,7 +36,7 @@ namespace AuthService.Business.Services
         };
             claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"] ?? "default-key"));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
@@ -52,47 +52,13 @@ namespace AuthService.Business.Services
                 Token = new JwtSecurityTokenHandler().WriteToken(token)
             };
         }
-
-        public async Task<IdentityResult> CreateUserAsync(CreateUserDTO createUserDTO)
-        {
-            var user = new User
-            {
-                UserName = createUserDTO.Username,
-                Email = createUserDTO.Email,
-                FirstName = createUserDTO.FirstName,
-                LastName = createUserDTO.LastName,
-                IsActive = true,
-                SalesCommission = createUserDTO.SalesCommission
-            };
-            return await _userRepository.CreateUserAsync(user, createUserDTO.Password, createUserDTO.Role);
-        }
-
-        public async Task<IdentityResult> UpdateUserAsync(int userId, UpdateUserDTO dto, bool isAdmin)
-        {
-            var user = await _userRepository.GetUserByIdAsync(userId);
-            if (user is null)
-                return IdentityResult.Failed(new IdentityError { Description = "User not found" });
-
-            if (!string.IsNullOrWhiteSpace(dto.FirstName)) user.FirstName = dto.FirstName;
-            if (!string.IsNullOrWhiteSpace(dto.LastName)) user.LastName = dto.LastName;
-            if (!string.IsNullOrWhiteSpace(dto.Email)) user.Email = dto.Email;
-
-            if (isAdmin)
-            {
-                if (dto.SalesCommission.HasValue) user.SalesCommission = dto.SalesCommission.Value;
-            }
-
-            return await _userRepository.UpdateUserAsync(user);
-
-        }
-
         public async Task<IdentityResult> ChangePasswordAsync(int userId, ChangePasswordDTO dto, bool isAdmin)
         {
             var user = await _userRepository.GetUserByIdAsync(userId);
-            if (user is null)
+            if (user is null || string.IsNullOrEmpty(dto.NewPassword))
                 return IdentityResult.Failed(new IdentityError { Description = "User not found" });
 
-            if(isAdmin)
+            if (isAdmin)
             {
                 var token = await _userRepository.GeneratePasswordResetTokenAsync(user);
                 return await _userRepository.ResetPasswordAsync(user, token, dto.NewPassword);
@@ -106,70 +72,6 @@ namespace AuthService.Business.Services
 
         }
 
-        public async Task<IdentityResult> UpdateUserRoleAsync(int userId, string newRole)
-        {
-            var user = await _userRepository.GetUserByIdAsync(userId);
-            if (user is null)
-                return IdentityResult.Failed(new IdentityError { Description = "User not found" });
-
-            var currentRoles = await _userRepository.GetUserRolesAsync(user);
-
-            var removeResult = await _userRepository.RemoveUserFromRolesAsync(user, currentRoles);
-            if (!removeResult.Succeeded)
-                return removeResult;
-
-            var addResult = await _userRepository.AddUserToRoleAsync(user, newRole);
-
-            return addResult;
-        }
-
-        public async Task<IdentityResult> UpdateUserStatusAsync(int userId, bool isActive)
-        {
-            var user = await _userRepository.GetUserByIdAsync(userId);
-            if (user is null)
-                return IdentityResult.Failed(new IdentityError { Description = "User not found" });
-            user.IsActive = isActive;
-            return await _userRepository.UpdateUserAsync(user);
-        }
-
-        public async Task<IdentityResult> DeleteUserAsync(int userId)
-        {
-            var user = await _userRepository.GetUserByIdAsync(userId);
-            if (user is null)
-                return IdentityResult.Failed(new IdentityError { Description = "User not found" });
-            return await _userRepository.DeleteUserAsync(user);
-        }
-
-        public async Task<List<UserDTO>> GetAllUsersAsync()
-        {
-            var users = await _userRepository.GetAllUsersAsync();
-            return users.Select(user => new UserDTO
-            {
-                Id = user.Id,
-                Username = user.UserName,
-                Email = user.Email,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                IsActive = user.IsActive,
-                SalesCommission = user.SalesCommission
-            }).ToList();
-        }
-
-        public async Task<UserDTO?> GetUserByIdAsync(int userId)
-        {
-            var user = await _userRepository.GetUserByIdAsync(userId);
-            if (user is null)
-                return null;
-            return new UserDTO
-            {
-                Id = user.Id,
-                Username = user.UserName,
-                Email = user.Email,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                IsActive = user.IsActive,
-                SalesCommission = user.SalesCommission
-            };
-        }
+      
     }
 }

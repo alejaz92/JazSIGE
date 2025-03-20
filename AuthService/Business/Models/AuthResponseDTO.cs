@@ -2,6 +2,6 @@
 {
     public class AuthResponseDTO
     {
-        public string Token { get; set; } = null;
+        public string Token { get; set; } = string.Empty;
     }
 }

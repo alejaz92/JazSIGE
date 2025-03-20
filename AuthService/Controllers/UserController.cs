@@ -12,10 +12,10 @@ namespace AuthService.Controllers
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class UserController : ControllerBase
     {
-        private readonly IAuthService _authService;
-        public UserController(IAuthService authService)
+        private readonly IUserService _userService;
+        public UserController(IUserService userService)
         {
-            _authService = authService;
+            _userService = userService;
         }
 
         [Authorize(Roles = "Admin")]
@@ -25,7 +25,7 @@ namespace AuthService.Controllers
             if (createUserDto.Role != "Admin" && createUserDto.Role != "Seller")
                 return BadRequest("El rol indicado no es válido. Roles permitidos: Admin, Seller.");
 
-            var result = await _authService.CreateUserAsync(createUserDto);
+            var result = await _userService.CreateUserAsync(createUserDto);
 
             if (!result.Succeeded)
                 return BadRequest(result.Errors);
@@ -36,16 +36,19 @@ namespace AuthService.Controllers
         [HttpPut("{id:int}")]
         public async Task<IActionResult> UpdateUser(int id, UpdateUserDTO dto)
         {
-            var loggedUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int loggedUserId))
+                return Unauthorized("Usuario no autenticado.");
+
             var isAdmin = User.IsInRole("Admin");
 
             if (!isAdmin && loggedUserId != id)
-                return Forbid("No puedes editar otro usuario.");
+                return Forbid("No tienes permisos para actualizar este usuario.");
 
-            var result = await _authService.UpdateUserAsync(id, dto, isAdmin);
+            var result = await _userService.UpdateUserAsync(id, dto, isAdmin);
 
             if (!result.Succeeded)
-                return BadRequest(result.Errors);
+                return NotFound("Usuario no encontrado.");
 
             return Ok("Usuario actualizado correctamente.");
         }
@@ -57,7 +60,7 @@ namespace AuthService.Controllers
             if (dto.Role != "Admin" && dto.Role != "Seller")
                 return BadRequest("El rol indicado no es válido. Roles permitidos: Admin, Seller.");
 
-            var result = await _authService.UpdateUserRoleAsync(id, dto.Role);
+            var result = await _userService.UpdateUserRoleAsync(id, dto.Role);
 
             if (!result.Succeeded)
                 return BadRequest(result.Errors);
@@ -69,21 +72,41 @@ namespace AuthService.Controllers
         [HttpPut("{id:int}/status")]
         public async Task<IActionResult> UpdateUserStatus(int id, UpdateUserStatusDTO dto)
         {
-            var result = await _authService.UpdateUserStatusAsync(id, dto.IsActive);
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int loggedUserId))
+                return Unauthorized("Usuario no autenticado.");
+
+            var isAdmin = User.IsInRole("Admin");
+
+            if (!isAdmin)
+                return Forbid("No tienes permisos para realizar esta acción.");
+
+            var result = await _userService.UpdateUserStatusAsync(id, dto.IsActive);
+
             if (!result.Succeeded)
                 return BadRequest(result.Errors);
-            
-            var status = dto.IsActive ? "activado" : "desactivado";
-            return Ok($"Usuario {status} correctamente.");
+
+            return Ok($"Estado de usuario actualizado a: {dto.IsActive}");
         }
 
         [Authorize(Roles = "Admin")]
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteUser(int id)
         {
-            var result = await _authService.DeleteUserAsync(id);
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int loggedUserId))
+                return Unauthorized("Usuario no autenticado.");
+
+            var isAdmin = User.IsInRole("Admin");
+
+            if (!isAdmin)
+                return Forbid("No tienes permisos para eliminar usuarios.");
+
+            var result = await _userService.DeleteUserAsync(id);
+
             if (!result.Succeeded)
-                return BadRequest(result.Errors);
+                return NotFound("Usuario no encontrado.");
+
             return Ok("Usuario eliminado correctamente.");
         }
 
@@ -91,13 +114,11 @@ namespace AuthService.Controllers
         [Authorize]
         public async Task<IActionResult> GetUserById(int id)
         {
-            var loggedUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
-            //var isAdmin = User.IsInRole("Admin");
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int loggedUserId))
+                return Unauthorized("Usuario no autenticado.");
 
-            //if (!isAdmin && loggedUserId != id)
-            //    return Forbid("No puedes ver otro usuario.");
-
-            var user = await _authService.GetUserByIdAsync(id);
+            var user = await _userService.GetUserByIdAsync(id);
             if (user is null)
                 return NotFound("Usuario no encontrado.");
             return Ok(user);
@@ -107,11 +128,11 @@ namespace AuthService.Controllers
         [Authorize]
         public async Task<IActionResult> GetAllUsers()
         {
-            var loggedUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
-            //var isAdmin = User.IsInRole("Admin");
-            //if (!isAdmin)
-            //    return Forbid("No puedes ver todos los usuarios.");
-            var users = await _authService.GetAllUsersAsync();
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int loggedUserId))
+                return Unauthorized("Usuario no autenticado.");
+
+            var users = await _userService.GetAllUsersAsync();
             return Ok(users);
         }
     }

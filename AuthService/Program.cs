@@ -30,7 +30,7 @@ builder.Services.AddIdentityCore<User>(options =>
 .AddDefaultTokenProviders();
 
 // Configuración JWT
-var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]);
+var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "default-key");
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 .AddJwtBearer(options =>
 {
@@ -48,6 +48,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 // Registro de dependencias
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAuthService, AuthService.Business.Services.AuthService>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 // Servicios adicionales necesarios
 builder.Services.AddControllers();
