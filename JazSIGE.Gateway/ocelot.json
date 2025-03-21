@@ -1,39 +1,97 @@
-﻿{
+﻿//{
+//  "Routes": [
+//    {
+//      "DownstreamPathTemplate": "/api/auth/{everything}",
+//      "DownstreamScheme": "https",
+//      "DownstreamHostAndPorts": [
+//        {
+//          "Host": "localhost",
+//          "Port": 7042
+//        }
+//      ],
+//      "UpstreamPathTemplate": "/auth/{everything}",
+//      "UpstreamHttpMethod": [ "POST", "GET", "PUT", "DELETE" ],
+//      "AuthenticationOptions": {
+//        "AuthenticationProviderKey": "Bearer",
+//        "AllowedScopes": []
+//      }
+//    },
+//    {
+//      "DownstreamPathTemplate": "/api/user/{everything}",
+//      "DownstreamScheme": "https",
+//      "DownstreamHostAndPorts": [
+//        {
+//          "Host": "localhost",
+//          "Port": 7042
+//        }
+//      ],
+//      "UpstreamPathTemplate": "/user/{everything}",
+//      "UpstreamHttpMethod": [ "POST", "GET", "PUT", "DELETE" ],
+//      "AuthenticationOptions": {
+//        "AuthenticationProviderKey": "Bearer",
+//        "AllowedScopes": []
+//      }
+//    }
+//  ],
+//  "SwaggerEndPoints": [
+//    {
+//      "Key": "auth",
+//      "Config": [
+//        {
+//          "Name": "AuthService API",
+//          "Version": "v1",
+//          "Url": "https://localhost:7042/swagger/v1/swagger.json"
+//        }
+//      ]
+//    }
+//  ],
+//  "GlobalConfiguration": {
+//    "BaseUrl": "https://localhost:7273"
+//  }
+//}
+
+{
   "Routes": [
     {
       "DownstreamPathTemplate": "/api/auth/{everything}",
-      "DownstreamScheme": "https",
+      "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 7203
+          "Port": 5172
         }
       ],
       "UpstreamPathTemplate": "/auth/{everything}",
       "UpstreamHttpMethod": [ "POST", "GET", "PUT", "DELETE" ],
-      "AuthenticationOptions": {
-        "AuthenticationProviderKey": "Bearer",
-        "AllowedScopes": []
-      }
+      "SwaggerKey": "auth"
     },
     {
       "DownstreamPathTemplate": "/api/user/{everything}",
-      "DownstreamScheme": "https",
+      "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 7203
+          "Port": 5172
         }
       ],
       "UpstreamPathTemplate": "/user/{everything}",
       "UpstreamHttpMethod": [ "POST", "GET", "PUT", "DELETE" ],
-      "AuthenticationOptions": {
-        "AuthenticationProviderKey": "Bearer",
-        "AllowedScopes": []
-      }
+      "SwaggerKey": "auth"
+    }
+  ],
+  "SwaggerEndPoints": [
+    {
+      "Key": "auth",
+      "Config": [
+        {
+          "Name": "AuthService API",
+          "Version": "v1",
+          "Url": "http://localhost:5172/swagger/v1/swagger.json"
+        }
+      ]
     }
   ],
   "GlobalConfiguration": {
-    "BaseUrl": "https://localhost:7000"
+    "BaseUrl": "http://localhost:5290"
   }
 }

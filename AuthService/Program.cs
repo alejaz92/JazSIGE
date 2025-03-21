@@ -30,21 +30,25 @@ builder.Services.AddIdentityCore<User>(options =>
 .AddDefaultTokenProviders();
 
 // Configuración JWT
-//var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "default-key");
-//builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-//.AddJwtBearer(options =>
-//{
-//    options.TokenValidationParameters = new TokenValidationParameters
-//    {
-//        ValidateIssuerSigningKey = true,
-//        ValidateIssuer = true,
-//        ValidateAudience = true,
-//        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-//        ValidAudience = builder.Configuration["Jwt:Audience"],
-//        IssuerSigningKey = new SymmetricSecurityKey(key)
-//    };
-//});
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme);
+var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "default-key");
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(key),
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Audience"],
+        ValidateLifetime = true,
+    };
+});
 
 // Registro de dependencias
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -56,13 +60,31 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", builder =>
+    {
+        builder.AllowAnyOrigin()
+               .AllowAnyMethod()
+               .AllowAnyHeader();
+    });
+});
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "AuthService v1");
+        c.RoutePrefix = "swagger"; // Volvemos al prefijo "swagger"
+    });
 }
+
+
+
+app.UseCors("AllowAll");
 
 app.UseHttpsRedirection();
 

@@ -1,38 +1,21 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
 using Ocelot.DependencyInjection;
 using Ocelot.Middleware;
-using System.Text;
+using MMLib.SwaggerForOcelot.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Cargar configuración de Ocelot
-builder.Configuration.AddJsonFile("ocelot.json");
-
-// Configuración de autenticación JWT
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer("Bearer", options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = "https://localhost:7203",
-            ValidAudience = "https://localhost:4200",
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("werdtgfjjfxtfyvu13nuini334op098sfngyUJ77"))
-        };
-    });
-
+builder.Configuration.AddJsonFile("ocelot.json", optional: false, reloadOnChange: true);
 builder.Services.AddOcelot();
+builder.Services.AddSwaggerForOcelot(builder.Configuration);
 
 var app = builder.Build();
 
 app.UseHttpsRedirection();
-app.UseRouting();
-app.UseAuthentication();
-app.UseAuthorization();
+
+app.UseSwaggerForOcelotUI(opt =>
+{
+    opt.PathToSwaggerGenerator = "/swagger/docs";
+});
 
 app.UseOcelot().Wait();
 
