@@ -1,14 +1,16 @@
 ﻿using CatalogService.Infrastructure.Models;
+using System.Collections.Generic;
 
 namespace CatalogService.Business.Interfaces
 {
-    public interface IGenericService<in T> where T : BaseEntity
+    public interface IGenericService<T, TDto, TCreateDto> where T : class
     {
-        Task AddAsync(T entity);
-        Task DeleteAsync(int id);
-        Task<IEnumerable<T>> GetAllAsync();
-        Task<T> GetByIdAsync(int id);
-        Task UpdateAsync(T entity);
-        Task UpdateStatusAsync(int id, bool status);
+        Task<TDto> CreateAsync(TCreateDto model);
+        Task<bool> DeleteAsync(int id);
+        Task<IEnumerable<TDto>> GetAllAsync();
+        Task<TDto> GetByIdAsync(int id);
+        Task<TDto> UpdateAsync(int id, TCreateDto model);
+        Task<bool> UpdateStatusAsync(int id, bool isActive);
+        Task<string?> ValidateBeforeSave(TCreateDto model);
     }
 }
