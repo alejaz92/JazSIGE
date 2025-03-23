@@ -5,7 +5,7 @@ using System.Linq.Expressions;
 
 namespace CatalogService.Infrastructure.Interfaces
 {
-    public interface IGenericRepository<T> where T : BaseEntity
+    public interface IGenericRepository<T> where T : class
     {
         Task AddAsync(T entity);
         Task<T> AddAsyncReturnObject(T entity);

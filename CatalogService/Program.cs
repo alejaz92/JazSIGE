@@ -1,4 +1,8 @@
+using CatalogService.Business.Interfaces;
+using CatalogService.Business.Services;
 using CatalogService.Infrastructure.Data;
+using CatalogService.Infrastructure.Interfaces;
+using CatalogService.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -41,6 +45,15 @@ builder.Services.AddDbContext<CatalogDbContext>(options =>
 // Swagger Configuration
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+
+// declare repositories
+builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+builder.Services.AddScoped<IBrandRepository, BrandRepository>();
+
+// declare services
+builder.Services.AddScoped<IBrandService, BrandService>();
+
 
 // Controllers
 builder.Services.AddControllers();
