@@ -34,7 +34,7 @@ namespace CatalogService.Business.Services
         protected override void UpdateDomain(Brand entity, BrandCreateDTO dto)
         {
             entity.Description = dto.Description;
-            entity.UpdatedAt = DateTime.UtcNow;
+            //entity.UpdatedAt = DateTime.UtcNow;
         }
 
         public async Task<bool> IsBrandDescriptionUnique(string Description)

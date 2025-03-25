@@ -21,9 +21,9 @@ namespace CatalogService.Controllers
         [HttpGet]
         public virtual async Task<IActionResult> GetAll()
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null)
-                return Unauthorized();
+            //var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            //if (userIdClaim == null)
+            //    return Unauthorized();
 
             var dtos = await _service.GetAllAsync();
             return Ok(dtos);
@@ -32,9 +32,9 @@ namespace CatalogService.Controllers
         [HttpGet("{id}")]
         public virtual async Task<IActionResult> GetById(int id)
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null)
-                return Unauthorized();
+            //var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            //if (userIdClaim == null)
+            //    return Unauthorized();
 
             var dto = await _service.GetByIdAsync(id);
             if (dto == null)
@@ -46,9 +46,9 @@ namespace CatalogService.Controllers
         [HttpPost]
         public virtual async Task<IActionResult> Create(TCreateDto model)
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null)
-                return Unauthorized();
+            //var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            //if (userIdClaim == null)
+            //    return Unauthorized();
 
             var validationError = await _service.ValidateBeforeSave(model);
             if (validationError != null) return BadRequest(validationError);
@@ -60,9 +60,9 @@ namespace CatalogService.Controllers
         [HttpPut("{id}")]
         public virtual async Task<IActionResult> Update(int id, TCreateDto model)
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null)
-                return Unauthorized();
+            //var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            //if (userIdClaim == null)
+            //    return Unauthorized();
 
             var validationError = await _service.ValidateBeforeSave(model);
             if (validationError != null) return BadRequest(validationError);
@@ -77,9 +77,9 @@ namespace CatalogService.Controllers
         [HttpPut("{id}/status")]
         public virtual async Task<IActionResult> UpdateStatus(int id, bool isActive)
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null)
-                return Unauthorized();
+            //var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            //if (userIdClaim == null)
+            //    return Unauthorized();
             var success = await _service.UpdateStatusAsync(id, isActive);
             if (!success)
                 return NotFound();
@@ -89,9 +89,9 @@ namespace CatalogService.Controllers
         [HttpDelete("{id}")]
         public virtual async Task<IActionResult> Delete(int id)
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null)
-                return Unauthorized();
+            //var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            //if (userIdClaim == null)
+            //    return Unauthorized();
 
             var success = await _service.DeleteAsync(id);
             if (!success)

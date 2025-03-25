@@ -50,9 +50,19 @@ builder.Services.AddSwaggerGen();
 // declare repositories
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<IBrandRepository, BrandRepository>();
+builder.Services.AddScoped<ICityRepository, CityRepository>();
+builder.Services.AddScoped<ICountryRepository, CountryRepository>();
+builder.Services.AddScoped<IIVATypeRepository, IVATypeRepository>();
+builder.Services.AddScoped<IPostalCodeRepository, PostalCodeRepository>();
+builder.Services.AddScoped<IProvinceRepository, ProvinceRepository>();
 
 // declare services
 builder.Services.AddScoped<IBrandService, BrandService>();
+builder.Services.AddScoped<ICityService, CityService>();
+builder.Services.AddScoped<ICountryService, CountryService>();
+builder.Services.AddScoped<IIVATypeService, IVATypeService>();
+builder.Services.AddScoped<IPostalCodeService, PostalCodeService>();
+builder.Services.AddScoped<IProvinceService, ProvinceService>();
 
 
 // Controllers
@@ -63,7 +73,11 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "CatalogService API v1");
+        c.RoutePrefix = string.Empty;  // <-- Esto hace que Swagger sea la página principal
+    });
 }
 
 app.UseCors("FrontendPolicy");
