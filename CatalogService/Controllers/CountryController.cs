@@ -16,6 +16,4 @@ namespace CatalogService.Controllers
             _countryService = countryService;
         }
     }
-    {
-    }
 }

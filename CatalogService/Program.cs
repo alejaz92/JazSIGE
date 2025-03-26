@@ -53,16 +53,30 @@ builder.Services.AddScoped<IBrandRepository, BrandRepository>();
 builder.Services.AddScoped<ICityRepository, CityRepository>();
 builder.Services.AddScoped<ICountryRepository, CountryRepository>();
 builder.Services.AddScoped<IIVATypeRepository, IVATypeRepository>();
+builder.Services.AddScoped<ILineGroupRepository, LineGroupRepository>();
+builder.Services.AddScoped<ILineRepository, LineRepository>();
 builder.Services.AddScoped<IPostalCodeRepository, PostalCodeRepository>();
+builder.Services.AddScoped<IPriceListRepository, PriceListRepository>();
 builder.Services.AddScoped<IProvinceRepository, ProvinceRepository>();
+builder.Services.AddScoped<ISellConditionRepository, SellConditionRepository>();
+builder.Services.AddScoped<ITransportRepository, TransportRepository>();
+builder.Services.AddScoped<IUnitRepository, UnitRepository>();
+builder.Services.AddScoped<IWarehouseRepository, WarehouseRepository>();
 
 // declare services
 builder.Services.AddScoped<IBrandService, BrandService>();
 builder.Services.AddScoped<ICityService, CityService>();
 builder.Services.AddScoped<ICountryService, CountryService>();
 builder.Services.AddScoped<IIVATypeService, IVATypeService>();
+builder.Services.AddScoped<ILineGroupService, LineGroupService>();
+builder.Services.AddScoped<ILineService, LineService>();
 builder.Services.AddScoped<IPostalCodeService, PostalCodeService>();
+builder.Services.AddScoped<IPriceListService, PriceListService>();
 builder.Services.AddScoped<IProvinceService, ProvinceService>();
+builder.Services.AddScoped<ISellConditionService, SellConditionService>();
+builder.Services.AddScoped<ITransportService, TransportService>();
+builder.Services.AddScoped<IUnitService, UnitService>();
+builder.Services.AddScoped<IWarehouseService, WarehouseService>();
 
 
 // Controllers

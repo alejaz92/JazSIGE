@@ -1,11 +1,10 @@
 ﻿namespace CatalogService.Infrastructure.Models
 {
-    public class Brand : BaseEntity
+    public class Unit : BaseEntity
     {
         public string Description { get; set; }
 
-        // relations
+        //relations
         public ICollection<Article> Articles { get; set; }
-
     }
 }
