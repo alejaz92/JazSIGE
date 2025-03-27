@@ -1,56 +1,4 @@
-﻿//{
-//  "Routes": [
-//    {
-//      "DownstreamPathTemplate": "/api/auth/{everything}",
-//      "DownstreamScheme": "https",
-//      "DownstreamHostAndPorts": [
-//        {
-//          "Host": "localhost",
-//          "Port": 7042
-//        }
-//      ],
-//      "UpstreamPathTemplate": "/auth/{everything}",
-//      "UpstreamHttpMethod": [ "POST", "GET", "PUT", "DELETE" ],
-//      "AuthenticationOptions": {
-//        "AuthenticationProviderKey": "Bearer",
-//        "AllowedScopes": []
-//      }
-//    },
-//    {
-//      "DownstreamPathTemplate": "/api/user/{everything}",
-//      "DownstreamScheme": "https",
-//      "DownstreamHostAndPorts": [
-//        {
-//          "Host": "localhost",
-//          "Port": 7042
-//        }
-//      ],
-//      "UpstreamPathTemplate": "/user/{everything}",
-//      "UpstreamHttpMethod": [ "POST", "GET", "PUT", "DELETE" ],
-//      "AuthenticationOptions": {
-//        "AuthenticationProviderKey": "Bearer",
-//        "AllowedScopes": []
-//      }
-//    }
-//  ],
-//  "SwaggerEndPoints": [
-//    {
-//      "Key": "auth",
-//      "Config": [
-//        {
-//          "Name": "AuthService API",
-//          "Version": "v1",
-//          "Url": "https://localhost:7042/swagger/v1/swagger.json"
-//        }
-//      ]
-//    }
-//  ],
-//  "GlobalConfiguration": {
-//    "BaseUrl": "https://localhost:7273"
-//  }
-//}
-
-{
+﻿{
   "Routes": [
     {
       "DownstreamPathTemplate": "/api/auth/{everything}",
@@ -63,20 +11,26 @@
       ],
       "UpstreamPathTemplate": "/auth/{everything}",
       "UpstreamHttpMethod": [ "POST", "GET", "PUT", "DELETE" ],
+      "AddHeadersToRequest": {
+        "Authorization": "{Headers.Authorization}"
+      },
       "SwaggerKey": "auth"
     },
     {
-      "DownstreamPathTemplate": "/api/user/{everything}",
+      "DownstreamPathTemplate": "/api/catalog/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5172
+          "Port": 7285
         }
       ],
-      "UpstreamPathTemplate": "/user/{everything}",
+      "UpstreamPathTemplate": "/catalog/{everything}",
       "UpstreamHttpMethod": [ "POST", "GET", "PUT", "DELETE" ],
-      "SwaggerKey": "auth"
+      "AddHeadersToRequest": {
+        "Authorization": "{Headers.Authorization}"
+      },
+      "SwaggerKey": "catalog"
     }
   ],
   "SwaggerEndPoints": [
@@ -87,6 +41,16 @@
           "Name": "AuthService API",
           "Version": "v1",
           "Url": "http://localhost:5172/swagger/v1/swagger.json"
+        }
+      ]
+    },
+    {
+      "Key": "catalog",
+      "Config": [
+        {
+          "Name": "CatalogService API",
+          "Version": "v1",
+          "Url": "http://localhost:7285/swagger/v1/swagger.json"
         }
       ]
     }

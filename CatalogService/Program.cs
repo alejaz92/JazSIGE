@@ -3,6 +3,7 @@ using CatalogService.Business.Services;
 using CatalogService.Infrastructure.Data;
 using CatalogService.Infrastructure.Interfaces;
 using CatalogService.Infrastructure.Repositories;
+using CatalogService.Infrastructure.Settings;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -49,9 +50,12 @@ builder.Services.AddSwaggerGen();
 
 // declare repositories
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+builder.Services.AddScoped<IArticleRepository, ArticleRepository>();
 builder.Services.AddScoped<IBrandRepository, BrandRepository>();
 builder.Services.AddScoped<ICityRepository, CityRepository>();
 builder.Services.AddScoped<ICountryRepository, CountryRepository>();
+builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+builder.Services.AddScoped<IGrossIncomeTypeRepository, GrossIncomeTypeRepository>();
 builder.Services.AddScoped<IIVATypeRepository, IVATypeRepository>();
 builder.Services.AddScoped<ILineGroupRepository, LineGroupRepository>();
 builder.Services.AddScoped<ILineRepository, LineRepository>();
@@ -59,14 +63,18 @@ builder.Services.AddScoped<IPostalCodeRepository, PostalCodeRepository>();
 builder.Services.AddScoped<IPriceListRepository, PriceListRepository>();
 builder.Services.AddScoped<IProvinceRepository, ProvinceRepository>();
 builder.Services.AddScoped<ISellConditionRepository, SellConditionRepository>();
+builder.Services.AddScoped<ISupplierRepository, SupplierRepository>();
 builder.Services.AddScoped<ITransportRepository, TransportRepository>();
 builder.Services.AddScoped<IUnitRepository, UnitRepository>();
 builder.Services.AddScoped<IWarehouseRepository, WarehouseRepository>();
 
 // declare services
+builder.Services.AddScoped<IArticleService, ArticleService>();
 builder.Services.AddScoped<IBrandService, BrandService>();
 builder.Services.AddScoped<ICityService, CityService>();
 builder.Services.AddScoped<ICountryService, CountryService>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
+builder.Services.AddScoped<IGrossIncomeTypeService, GrossIncomeTypeService>();
 builder.Services.AddScoped<IIVATypeService, IVATypeService>();
 builder.Services.AddScoped<ILineGroupService, LineGroupService>();
 builder.Services.AddScoped<ILineService, LineService>();
@@ -74,10 +82,16 @@ builder.Services.AddScoped<IPostalCodeService, PostalCodeService>();
 builder.Services.AddScoped<IPriceListService, PriceListService>();
 builder.Services.AddScoped<IProvinceService, ProvinceService>();
 builder.Services.AddScoped<ISellConditionService, SellConditionService>();
+builder.Services.AddScoped<ISupplierService, SupplierService>();
 builder.Services.AddScoped<ITransportService, TransportService>();
 builder.Services.AddScoped<IUnitService, UnitService>();
 builder.Services.AddScoped<IWarehouseService, WarehouseService>();
 
+
+//inyect configuration
+builder.Services.AddHttpClient();
+builder.Services.Configure<AuthServiceSettings>(builder.Configuration.GetSection("AuthService"));
+builder.Services.AddHttpContextAccessor();
 
 // Controllers
 builder.Services.AddControllers();

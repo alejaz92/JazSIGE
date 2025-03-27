@@ -2,7 +2,7 @@
 {
     public class Customer : Actor
     {
-        public string DeliveryAddress { get; set; }
+        public string DeliverAddress { get; set; }
         public int SellerId { get; set; }
         public int AssignedPriceListId { get; set; }
         public PriceList AssignedPriceList { get; set; }

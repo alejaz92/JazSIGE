@@ -65,5 +65,15 @@ namespace CatalogService.Business.Services
                 return "Transport already exits.";
             return null;
         }
+
+
+        protected override Task<IEnumerable<Transport>> GetAllWithIncludes() => _repository.GetAllIncludingAsync(
+            t => t.PostalCode
+            );
+
+        protected override Task<Transport> GetWithIncludes(int id) => _repository.GetIncludingAsync(
+            id, 
+            t => t.PostalCode);
+
     }
 }

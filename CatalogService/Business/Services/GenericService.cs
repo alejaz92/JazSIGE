@@ -33,7 +33,7 @@ namespace CatalogService.Business.Services
             var entity = MapToDomain(model);
             await _repository.AddAsync(entity);
             await _repository.SaveChangesAsync();
-            return MapToDTO(entity);
+            return MapToDTO(await GetWithIncludes(entity.Id));
         }
         public async Task<TDto> UpdateAsync(int id, TCreateDto model)
         {
