@@ -104,7 +104,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "CatalogService API v1");
-        c.RoutePrefix = string.Empty;  // <-- Esto hace que Swagger sea la página principal
+        c.RoutePrefix = "swagger";  // Podés cambiar el prefijo o dejarlo vacío
     });
 }
 
