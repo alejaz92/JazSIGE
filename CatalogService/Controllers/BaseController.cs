@@ -24,9 +24,20 @@ namespace CatalogService.Controllers
             //var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
             //if (userIdClaim == null)
             //    return Unauthorized();
-
-            var dtos = await _service.GetAllAsync();
-            return Ok(dtos);
+            try
+            {
+                var dtos = await _service.GetAllAsync();
+                return Ok(dtos);
+            }
+            catch (Exception ex)
+            {
+            // Podés loguear si tenés un ILogger
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = "Error ocurred.",
+                detail = ex.Message
+            });
+            }
         }
 
         [HttpGet("{id}")]
@@ -36,11 +47,23 @@ namespace CatalogService.Controllers
             //if (userIdClaim == null)
             //    return Unauthorized();
 
-            var dto = await _service.GetByIdAsync(id);
-            if (dto == null)
-                return NotFound();
+            try
+            {
+                var dto = await _service.GetByIdAsync(id);
+                if (dto == null)
+                    return NotFound();
 
-            return Ok(dto);
+                return Ok(dto);
+            }
+            catch (Exception ex)
+            {
+                // Podés loguear si tenés un ILogger
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    message = "Error ocurred.",
+                    detail = ex.Message
+                });
+            }
         }
 
         [HttpPost]
@@ -50,11 +73,22 @@ namespace CatalogService.Controllers
             //if (userIdClaim == null)
             //    return Unauthorized();
 
-            var validationError = await _service.ValidateBeforeSave(model);
-            if (validationError != null) return BadRequest(validationError);
+            //var validationError = await _service.ValidateBeforeSave(model);
+            //if (validationError != null) return BadRequest(validationError);
 
-            var createdEntity = await _service.CreateAsync(model);
-            return Ok(createdEntity);
+            try
+            {
+                var createdEntity = await _service.CreateAsync(model);
+                return Ok(createdEntity);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    message = "Error ocurred while creating.",
+                    detail = ex.Message
+                });
+            }
         }
 
         [HttpPut("{id}")]
@@ -64,14 +98,26 @@ namespace CatalogService.Controllers
             //if (userIdClaim == null)
             //    return Unauthorized();
 
-            var validationError = await _service.ValidateBeforeSave(model);
-            if (validationError != null) return BadRequest(validationError);
+            //var validationError = await _service.ValidateBeforeSave(model);
+            //if (validationError != null) return BadRequest(validationError);
 
-            var updatedDto = await _service.UpdateAsync(id, model);
-            if (updatedDto == null)
-                return NotFound();
+            try
+            {
+                var updatedDto = await _service.UpdateAsync(id, model);
+                if (updatedDto == null)
+                    return NotFound();
 
-            return Ok(updatedDto);
+                return Ok(updatedDto);
+            }
+            catch (Exception ex)
+            {
+                // Podés loguear si tenés un ILogger
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    message = "Error ocurred while updating.",
+                    detail = ex.Message
+                });
+            }
         }
 
         [HttpPut("{id}/status")]
@@ -80,10 +126,23 @@ namespace CatalogService.Controllers
             //var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
             //if (userIdClaim == null)
             //    return Unauthorized();
-            var success = await _service.UpdateStatusAsync(id, isActive);
-            if (!success)
-                return NotFound();
-            return NoContent();
+
+            try
+            {
+                var success = await _service.UpdateStatusAsync(id, isActive);
+                if (!success)
+                    return NotFound();
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                // Podés loguear si tenés un ILogger
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    message = "Error ocurred while updating status.",
+                    detail = ex.Message
+                });
+            }
         }
 
         [HttpDelete("{id}")]
@@ -92,12 +151,23 @@ namespace CatalogService.Controllers
             //var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
             //if (userIdClaim == null)
             //    return Unauthorized();
+            try
+            {
+                var success = await _service.DeleteAsync(id);
+                if (!success)
+                    return NotFound();
 
-            var success = await _service.DeleteAsync(id);
-            if (!success)
-                return NotFound();
-
-            return NoContent();
+                return NoContent();
+            }
+             catch (Exception ex)
+            {
+                // Podés loguear si tenés un ILogger
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    message = "Error ocurred while deleting.",
+                    detail = ex.Message
+                });
+            }
         }
     }
 }

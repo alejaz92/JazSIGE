@@ -1,6 +1,7 @@
 ﻿using CatalogService.Business.Interfaces;
 using CatalogService.Infrastructure.Interfaces;
 using CatalogService.Infrastructure.Models;
+using System.Diagnostics;
 
 namespace CatalogService.Business.Services
 {
@@ -25,11 +26,14 @@ namespace CatalogService.Business.Services
         }
         public async Task<TDto> CreateAsync(TCreateDto model)
         {
+
             var validationError = await ValidateBeforeSave(model);
             if (validationError != null)
             {
                 throw new Exception(validationError);
             }
+
+
             var entity = MapToDomain(model);
             await _repository.AddAsync(entity);
             await _repository.SaveChangesAsync();
