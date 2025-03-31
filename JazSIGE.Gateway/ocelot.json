@@ -2,11 +2,11 @@
   "Routes": [
     {
       "DownstreamPathTemplate": "/api/auth/{everything}",
-      "DownstreamScheme": "http",
+      "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5172
+          "Port": 7042
         }
       ],
       "UpstreamPathTemplate": "/auth/{everything}",
@@ -18,11 +18,11 @@
     },
     {
       "DownstreamPathTemplate": "/api/user/{everything}",
-      "DownstreamScheme": "http",
+      "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5172
+          "Port": 7042
         }
       ],
       "UpstreamPathTemplate": "/user/{everything}",
@@ -30,11 +30,15 @@
       "AddHeadersToRequest": {
         "Authorization": "{Headers.Authorization}"
       },
-      "SwaggerKey": "auth"
+      "SwaggerKey": "auth",
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      }
     },
     {
       "DownstreamPathTemplate": "/api/{everything}",
-      "DownstreamScheme": "http",
+      "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
@@ -46,7 +50,11 @@
       "AddHeadersToRequest": {
         "Authorization": "{Headers.Authorization}"
       },
-      "SwaggerKey": "catalog"
+      "SwaggerKey": "catalog",
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      }
     }
   ],
   "SwaggerEndPoints": [
