@@ -39,7 +39,7 @@ namespace CatalogService.Business.Services
             return countries.Count() == 0;
         }
 
-        public async Task<string?> ValidateBeforeSave(CountryCreateDTO model)
+        public override async Task<string?> ValidateBeforeSave(CountryCreateDTO model)
         {
             if (string.IsNullOrWhiteSpace(model.Name)) 
                 return "Country name is required";

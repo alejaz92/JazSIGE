@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JazSIGE.Gateway", "JazSIGE.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CatalogService", "CatalogService\CatalogService.csproj", "{0FEFC3CE-5F7F-9549-B594-5C76A1B3CCA1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CatalogService.Tests", "CatalogService.Tests\CatalogService.Tests.csproj", "{35DE59C0-390D-DE2C-6BB0-A8B43F8EBE4F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -69,6 +71,18 @@ Global
 		{0FEFC3CE-5F7F-9549-B594-5C76A1B3CCA1}.Release|x64.Build.0 = Release|Any CPU
 		{0FEFC3CE-5F7F-9549-B594-5C76A1B3CCA1}.Release|x86.ActiveCfg = Release|Any CPU
 		{0FEFC3CE-5F7F-9549-B594-5C76A1B3CCA1}.Release|x86.Build.0 = Release|Any CPU
+		{35DE59C0-390D-DE2C-6BB0-A8B43F8EBE4F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{35DE59C0-390D-DE2C-6BB0-A8B43F8EBE4F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{35DE59C0-390D-DE2C-6BB0-A8B43F8EBE4F}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{35DE59C0-390D-DE2C-6BB0-A8B43F8EBE4F}.Debug|x64.Build.0 = Debug|Any CPU
+		{35DE59C0-390D-DE2C-6BB0-A8B43F8EBE4F}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{35DE59C0-390D-DE2C-6BB0-A8B43F8EBE4F}.Debug|x86.Build.0 = Debug|Any CPU
+		{35DE59C0-390D-DE2C-6BB0-A8B43F8EBE4F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{35DE59C0-390D-DE2C-6BB0-A8B43F8EBE4F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{35DE59C0-390D-DE2C-6BB0-A8B43F8EBE4F}.Release|x64.ActiveCfg = Release|Any CPU
+		{35DE59C0-390D-DE2C-6BB0-A8B43F8EBE4F}.Release|x64.Build.0 = Release|Any CPU
+		{35DE59C0-390D-DE2C-6BB0-A8B43F8EBE4F}.Release|x86.ActiveCfg = Release|Any CPU
+		{35DE59C0-390D-DE2C-6BB0-A8B43F8EBE4F}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

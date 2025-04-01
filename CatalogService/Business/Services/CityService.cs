@@ -44,6 +44,7 @@ namespace CatalogService.Business.Services
         }
         public override async Task<string?> ValidateBeforeSave(CityCreateDTO model)
         {
+
             return null;
         }
 
