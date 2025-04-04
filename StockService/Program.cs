@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using StockService.Infrastructure.Data;
+using StockService.Infrastructure.Interfaces;
+using StockService.Infrastructure.Repositories;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,7 +16,9 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<StockDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// TODO: Registrar repositorios y servicios (más adelante)
+// Repositories
+builder.Services.AddScoped<IStockRepository, StockRepository>();
+builder.Services.AddScoped<IStockMovementRepository, StockMovementRepository>();
 
 // Autenticación JWT (si este microservicio va a estar expuesto)
 var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]);

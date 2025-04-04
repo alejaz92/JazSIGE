@@ -12,5 +12,6 @@
         public decimal Quantity { get; set; }
 
         public string? Reference { get; set; }
+        public int UserId { get; set; }
     }
 }
