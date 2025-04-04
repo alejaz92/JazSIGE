@@ -1,0 +1,16 @@
+﻿namespace StockService.Infrastructure.Models
+{
+    public class StockMovement
+    {
+        public int Id { get; set; }
+        public DateTime Date { get; set; } = DateTime.UtcNow;
+        public StockMovementType MovementType { get; set; }
+
+        public int ArticleId { get; set; }
+        public int? FromWarehouseId { get; set; }
+        public int? ToWarehouseId { get; set; }
+        public decimal Quantity { get; set; }
+
+        public string? Reference { get; set; }
+    }
+}
