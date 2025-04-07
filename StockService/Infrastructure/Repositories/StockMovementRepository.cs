@@ -29,6 +29,13 @@ namespace StockService.Infrastructure.Repositories
                 .OrderByDescending(sm => sm.Date)
                 .ToListAsync();
 
+        public async Task<IEnumerable<StockMovement>> GetPagedByArticleAsync(int articleId, int page, int pageSize) => await _context.StockMovements
+                .Where(sm => sm.ArticleId == articleId)
+                .OrderByDescending(sm => sm.Date)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
 
     }
 }

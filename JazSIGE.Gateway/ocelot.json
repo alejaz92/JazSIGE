@@ -55,7 +55,28 @@
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
       }
+    },
+    {
+      "DownstreamPathTemplate": "/api/stock/{everything}",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 7215
+        }
+      ],
+      "UpstreamPathTemplate": "/stock/{everything}",
+      "UpstreamHttpMethod": [ "POST", "GET", "PUT", "DELETE" ],
+      "AddHeadersToRequest": {
+        "Authorization": "{Headers.Authorization}"
+      },
+      "SwaggerKey": "stock",
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      }
     }
+
   ],
   "SwaggerEndPoints": [
     {
@@ -77,7 +98,18 @@
           "Url": "https://localhost:7285/swagger/v1/swagger.json"
         }
       ]
+    },
+    {
+      "Key": "stock",
+      "Config": [
+        {
+          "Name": "StockService API",
+          "Version": "v1",
+          "Url": "https://localhost:7215/swagger/v1/swagger.json"
+        }
+      ]
     }
+
   ],
   "GlobalConfiguration": {
     "BaseUrl": "https://localhost:7273"

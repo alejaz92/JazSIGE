@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using StockService.Business.Interfaces;
+using StockService.Business.Services;
 using StockService.Infrastructure.Data;
 using StockService.Infrastructure.Interfaces;
 using StockService.Infrastructure.Repositories;
@@ -16,9 +18,19 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<StockDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Swagger Configuration
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+
 // Repositories
 builder.Services.AddScoped<IStockRepository, StockRepository>();
 builder.Services.AddScoped<IStockMovementRepository, StockMovementRepository>();
+
+// Services
+builder.Services.AddScoped<IStockService, StockService.Business.Services.StockService>();
+builder.Services.AddHttpClient<ICatalogValidatorService, CatalogValidatorService>();
+builder.Services.AddHttpClient<IUserServiceClient, UserServiceClient>();
 
 // Autenticación JWT (si este microservicio va a estar expuesto)
 var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]);
@@ -52,7 +64,11 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "StockService API v1");
+        c.RoutePrefix = "swagger";  // Podés cambiar el prefijo o dejarlo vacío
+    });
 }
 
 app.UseHttpsRedirection();

@@ -27,5 +27,9 @@ namespace StockService.Infrastructure.Repositories
             _context.Stocks.Update(stock);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<IEnumerable<Stock>> GetAllByArticleAsync(int articleId) => await _context.Stocks
+                .Where(s => s.ArticleId == articleId)
+                .ToListAsync();
     }
 }
