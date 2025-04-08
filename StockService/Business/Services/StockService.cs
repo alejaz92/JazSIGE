@@ -25,7 +25,7 @@ namespace StockService.Business.Services
             _userServiceClient = userServiceClient;
         }
 
-        public async Task RegisterMovementAsync(StockMovementDTO dto, int userId)
+        public async Task RegisterMovementAsync(StockMovementCreateDTO dto, int userId)
         {
             if (!await _catalogValidatorService.ArticleExistsAsync(dto.ArticleId))
             {
@@ -52,26 +52,46 @@ namespace StockService.Business.Services
                 Reference = dto.Reference,
                 UserId = userId
             };
-            await _stockMovementRepository.AddAsync(stockMovement);
+            
 
             // Update stock based on the movement type
             switch (dto.MovementType)
             {
                 case StockMovementType.Purchase:
                 case StockMovementType.Adjustment:
-                case StockMovementType.TransferIn:
                     if (!dto.ToWarehouseId.HasValue)
-                        throw new ArgumentException("ToWarehouseId must be provided for this movement type.");
+                        throw new ArgumentException("ToWarehouseId is required for this movement.");
                     await UpdateStockAsync(dto.ArticleId, dto.ToWarehouseId.Value, dto.Quantity);
                     break;
-                case StockMovementType.TransferOut:
+
                 case StockMovementType.Sale:
                     if (!dto.FromWarehouseId.HasValue)
-                        throw new ArgumentException("FromWarehouseId must be provided for this movement type.");
+                        throw new ArgumentException("FromWarehouseId is required for this movement.");
                     await UpdateStockAsync(dto.ArticleId, dto.FromWarehouseId.Value, -dto.Quantity);
                     break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(dto.MovementType), "Unknown stock movement type.");
+
+                case StockMovementType.Transfer:
+                    if (!dto.FromWarehouseId.HasValue || !dto.ToWarehouseId.HasValue)
+                        throw new ArgumentException("Both FromWarehouseId and ToWarehouseId are required for transfers.");
+
+                    // Registrar solo un movimiento
+                    await _stockMovementRepository.AddAsync(new StockMovement
+                    {
+                        ArticleId = dto.ArticleId,
+                        MovementType = StockMovementType.Transfer,
+                        Quantity = dto.Quantity,
+                        Date = DateTime.UtcNow,
+                        FromWarehouseId = dto.FromWarehouseId,
+                        ToWarehouseId = dto.ToWarehouseId,
+                        Reference = dto.Reference,
+                        UserId = userId
+                    });
+
+                    // Actualizar stock en ambos depósitos
+                    await UpdateStockAsync(dto.ArticleId, dto.FromWarehouseId.Value, -dto.Quantity);
+                    await UpdateStockAsync(dto.ArticleId, dto.ToWarehouseId.Value, dto.Quantity);
+
+                    break;
 
             }
 
@@ -117,7 +137,7 @@ namespace StockService.Business.Services
             return stock?.Quantity ?? 0m;
         }
 
-        public async Task<IEnumerable<StockMovementDetailDTO>> GetMovementsByArticleAsync(int articleId, int page, int pageSize)
+        public async Task<IEnumerable<StockMovementDTO>> GetMovementsByArticleAsync(int articleId, int page, int pageSize)
         {
             var movements = await _stockMovementRepository.GetPagedByArticleAsync(articleId, page, pageSize);
             var articleName = await _catalogValidatorService.GetArticleNameAsync(articleId);
@@ -134,7 +154,7 @@ namespace StockService.Business.Services
 
                 var userName = await _userServiceClient.GetUserNameAsync(m.UserId);
 
-                return new StockMovementDetailDTO
+                return new StockMovementDTO
                 {
                     Id = m.Id,
                     Date = m.Date,

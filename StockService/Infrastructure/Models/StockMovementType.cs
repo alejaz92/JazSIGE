@@ -4,8 +4,7 @@
     {
         Purchase = 1,
         Adjustment = 2,
-        TransferIn = 3,
-        TransferOut = 4,
-        Sale = 5
+        Transfer = 3,
+        Sale = 4
     }
 }

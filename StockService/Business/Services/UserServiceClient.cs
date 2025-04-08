@@ -28,7 +28,7 @@ namespace StockService.Business.Services
                 client.DefaultRequestHeaders.Add("Authorization", token);
             }
 
-            var response = await client.GetFromJsonAsync<UserDTO>($"{_userServiceBaseUrl}/user/{userId}");
+            var response = await client.GetFromJsonAsync<UserDTO>($"{_userServiceBaseUrl}{userId}");
             if (response == null) return null;
 
             return $"{response.FirstName} {response.LastName}";

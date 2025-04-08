@@ -32,7 +32,7 @@ namespace StockService.Business.Services
                 client.DefaultRequestHeaders.Add("Authorization", token);
             }
 
-            var response = await client.GetAsync($"{_catalogBaseUrl}/article/{articleId}");
+            var response = await client.GetAsync($"{_catalogBaseUrl}Article/{articleId}");
             return response.IsSuccessStatusCode;
         }
 
@@ -48,7 +48,7 @@ namespace StockService.Business.Services
                 client.DefaultRequestHeaders.Add("Authorization", token);
             }
 
-            var response = await client.GetAsync($"{_catalogBaseUrl}/warehouse/{warehouseId}");
+            var response = await client.GetAsync($"{_catalogBaseUrl}Warehouse/{warehouseId}");
             return response.IsSuccessStatusCode;
         }
 
@@ -64,7 +64,7 @@ namespace StockService.Business.Services
             }
 
 
-            var response = await client.GetFromJsonAsync<ArticleDTO>($"{_catalogBaseUrl}/article/{articleId}");
+            var response = await client.GetFromJsonAsync<ArticleDTO>($"{_catalogBaseUrl}Article/{articleId}");
             return response?.Description;
         }
         public async Task<string?> GetWarehouseNameAsync(int warehouseId)
@@ -79,7 +79,7 @@ namespace StockService.Business.Services
             }
 
 
-            var response = await client.GetFromJsonAsync<WarehouseDTO>($"{_catalogBaseUrl}/warehouse/{warehouseId}");
+            var response = await client.GetFromJsonAsync<WarehouseDTO>($"{_catalogBaseUrl}Warehouse/{warehouseId}");
             return response?.Description;
         }
     }

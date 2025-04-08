@@ -8,7 +8,7 @@ namespace StockService.Business.Interfaces
     {
         Task<decimal> GetStockAsync(int articleId, int warehouseId);
         Task<decimal> GetStockSummaryAsync(int articleId);
-        Task RegisterMovementAsync(StockMovementDTO dto, int userId);
-        Task<IEnumerable<StockMovementDetailDTO>> GetMovementsByArticleAsync(int articleId, int page, int pageSize);
+        Task RegisterMovementAsync(StockMovementCreateDTO dto, int userId);
+        Task<IEnumerable<StockMovementDTO>> GetMovementsByArticleAsync(int articleId, int page, int pageSize);
     }
 }

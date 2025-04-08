@@ -9,47 +9,94 @@ namespace StockService.Controllers;
 public class StockController : ControllerBase
 {
     private readonly IStockService _stockService;
+    private readonly IEnumService _enumService;
 
-    public StockController(IStockService stockService)
+    public StockController(IStockService stockService, IEnumService enumService)
     {
         _stockService = stockService;
+        _enumService = enumService;
     }
 
-    // POST: api/stock/movement
     [HttpPost("movement")]
-    public async Task<IActionResult> RegisterMovement([FromBody] StockMovementDTO dto)
+    public async Task<IActionResult> RegisterMovement([FromBody] StockMovementCreateDTO dto)
     {
         if (!Request.Headers.TryGetValue("X-UserId", out var userIdHeader) || !int.TryParse(userIdHeader, out int userId))
-            return Unauthorized("Missing or invalid X-UserId header");
+            return Unauthorized(new { error = "Missing or invalid X-UserId header" });
 
-        await _stockService.RegisterMovementAsync(dto, userId);
-        return Ok();
+        try
+        {
+            await _stockService.RegisterMovementAsync(dto, userId);
+            return Ok();
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
+        }
     }
 
-    // GET: api/stock/{articleId}/warehouse/{warehouseId}
     [HttpGet("{articleId}/warehouse/{warehouseId}")]
     public async Task<ActionResult<decimal>> GetStock(int articleId, int warehouseId)
     {
-        var quantity = await _stockService.GetStockAsync(articleId, warehouseId);
-        return Ok(quantity);
+        try
+        {
+            var quantity = await _stockService.GetStockAsync(articleId, warehouseId);
+            return Ok(quantity);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
+        }
     }
 
-    // GET: api/stock/{articleId}/summary
     [HttpGet("{articleId}/summary")]
     public async Task<ActionResult<decimal>> GetStockSummary(int articleId)
     {
-        var total = await _stockService.GetStockSummaryAsync(articleId);
-        return Ok(total);
+        try
+        {
+            var total = await _stockService.GetStockSummaryAsync(articleId);
+            return Ok(total);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
+        }
     }
 
-    // GET: api/stock/{articleId}/movements?page=1&pageSize=20
     [HttpGet("{articleId}/movements")]
-    public async Task<ActionResult<IEnumerable<StockMovementDetailDTO>>> GetMovementsByArticle(
+    public async Task<ActionResult<IEnumerable<StockMovementDTO>>> GetMovementsByArticle(
         int articleId,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
-        var result = await _stockService.GetMovementsByArticleAsync(articleId, page, pageSize);
-        return Ok(result);
+        try
+        {
+            var result = await _stockService.GetMovementsByArticleAsync(articleId, page, pageSize);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
+        }
+    }
+
+    [HttpGet("movement-types")]
+    public ActionResult<IEnumerable<EnumDTO>> GetMovementTypes()
+    {
+        try
+        {
+            return Ok(_enumService.GetStockMovementTypes());
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
+        }
     }
 }

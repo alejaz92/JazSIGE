@@ -14,6 +14,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+
 // Agregar contexto y repositorios
 builder.Services.AddDbContext<StockDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -23,14 +24,21 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 
+// Contexto HTTP para extraer token
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpClient();
+
 // Repositories
 builder.Services.AddScoped<IStockRepository, StockRepository>();
 builder.Services.AddScoped<IStockMovementRepository, StockMovementRepository>();
 
 // Services
 builder.Services.AddScoped<IStockService, StockService.Business.Services.StockService>();
-builder.Services.AddHttpClient<ICatalogValidatorService, CatalogValidatorService>();
-builder.Services.AddHttpClient<IUserServiceClient, UserServiceClient>();
+builder.Services.AddScoped<ICatalogValidatorService, CatalogValidatorService>();
+builder.Services.AddScoped<IUserServiceClient, UserServiceClient>();
+builder.Services.AddScoped<IEnumService, EnumService>();
+
+
 
 // Autenticación JWT (si este microservicio va a estar expuesto)
 var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]);

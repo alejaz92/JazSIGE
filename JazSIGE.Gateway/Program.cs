@@ -41,6 +41,17 @@ app.UseHttpsRedirection();
 app.UseAuthentication(); //  Autenticación primero
 app.UseAuthorization();  //  Luego autorización
 
+app.Use(async (context, next) =>
+{
+    var userIdClaim = context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+    if (userIdClaim != null)
+    {
+        context.Request.Headers["X-UserId"] = userIdClaim.Value;
+    }
+
+    await next();
+});
+
 app.UseSwaggerForOcelotUI(opt =>
 {
     opt.PathToSwaggerGenerator = "/swagger/docs";
