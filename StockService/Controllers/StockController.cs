@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using StockService.Business.Interfaces;
 using StockService.Business.Models;
+using System.Security.Claims;
 
 namespace StockService.Controllers;
 
@@ -20,8 +21,12 @@ public class StockController : ControllerBase
     [HttpPost("movement")]
     public async Task<IActionResult> RegisterMovement([FromBody] StockMovementCreateDTO dto)
     {
-        if (!Request.Headers.TryGetValue("X-UserId", out var userIdHeader) || !int.TryParse(userIdHeader, out int userId))
-            return Unauthorized(new { error = "Missing or invalid X-UserId header" });
+        //if (!Request.Headers.TryGetValue("X-UserId", out var userIdHeader) || !int.TryParse(userIdHeader, out int userId))
+        //    return Unauthorized(new { error = "Missing or invalid X-UserId header" });
+
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+            return Unauthorized(new { error = "Usuario no autenticado correctamente" });
 
         try
         {
