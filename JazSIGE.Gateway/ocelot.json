@@ -77,7 +77,7 @@
       }
     },
     {
-      "DownstreamPathTemplate": "/api/purchase/{everything}",
+      "DownstreamPathTemplate": "/api/{everything}",
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
         {
@@ -85,7 +85,7 @@
           "Port": 7079
         }
       ],
-      "UpstreamPathTemplate": "/purchase/{everything}",
+      "UpstreamPathTemplate": "/{everything}",
       "UpstreamHttpMethod": [ "POST", "GET", "PUT", "DELETE" ],
       "AddHeadersToRequest": {
         "Authorization": "{Headers.Authorization}"

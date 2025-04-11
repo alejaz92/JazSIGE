@@ -46,6 +46,7 @@ builder.Services.AddScoped<IDispatchRepository, DispatchRepository>();
 
 
 //Services
+builder.Services.AddScoped<IDispatchService, DispatchService>();
 builder.Services.AddScoped<IUserServiceClient, UserServiceClient>();
 builder.Services.AddScoped<ICatalogServiceClient, CatalogServiceClient>();
 builder.Services.AddScoped<IStockServiceClient, StockServiceClient>();
