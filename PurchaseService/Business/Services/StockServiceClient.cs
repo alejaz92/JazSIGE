@@ -37,13 +37,24 @@ namespace PurchaseService.Business.Services
                 {
                     ArticleId = item.articleId,
                     Quantity = item.quantity,
-                    MovementType = "Purchase",
+                    MovementType = 1,
                     FromWarehouseId = null,
                     ToWarehouseId = warehouseId,
                     Reference = "Purchase"
                 };
 
-                await client.PostAsJsonAsync($"{_stockBaseUrl}stock/movement", dto);
+
+                var url = $"{_stockBaseUrl.TrimEnd('/')}/movement";
+                var response = await client.PostAsJsonAsync(url, dto);
+                var responseContent = await response.Content.ReadAsStringAsync();
+
+                Console.WriteLine($"➡️ StockService responded: {(int)response.StatusCode} {response.StatusCode}");
+                Console.WriteLine($"📝 Body: {responseContent}");
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new InvalidOperationException($"StockService error: {response.StatusCode} - {responseContent}");
+                }
             }
         }
     }

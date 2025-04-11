@@ -52,7 +52,10 @@ namespace StockService.Business.Services
                 Reference = dto.Reference,
                 UserId = userId
             };
-            
+
+            // Register the stock movement
+            await _stockMovementRepository.AddAsync(stockMovement);
+
 
             // Update stock based on the movement type
             switch (dto.MovementType)

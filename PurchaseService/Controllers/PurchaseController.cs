@@ -49,8 +49,8 @@ public class PurchaseController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] PurchaseCreateDTO dto)
     {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+        var userIdHeader = HttpContext.Request.Headers["X-UserId"].ToString();
+        if (!int.TryParse(userIdHeader, out int userId))
             return Unauthorized(new { error = "Usuario no autenticado correctamente" });
 
         try
@@ -78,8 +78,8 @@ public class PurchaseController : ControllerBase
         if (!IsAdmin())
             return Forbid();
 
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+        var userIdHeader = HttpContext.Request.Headers["X-UserId"].ToString();
+        if (!int.TryParse(userIdHeader, out int userId))
             return Unauthorized(new { error = "Usuario no autenticado correctamente" });
 
         try
@@ -107,8 +107,8 @@ public class PurchaseController : ControllerBase
         if (!IsAdmin())
             return Forbid();
 
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+        var userIdHeader = HttpContext.Request.Headers["X-UserId"].ToString();
+        if (!int.TryParse(userIdHeader, out int userId))
             return Unauthorized(new { error = "Usuario no autenticado correctamente" });
 
         try

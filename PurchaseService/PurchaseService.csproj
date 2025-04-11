@@ -18,13 +18,4 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="8.1.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Business\Models\" />
-    <Folder Include="Business\Interfaces\" />
-    <Folder Include="Business\Services\" />
-    <Folder Include="Controllers\" />
-    <Folder Include="Infrastructure\Interfaces\" />
-    <Folder Include="Infrastructure\Repositories\" />
-  </ItemGroup>
-
 </Project>

@@ -24,8 +24,8 @@ public class StockController : ControllerBase
         //if (!Request.Headers.TryGetValue("X-UserId", out var userIdHeader) || !int.TryParse(userIdHeader, out int userId))
         //    return Unauthorized(new { error = "Missing or invalid X-UserId header" });
 
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+        var userIdHeader = HttpContext.Request.Headers["X-UserId"].ToString();
+        if (!int.TryParse(userIdHeader, out int userId))
             return Unauthorized(new { error = "Usuario no autenticado correctamente" });
 
         try

@@ -75,6 +75,26 @@
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
       }
+    },
+    {
+      "DownstreamPathTemplate": "/api/purchase/{everything}",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 7079
+        }
+      ],
+      "UpstreamPathTemplate": "/purchase/{everything}",
+      "UpstreamHttpMethod": [ "POST", "GET", "PUT", "DELETE" ],
+      "AddHeadersToRequest": {
+        "Authorization": "{Headers.Authorization}"
+      },
+      "SwaggerKey": "purchase",
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      }
     }
 
   ],
@@ -106,6 +126,16 @@
           "Name": "StockService API",
           "Version": "v1",
           "Url": "https://localhost:7215/swagger/v1/swagger.json"
+        }
+      ]
+    },
+    {
+      "Key": "purchase",
+      "Config": [
+        {
+          "Name": "PurchaseService API",
+          "Version": "v1",
+          "Url": "https://localhost:7079/swagger/v1/swagger.json"
         }
       ]
     }

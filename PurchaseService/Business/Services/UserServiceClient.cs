@@ -23,7 +23,7 @@ namespace PurchaseService.Business.Services
         public async Task<string?> GetUserNameAsync(int userId)
         {
             var client = CreateAuthorizedClient();
-            var response = await client.GetFromJsonAsync<UserDTO>($"{_userBaseUrl}user/{userId}");
+            var response = await client.GetFromJsonAsync<UserDTO>($"{_userBaseUrl}{userId}");
             return response != null ? $"{response.FirstName} {response.LastName}" : null;
         }
 
