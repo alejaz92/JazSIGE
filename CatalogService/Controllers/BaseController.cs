@@ -3,6 +3,7 @@ using CatalogService.Infrastructure.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace CatalogService.Controllers
 {
@@ -121,22 +122,22 @@ namespace CatalogService.Controllers
         }
 
         [HttpPut("{id}/status")]
-        public virtual async Task<IActionResult> UpdateStatus(int id, bool isActive)
+        public virtual async Task<IActionResult> UpdateStatus(int id, [FromBody] JsonElement dto)
         {
-            //var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            //if (userIdClaim == null)
-            //    return Unauthorized();
-
             try
             {
+                if (!dto.TryGetProperty("isActive", out var isActiveElement) || isActiveElement.ValueKind != JsonValueKind.True && isActiveElement.ValueKind != JsonValueKind.False)
+                    return BadRequest("El campo 'isActive' es obligatorio y debe ser booleano.");
+
+                bool isActive = isActiveElement.GetBoolean();
                 var success = await _service.UpdateStatusAsync(id, isActive);
                 if (!success)
                     return NotFound();
+
                 return NoContent();
             }
             catch (Exception ex)
             {
-                // Podés loguear si tenés un ILogger
                 return StatusCode(StatusCodes.Status500InternalServerError, new
                 {
                     message = "Error ocurred while updating status.",
@@ -144,6 +145,8 @@ namespace CatalogService.Controllers
                 });
             }
         }
+
+
 
         [HttpDelete("{id}")]
         public virtual async Task<IActionResult> Delete(int id)

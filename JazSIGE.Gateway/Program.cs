@@ -34,11 +34,27 @@ builder.Services.AddAuthorization();
 builder.Services.AddOcelot();
 builder.Services.AddSwaggerForOcelot(builder.Configuration);
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:4200")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
+
+
+
 var app = builder.Build();
 
 app.UseHttpsRedirection();
 
-app.UseAuthentication(); //  Autenticación primero
+app.UseCors("AllowFrontend");
+
+
+app.UseAuthentication(); //  Autenticación primero vi
 app.UseAuthorization();  //  Luego autorización
 
 app.Use(async (context, next) =>
@@ -51,6 +67,9 @@ app.Use(async (context, next) =>
 
     await next();
 });
+
+
+
 
 app.UseSwaggerForOcelotUI(opt =>
 {
