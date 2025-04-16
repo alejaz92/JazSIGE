@@ -27,7 +27,8 @@ namespace CatalogService.Business.Services
                 GrossIncomeTypeId = entity.GrossIncomeTypeId,
                 GrossIncomeType = entity.GrossIncomeType.Description,
                 Warranty = entity.Warranty,
-                IsVisible = entity.IsVisible
+                IsVisible = entity.IsVisible,
+                isActive = entity.IsActive
             };
         }
         protected override Article MapToDomain(ArticleCreateDTO dto)

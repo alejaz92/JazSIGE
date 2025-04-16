@@ -17,5 +17,6 @@
         public string GrossIncomeType { get; set; }
         public int Warranty { get; set; }
         public bool IsVisible { get; set; }
+        public bool isActive { get; set; } 
     }
 }
