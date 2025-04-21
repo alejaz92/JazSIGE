@@ -14,7 +14,8 @@ namespace CatalogService.Business.Services
             return new LineGroupDTO
             {
                 Id = entity.Id,
-                Description = entity.Description
+                Description = entity.Description,
+                IsActive = entity.IsActive
             };
         }
 

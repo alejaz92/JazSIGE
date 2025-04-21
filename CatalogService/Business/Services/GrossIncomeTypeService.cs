@@ -16,7 +16,8 @@ namespace CatalogService.Business.Services
             return new GrossIncomeTypeDTO
             {
                 Id = entity.Id,
-                Description = entity.Description
+                Description = entity.Description,
+                IsActive = entity.IsActive
             };
         }
         protected override GrossIncomeType MapToDomain(GrossIncomeTypeCreateDTO dto)
