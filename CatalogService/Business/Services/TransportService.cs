@@ -18,10 +18,18 @@ namespace CatalogService.Business.Services
                 Name = entity.Name,
                 TaxId = entity.TaxId,
                 Address = entity.Address,
+                PostalCodeId = entity.PostalCodeId,
                 PostalCode = entity.PostalCode.Code,
+                CityId = entity.PostalCode.CityId,
+                City = entity.PostalCode.City.Name,
+                ProvinceId = entity.PostalCode.City.ProvinceId,
+                Province = entity.PostalCode.City.Province.Name,
+                CountryId = entity.PostalCode.City.Province.CountryId,
+                Country = entity.PostalCode.City.Province.Country.Name,
                 PhoneNumber = entity.PhoneNumber,
                 Email = entity.Email,
-                Comment = entity.Comment
+                Comment = entity.Comment,
+                IsActive = entity.IsActive
             };
         }
 
@@ -68,12 +76,19 @@ namespace CatalogService.Business.Services
 
 
         protected override Task<IEnumerable<Transport>> GetAllWithIncludes() => _repository.GetAllIncludingAsync(
-            t => t.PostalCode
+            t => t.PostalCode,
+            t => t.PostalCode.City,
+            t => t.PostalCode.City.Province,
+            t => t.PostalCode.City.Province.Country
             );
 
         protected override Task<Transport> GetWithIncludes(int id) => _repository.GetIncludingAsync(
             id, 
-            t => t.PostalCode);
+            t => t.PostalCode,
+            t => t.PostalCode.City,
+            t => t.PostalCode.City.Province,
+            t => t.PostalCode.City.Province.Country
+            );
 
     }
 }

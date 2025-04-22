@@ -16,7 +16,8 @@ namespace CatalogService.Business.Services
                 Id = entity.Id,
                 Description = entity.Description,
                 LineGroupId = entity.LineGroupId,
-                LineGroupDescription = entity.LineGroup.Description
+                LineGroupDescription = entity.LineGroup.Description,
+                IsActive = entity.IsActive
             };
         }
         protected override Line MapToDomain(LineCreateDTO dto)

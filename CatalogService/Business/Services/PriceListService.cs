@@ -15,7 +15,8 @@ namespace CatalogService.Business.Services
             return new PriceListDTO
             {
                 Id = entity.Id,
-                Description = entity.Description
+                Description = entity.Description,
+                IsActive = entity.IsActive,
             };
         }
         protected override PriceList MapToDomain(PriceListCreateDTO dto)

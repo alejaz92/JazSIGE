@@ -6,5 +6,6 @@
         public string Description { get; set; }
         public int LineGroupId { get; set; }
         public string LineGroupDescription { get; set; }
+        public bool IsActive { get; set; }
     }
 }

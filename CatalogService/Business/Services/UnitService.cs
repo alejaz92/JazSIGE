@@ -16,7 +16,8 @@ namespace CatalogService.Business.Services
             return new UnitDTO
             {
                 Id = entity.Id,
-                Description = entity.Description
+                Description = entity.Description,
+                IsActive = entity.IsActive,
             };
         }
         protected override Unit MapToDomain(UnitCreateDTO dto)
