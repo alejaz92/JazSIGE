@@ -15,5 +15,17 @@ namespace CatalogService.Controllers
         {
             _cityService = cityService;
         }
+
+        // get City by ProvinceId
+        [HttpGet("province/{provinceId}")]
+        public async Task<IActionResult> GetByProvinceIdAsync(int provinceId)
+        {
+            var cities = await _cityService.GetByProvinceIdAsync(provinceId);
+            if (cities == null || !cities.Any())
+            {
+                return NotFound("No cities found for the given province ID.");
+            }
+            return Ok(cities);
+        }
     }
 }

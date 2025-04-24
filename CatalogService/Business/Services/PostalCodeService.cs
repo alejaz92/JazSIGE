@@ -7,8 +7,11 @@ namespace CatalogService.Business.Services
 {
     public class PostalCodeService : GenericService<PostalCode, PostalCodeDTO, PostalCodeCreateDTO>, IPostalCodeService
     {
-        public PostalCodeService(IGenericRepository<PostalCode> repository) : base(repository)
+        private readonly IPostalCodeRepository _repository;
+
+        public PostalCodeService(IPostalCodeRepository repository) : base(repository)
         {
+            _repository = repository;
         }
 
         protected override PostalCodeDTO MapToDTO(PostalCode entity)
@@ -18,7 +21,11 @@ namespace CatalogService.Business.Services
                 Id = entity.Id,
                 Code = entity.Code,
                 CityId = entity.CityId,
-                CityName = entity.City.Name
+                City = entity.City.Name,
+                ProvinceId = entity.City.ProvinceId,
+                Province = entity.City.Province.Name,
+                CountryId = entity.City.Province.CountryId,
+                Country = entity.City.Province.Country.Name
             };
         }
         protected override PostalCode MapToDomain(PostalCodeCreateDTO dto)
@@ -50,9 +57,23 @@ namespace CatalogService.Business.Services
             return null;
         }
 
-        protected override Task<IEnumerable<PostalCode>> GetAllWithIncludes() => _repository.GetAllIncludingAsync(pc => pc.City);
+        protected override Task<IEnumerable<PostalCode>> GetAllWithIncludes() => _repository.GetAllIncludingAsync(
+            pc => pc.City,
+            pc => pc.City.Province,
+            pc => pc.City.Province.Country);
 
-        protected override Task<PostalCode> GetWithIncludes(int id) => _repository.GetIncludingAsync(id, pc => pc.City);
+        protected override Task<PostalCode> GetWithIncludes(int id) => _repository.GetIncludingAsync(
+            id, 
+            pc => pc.City,
+            pc => pc.City.Province,
+            pc => pc.City.Province.Country);
+
+        // get by CityId
+        public async Task<IEnumerable<PostalCodeDTO>> GetByCityIdAsync(int cityId)
+        {
+            var postalCodes = await _repository.GetByCityIdAsync(cityId);
+            return postalCodes.Select(MapToDTO);
+        }
 
     }
 }

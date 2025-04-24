@@ -17,5 +17,17 @@ namespace CatalogService.Controllers
             _postalCodeService = postalCodeService;
         }
 
+        // get PostalCode by CityId
+        [HttpGet("city/{cityId}")]
+        public async Task<IActionResult> GetByCityIdAsync(int cityId)
+        {
+            var postalCodes = await _postalCodeService.GetByCityIdAsync(cityId);
+            if (postalCodes == null || !postalCodes.Any())
+            {
+                return NotFound("No postal codes found for the given city ID.");
+            }
+            return Ok(postalCodes);
+        }
+
     }
 }

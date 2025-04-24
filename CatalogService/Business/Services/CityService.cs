@@ -7,8 +7,10 @@ namespace CatalogService.Business.Services
 {
     public class CityService : GenericService<City, CityDTO, CityCreateDTO>, ICityService
     {
-        public CityService(IGenericRepository<City> repository) : base(repository)
+        private readonly ICityRepository _repository;
+        public CityService(ICityRepository repository) : base(repository)
         {
+            _repository = repository;
         }
 
         protected override CityDTO MapToDTO(City entity)
@@ -51,5 +53,12 @@ namespace CatalogService.Business.Services
         protected override Task<IEnumerable<City>> GetAllWithIncludes() => _repository.GetAllIncludingAsync(c => c.Province);
 
         protected override Task<City> GetWithIncludes(int id) => _repository.GetIncludingAsync(id, c => c.Province);
+
+        // get by ProvinceId
+        public async Task<IEnumerable<CityDTO>> GetByProvinceIdAsync(int provinceId)
+        {
+            var cities = await _repository.GetByProvinceIdAsync(provinceId);
+            return cities.Select(MapToDTO);
+        }
     }
 }

@@ -7,8 +7,10 @@ namespace CatalogService.Business.Services
 {
     public class ProvinceService : GenericService<Province, ProvinceDTO, ProvinceCreateDTO>, IProvinceService
     {
-        public ProvinceService(IGenericRepository<Province> repository) : base(repository)
+        private readonly IProvinceRepository _repository;
+        public ProvinceService(IProvinceRepository repository) : base(repository)
         {
+            _repository = repository;
         }
 
         protected override ProvinceDTO MapToDTO(Province entity)
@@ -53,5 +55,13 @@ namespace CatalogService.Business.Services
         protected override Task<IEnumerable<Province>> GetAllWithIncludes() => _repository.GetAllIncludingAsync(p => p.Country);
 
         protected override Task<Province> GetWithIncludes(int id) => _repository.GetIncludingAsync(id, p => p.Country);
+
+
+        // get by CountryId
+        public async Task<IEnumerable<ProvinceDTO>> GetByCountryIdAsync(int countryId)
+        {
+            var provinces = await _repository.GetByCountryIdAsync(countryId);
+            return provinces.Select(MapToDTO);
+        }
     }
 }
