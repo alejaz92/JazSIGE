@@ -9,6 +9,8 @@
         public string Brand { get; set; }
         public int LineId { get; set; }
         public string Line { get; set; }
+        public int LineGroupId { get; set; }
+        public string LineGroup { get; set; }
         public int UnitId { get; set; }
         public string Unit { get; set; }
         public bool IsTaxed { get; set; }

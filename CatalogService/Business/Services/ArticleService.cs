@@ -20,6 +20,8 @@ namespace CatalogService.Business.Services
                 Brand = entity.Brand.Description,
                 LineId = entity.LineId,
                 Line = entity.Line.Description,
+                LineGroupId = entity.Line.LineGroupId,
+                LineGroup = entity.Line.LineGroup.Description,
                 UnitId = entity.UnitId,
                 Unit = entity.Unit.Description,
                 IsTaxed = entity.IsTaxed,
@@ -86,9 +88,22 @@ namespace CatalogService.Business.Services
             return MapToDTO(article);
         }
 
-        protected override Task<IEnumerable<Article>> GetAllWithIncludes() => _repository.GetAllIncludingAsync(a => a.Brand, a => a.Line, a => a.Unit, a => a.GrossIncomeType);
+        protected override Task<IEnumerable<Article>> GetAllWithIncludes() => _repository.GetAllIncludingAsync(
+            a => a.Brand, 
+            a => a.Line, 
+            a => a.Line.LineGroup,
+            a => a.Unit, 
+            a => a.GrossIncomeType
+            );
 
-        protected override Task<Article> GetWithIncludes(int id) => _repository.GetIncludingAsync(id, a => a.Brand, a => a.Line, a => a.Unit, a => a.GrossIncomeType);
+        protected override Task<Article> GetWithIncludes(int id) => _repository.GetIncludingAsync(
+            id, 
+            a => a.Brand, 
+            a => a.Line,
+            a => a.Line.LineGroup,
+            a => a.Unit, 
+            a => a.GrossIncomeType
+            );
 
 
         

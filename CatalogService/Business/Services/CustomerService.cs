@@ -29,9 +29,13 @@ namespace CatalogService.Business.Services
                 CompanyName = entity.CompanyName,
                 ContactName = entity.ContactName,
                 Address = entity.Address,
+                PostalCodeId = entity.PostalCodeId,
                 PostalCode = entity.PostalCode.Code,
+                CityId = entity.PostalCode.CityId,
                 City = entity.PostalCode.City.Name,
+                ProvinceId = entity.PostalCode.City.ProvinceId,
                 Province = entity.PostalCode.City.Province.Name,
+                CountryId = entity.PostalCode.City.Province.CountryId,
                 Country = entity.PostalCode.City.Province.Country.Name,
                 PhoneNumber = entity.PhoneNumber,
                 Email = entity.Email,
@@ -47,7 +51,8 @@ namespace CatalogService.Business.Services
                 SellerId = entity.SellerId,
                 SellerName = _cachedSellerName ?? "Unknown",
                 AssignedPriceListId = entity.AssignedPriceListId,
-                AssignedPriceList = entity.AssignedPriceList.Description
+                AssignedPriceList = entity.AssignedPriceList.Description,
+
             };
         }
 

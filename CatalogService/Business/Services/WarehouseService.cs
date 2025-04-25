@@ -15,7 +15,8 @@ namespace CatalogService.Business.Services
             return new WarehouseDTO
             {
                 Id = entity.Id,
-                Description = entity.Description
+                Description = entity.Description,
+                IsActive = entity.IsActive
             };
         }
         protected override Warehouse MapToDomain(WarehouseCreateDTO dto)

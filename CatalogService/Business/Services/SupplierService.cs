@@ -18,9 +18,13 @@ namespace CatalogService.Business.Services
                 CompanyName = entity.CompanyName,
                 ContactName = entity.ContactName,
                 Address = entity.Address,
+                PostalCodeId = entity.PostalCodeId,
                 PostalCode = entity.PostalCode.Code,
+                CityId = entity.PostalCode.CityId,
                 City = entity.PostalCode.City.Name,
+                ProvinceId = entity.PostalCode.City.ProvinceId,
                 Province = entity.PostalCode.City.Province.Name,
+                CountryId = entity.PostalCode.City.Province.CountryId,
                 Country = entity.PostalCode.City.Province.Country.Name,
                 PhoneNumber = entity.PhoneNumber,
                 Email = entity.Email,
@@ -30,7 +34,9 @@ namespace CatalogService.Business.Services
                 Warehouse = entity.Warehouse.Description,
                 TransportId = entity.TransportId,
                 Transport = entity.Transport.Name,
-                SellConditionId = entity.SellConditionId
+                SellConditionId = entity.SellConditionId,
+                SellCondition = entity.SellCondition.Description,
+                IsActive = entity.IsActive
             };
         }
 
