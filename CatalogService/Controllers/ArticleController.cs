@@ -30,5 +30,21 @@ namespace CatalogService.Controllers
                 return NotFound();
             return Ok(updatedArticle);
         }
+
+        [HttpGet("exists-by-description/{description}")]
+        public async Task<IActionResult> ArticleExistsByDescription(string description)
+        {
+            var exists = await _articleService.ArticleExistsByDescription(description);
+            return Ok(exists);
+        }
+
+        [HttpGet("exists-by-sku/{sku}")]
+        public async Task<IActionResult> ArticleExistsBySKU(string sku)
+        {
+            var exists = await _articleService.ArticleExistsBySKU(sku);
+            return Ok(exists);
+        }
+
+
     }
 }

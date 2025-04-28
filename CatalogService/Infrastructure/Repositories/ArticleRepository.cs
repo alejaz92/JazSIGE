@@ -1,6 +1,7 @@
 ﻿using CatalogService.Infrastructure.Data;
 using CatalogService.Infrastructure.Interfaces;
 using CatalogService.Infrastructure.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace CatalogService.Infrastructure.Repositories
 {

@@ -89,23 +89,36 @@ namespace CatalogService.Business.Services
         }
 
         protected override Task<IEnumerable<Article>> GetAllWithIncludes() => _repository.GetAllIncludingAsync(
-            a => a.Brand, 
-            a => a.Line, 
+            a => a.Brand,
+            a => a.Line,
             a => a.Line.LineGroup,
-            a => a.Unit, 
+            a => a.Unit,
             a => a.GrossIncomeType
             );
 
         protected override Task<Article> GetWithIncludes(int id) => _repository.GetIncludingAsync(
-            id, 
-            a => a.Brand, 
+            id,
+            a => a.Brand,
             a => a.Line,
             a => a.Line.LineGroup,
-            a => a.Unit, 
+            a => a.Unit,
             a => a.GrossIncomeType
             );
 
+        // check if article exists by its description
 
-        
+        public async Task<bool> ArticleExistsByDescription(string description)
+        {
+            var articles = await _repository.FindAsync(a => a.Description == description);
+            return articles.Any();
+        }
+
+        // check if article exists by its SKU
+        public async Task<bool> ArticleExistsBySKU(string sku)
+        {
+            var articles = await _repository.FindAsync(a => a.SKU == sku);
+            return articles.Any();
+        }
+
     }
 }
