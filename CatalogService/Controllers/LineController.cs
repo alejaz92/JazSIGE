@@ -16,5 +16,16 @@ namespace CatalogService.Controllers
         {
             _lineService = lineService;
         }
+
+        [HttpGet("line-group/{lineGroupId}")]
+        public async Task<IActionResult> GetByLineGroupIdAsync(int lineGroupId)
+        {
+            var lines = await _lineService.GetByLineGroupIdAsync(lineGroupId);
+            if (lines == null || !lines.Any())
+            {
+                return NotFound("No lines found for the given line group ID.");
+            }
+            return Ok(lines);
+        }
     }
 }

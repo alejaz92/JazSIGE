@@ -51,5 +51,19 @@ namespace CatalogService.Business.Services
         protected override Task<IEnumerable<Line>> GetAllWithIncludes() => _repository.GetAllIncludingAsync(line => line.LineGroup);
 
         protected override Task<Line> GetWithIncludes(int id) => _repository.GetIncludingAsync(id, line => line.LineGroup);
+
+        // get by lineGroupId
+        public async Task<IEnumerable<LineDTO>> GetByLineGroupIdAsync(int lineGroupId)
+        {
+            var lines = await _repository.FindAsync(l => l.LineGroupId == lineGroupId);
+            return lines.Select(line => new LineDTO
+            {
+                Id = line.Id,
+                Description = line.Description,
+                LineGroupId = line.LineGroupId,
+                LineGroupDescription = line.LineGroup.Description,
+                IsActive = line.IsActive
+            });
+        }
     }
 }
