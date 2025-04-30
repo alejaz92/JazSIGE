@@ -7,7 +7,7 @@ namespace StockService.Business.Models
         public int Id { get; set; }
         public DateTime Date { get; set; }
         public StockMovementType MovementType { get; set; }
-
+        public string StockMovementTypeName { get; set; } 
         public int ArticleId { get; set; }
         public string? ArticleName { get; set; }
         public int? FromWarehouseId { get; set; }

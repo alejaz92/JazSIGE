@@ -140,9 +140,9 @@ namespace StockService.Business.Services
             return stock?.Quantity ?? 0m;
         }
 
-        public async Task<IEnumerable<StockMovementDTO>> GetMovementsByArticleAsync(int articleId, int page, int pageSize)
+        public async Task<PaginatedResultDTO<StockMovementDTO>> GetMovementsByArticleAsync(int articleId, int page, int pageSize)
         {
-            var movements = await _stockMovementRepository.GetPagedByArticleAsync(articleId, page, pageSize);
+            var (movements, totalCount) = await _stockMovementRepository.GetPagedWithTotalAsync(articleId, page, pageSize);
             var articleName = await _catalogValidatorService.GetArticleNameAsync(articleId);
 
             var tasks = movements.Select(async m =>
@@ -162,6 +162,7 @@ namespace StockService.Business.Services
                     Id = m.Id,
                     Date = m.Date,
                     MovementType = m.MovementType,
+                    StockMovementTypeName = m.MovementType.ToString(),
                     ArticleId = m.ArticleId,
                     ArticleName = articleName,
                     FromWarehouseId = m.FromWarehouseId,
@@ -175,8 +176,18 @@ namespace StockService.Business.Services
                 };
             });
 
-            return await Task.WhenAll(tasks);
+            var items = await Task.WhenAll(tasks);
+
+            return new PaginatedResultDTO<StockMovementDTO>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
+            };
         }
+
+
     }
 
 }

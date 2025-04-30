@@ -76,10 +76,10 @@ public class StockController : ControllerBase
     }
 
     [HttpGet("{articleId}/movements")]
-    public async Task<ActionResult<IEnumerable<StockMovementDTO>>> GetMovementsByArticle(
-        int articleId,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20)
+    public async Task<ActionResult<PaginatedResultDTO<StockMovementDTO>>> GetMovementsByArticle(
+    int articleId,
+    [FromQuery] int page = 1,
+    [FromQuery] int pageSize = 20)
     {
         try
         {
@@ -91,6 +91,7 @@ public class StockController : ControllerBase
             return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
         }
     }
+
 
     [HttpGet("movement-types")]
     public ActionResult<IEnumerable<EnumDTO>> GetMovementTypes()
