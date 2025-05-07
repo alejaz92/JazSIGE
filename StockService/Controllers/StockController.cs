@@ -21,8 +21,6 @@ public class StockController : ControllerBase
     [HttpPost("movement")]
     public async Task<IActionResult> RegisterMovement([FromBody] StockMovementCreateDTO dto)
     {
-        //if (!Request.Headers.TryGetValue("X-UserId", out var userIdHeader) || !int.TryParse(userIdHeader, out int userId))
-        //    return Unauthorized(new { error = "Missing or invalid X-UserId header" });
 
         var userIdHeader = HttpContext.Request.Headers["X-UserId"].ToString();
         if (!int.TryParse(userIdHeader, out int userId))

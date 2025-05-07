@@ -13,5 +13,10 @@ namespace CatalogService.Infrastructure.Repositories
         {
             _dbContext = dbContext;
         }
+
+        public async Task<IEnumerable<Line>> GetByLineGroupIdAsync(int lineGroupId) => await _dbContext.Lines
+                .Where(line => line.LineGroupId == lineGroupId)
+                .Include(line => line.LineGroup)
+                .ToListAsync();
     }
 }

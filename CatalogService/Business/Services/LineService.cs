@@ -7,7 +7,10 @@ namespace CatalogService.Business.Services
 {
     public class LineService : GenericService<Line, LineDTO, LineCreateDTO>, ILineService
     {
-        public LineService(IGenericRepository<Line> repository) : base(repository) { }
+        private readonly ILineRepository _repository;
+        public LineService(ILineRepository repository) : base(repository) {
+            _repository = repository;
+        }
 
         protected override LineDTO MapToDTO(Line entity)
         {
@@ -55,7 +58,7 @@ namespace CatalogService.Business.Services
         // get by lineGroupId
         public async Task<IEnumerable<LineDTO>> GetByLineGroupIdAsync(int lineGroupId)
         {
-            var lines = await _repository.FindAsync(l => l.LineGroupId == lineGroupId);
+            var lines = await _repository.GetByLineGroupIdAsync(lineGroupId);
             return lines.Select(line => new LineDTO
             {
                 Id = line.Id,
@@ -63,7 +66,8 @@ namespace CatalogService.Business.Services
                 LineGroupId = line.LineGroupId,
                 LineGroupDescription = line.LineGroup.Description,
                 IsActive = line.IsActive
-            });
+            }).ToList();
+
         }
     }
 }

@@ -41,6 +41,16 @@ namespace StockService.Business.Services
                 throw new ArgumentException($"To Warehouse with ID {dto.ToWarehouseId} does not exist.");
             }
 
+            // validar que al restar stock de un deposito, ese deposito no tenga un stock menor al que se quiere restar
+            if (dto.MovementType == StockMovementType.Sale || dto.MovementType == StockMovementType.Transfer)
+            {
+                var currentStock = await _stockRepository.GetByArticleAndwarehouseAsync(dto.ArticleId, dto.FromWarehouseId.Value);
+                if (currentStock == null || currentStock.Quantity < dto.Quantity)
+                {
+                    throw new InvalidOperationException($"Not enough stock in warehouse {dto.FromWarehouseId} for article {dto.ArticleId}.");
+                }
+            }
+
             var stockMovement = new StockMovement
             {
                 ArticleId = dto.ArticleId,
@@ -76,19 +86,6 @@ namespace StockService.Business.Services
                 case StockMovementType.Transfer:
                     if (!dto.FromWarehouseId.HasValue || !dto.ToWarehouseId.HasValue)
                         throw new ArgumentException("Both FromWarehouseId and ToWarehouseId are required for transfers.");
-
-                    // Registrar solo un movimiento
-                    await _stockMovementRepository.AddAsync(new StockMovement
-                    {
-                        ArticleId = dto.ArticleId,
-                        MovementType = StockMovementType.Transfer,
-                        Quantity = dto.Quantity,
-                        Date = DateTime.UtcNow,
-                        FromWarehouseId = dto.FromWarehouseId,
-                        ToWarehouseId = dto.ToWarehouseId,
-                        Reference = dto.Reference,
-                        UserId = userId
-                    });
 
                     // Actualizar stock en ambos depósitos
                     await UpdateStockAsync(dto.ArticleId, dto.FromWarehouseId.Value, -dto.Quantity);
