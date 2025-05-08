@@ -103,4 +103,18 @@ public class StockController : ControllerBase
             return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
         }
     }
+
+    [HttpGet("{articleId}")]
+    public async Task<ActionResult<IEnumerable<StockDTO>>> GetStockByArticle(int articleId)
+    {
+        try
+        {
+            var stockList = await _stockService.GetStockByArticleAsync(articleId);
+            return Ok(stockList);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
+        }
+    }
 }

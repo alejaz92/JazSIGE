@@ -131,6 +131,25 @@ namespace StockService.Business.Services
             return stockList.Sum(s => s.Quantity);
         }
 
+        public async Task<IEnumerable<StockDTO>> GetStockByArticleAsync(int articleId)
+        {
+            var stockList = await _stockRepository.GetAllByArticleAsync(articleId);
+            var tasks = stockList.Select(async s =>
+            {
+                var warehouseName = await _catalogValidatorService.GetWarehouseNameAsync(s.WarehouseId);
+                return new StockDTO
+                {
+                    WarehouseId = s.WarehouseId,
+                    Quantity = s.Quantity,
+                    WarehouseName = warehouseName
+                };
+            });
+            return await Task.WhenAll(tasks);
+        }
+
+
+
+
         public async Task<decimal> GetStockAsync(int articleId, int warehouseId)
         {
             var stock = await _stockRepository.GetByArticleAndwarehouseAsync(articleId, warehouseId);
