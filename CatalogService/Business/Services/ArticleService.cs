@@ -7,7 +7,11 @@ namespace CatalogService.Business.Services
 {
     public class ArticleService : GenericService<Article, ArticleDTO, ArticleCreateDTO>, IArticleService
     {
-        public ArticleService(IArticleRepository repository) : base(repository) { }
+        private readonly IStockServiceClient _stockServiceClient;
+        public ArticleService(IArticleRepository repository, IStockServiceClient stockServiceClient) : base(repository) 
+        {
+            _stockServiceClient = stockServiceClient;
+        }
 
         protected override ArticleDTO MapToDTO(Article entity)
         {
@@ -67,7 +71,6 @@ namespace CatalogService.Business.Services
             var articles = await _repository.FindAsync(b => b.Description == Description);
             return !articles.Any();
         }
-
         public override async Task<string?> ValidateBeforeSave(ArticleCreateDTO model)
         {
             if (string.IsNullOrWhiteSpace(model.Description))
@@ -87,7 +90,6 @@ namespace CatalogService.Business.Services
             await _repository.SaveChangesAsync();
             return MapToDTO(article);
         }
-
         protected override Task<IEnumerable<Article>> GetAllWithIncludes() => _repository.GetAllIncludingAsync(
             a => a.Brand,
             a => a.Line,
@@ -95,7 +97,6 @@ namespace CatalogService.Business.Services
             a => a.Unit,
             a => a.GrossIncomeType
             );
-
         protected override Task<Article> GetWithIncludes(int id) => _repository.GetIncludingAsync(
             id,
             a => a.Brand,
@@ -104,20 +105,21 @@ namespace CatalogService.Business.Services
             a => a.Unit,
             a => a.GrossIncomeType
             );
-
-        // check if article exists by its description
-
         public async Task<bool> ArticleExistsByDescription(string description)
         {
             var articles = await _repository.FindAsync(a => a.Description == description);
             return articles.Any();
         }
-
-        // check if article exists by its SKU
         public async Task<bool> ArticleExistsBySKU(string sku)
         {
             var articles = await _repository.FindAsync(a => a.SKU == sku);
             return articles.Any();
+        }
+        protected override async Task<bool> IsInUseAsync(int id)
+        {
+
+            return await _stockServiceClient.HasStockAsync(id);
+
         }
 
     }

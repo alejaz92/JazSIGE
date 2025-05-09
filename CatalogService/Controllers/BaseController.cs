@@ -22,9 +22,6 @@ namespace CatalogService.Controllers
         [HttpGet]
         public virtual async Task<IActionResult> GetAll()
         {
-            //var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            //if (userIdClaim == null)
-            //    return Unauthorized();
             try
             {
                 var dtos = await _service.GetAllAsync();
@@ -44,10 +41,6 @@ namespace CatalogService.Controllers
         [HttpGet("{id}")]
         public virtual async Task<IActionResult> GetById(int id)
         {
-            //var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            //if (userIdClaim == null)
-            //    return Unauthorized();
-
             try
             {
                 var dto = await _service.GetByIdAsync(id);
@@ -70,13 +63,6 @@ namespace CatalogService.Controllers
         [HttpPost]
         public virtual async Task<IActionResult> Create(TCreateDto model)
         {
-            //var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            //if (userIdClaim == null)
-            //    return Unauthorized();
-
-            //var validationError = await _service.ValidateBeforeSave(model);
-            //if (validationError != null) return BadRequest(validationError);
-
             try
             {
                 var createdEntity = await _service.CreateAsync(model);
@@ -95,12 +81,6 @@ namespace CatalogService.Controllers
         [HttpPut("{id}")]
         public virtual async Task<IActionResult> Update(int id, TCreateDto model)
         {
-            //var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            //if (userIdClaim == null)
-            //    return Unauthorized();
-
-            //var validationError = await _service.ValidateBeforeSave(model);
-            //if (validationError != null) return BadRequest(validationError);
 
             try
             {
@@ -126,8 +106,11 @@ namespace CatalogService.Controllers
         {
             try
             {
-                if (!dto.TryGetProperty("isActive", out var isActiveElement) || isActiveElement.ValueKind != JsonValueKind.True && isActiveElement.ValueKind != JsonValueKind.False)
+                if (!dto.TryGetProperty("isActive", out var isActiveElement) ||
+                    (isActiveElement.ValueKind != JsonValueKind.True && isActiveElement.ValueKind != JsonValueKind.False))
+                {
                     return BadRequest("El campo 'isActive' es obligatorio y debe ser booleano.");
+                }
 
                 bool isActive = isActiveElement.GetBoolean();
                 var success = await _service.UpdateStatusAsync(id, isActive);
@@ -135,6 +118,13 @@ namespace CatalogService.Controllers
                     return NotFound();
 
                 return NoContent();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new
+                {
+                    message = ex.Message
+                });
             }
             catch (Exception ex)
             {
@@ -147,13 +137,9 @@ namespace CatalogService.Controllers
         }
 
 
-
         [HttpDelete("{id}")]
         public virtual async Task<IActionResult> Delete(int id)
         {
-            //var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            //if (userIdClaim == null)
-            //    return Unauthorized();
             try
             {
                 var success = await _service.DeleteAsync(id);
@@ -162,9 +148,15 @@ namespace CatalogService.Controllers
 
                 return NoContent();
             }
-             catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                // Podés loguear si tenés un ILogger
+                return Conflict(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
                 return StatusCode(StatusCodes.Status500InternalServerError, new
                 {
                     message = "Error ocurred while deleting.",

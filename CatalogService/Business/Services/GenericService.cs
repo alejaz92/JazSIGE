@@ -55,6 +55,10 @@ namespace CatalogService.Business.Services
         {
             var entity = await _repository.GetByIdAsync(id);
             if (entity == null) return false;
+
+            if (!isActive && await IsInUseAsync(id))
+                throw new InvalidOperationException("Cannot deactivate: entity is in use.");
+
             entity.IsActive = isActive;
             _repository.Update(entity);
             await _repository.SaveChangesAsync();
@@ -64,16 +68,19 @@ namespace CatalogService.Business.Services
         {
             var entity = await _repository.GetByIdAsync(id);
             if (entity == null) return false;
+
+            if (await IsInUseAsync(id))
+                throw new InvalidOperationException("Cannot delete: entity is in use.");
             
             await _repository.DeleteAsync(id);
             await _repository.SaveChangesAsync();
             return true;
         }
-
         public virtual async Task<string?> ValidateBeforeSave(TCreateDto model) => null;
 
 
 
+        protected virtual Task<bool> IsInUseAsync(int id) => Task.FromResult(false);
         protected virtual Task<IEnumerable<T>> GetAllWithIncludes() => _repository.GetAllAsync();
         protected virtual Task<T> GetWithIncludes(int id) => _repository.GetByIdAsync(id);
         protected abstract TDto MapToDTO(T entity);

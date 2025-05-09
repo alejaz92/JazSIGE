@@ -86,6 +86,7 @@ builder.Services.AddScoped<ISupplierService, SupplierService>();
 builder.Services.AddScoped<ITransportService, TransportService>();
 builder.Services.AddScoped<IUnitService, UnitService>();
 builder.Services.AddScoped<IWarehouseService, WarehouseService>();
+builder.Services.AddScoped<IStockServiceClient, StockServiceClient>();
 
 
 //inyect configuration
