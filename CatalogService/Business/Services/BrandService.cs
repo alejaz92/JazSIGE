@@ -5,10 +5,19 @@ using CatalogService.Infrastructure.Models;
 
 namespace CatalogService.Business.Services
 {
+    
     public class BrandService : GenericService<Brand, BrandDTO, BrandCreateDTO>, IBrandService
     {
-        public BrandService(IGenericRepository<Brand> repository) : base(repository)
+        private readonly IBrandRepository _repository;
+        private readonly IArticleService _articleService;
+
+        public BrandService(
+            IBrandRepository repository,
+            IArticleService articleService
+            ) : base(repository)
         {
+            _repository = repository;
+            _articleService = articleService;
         }
 
         protected override BrandDTO MapToDTO(Brand entity)
@@ -51,6 +60,15 @@ namespace CatalogService.Business.Services
             if (!isUnique) return "Brand Name already exists.";
 
             return null;
+        }
+
+        protected override async Task<bool> IsInUseAsync(int id)
+        {
+            var activeArticles = await _articleService.ActiveArticlesByBrand(id);
+
+            if (activeArticles > 0) return true;
+            return false;
+
         }
     }
 }

@@ -7,7 +7,15 @@ namespace CatalogService.Business.Services
 {
     public class LineGroupService : GenericService<LineGroup, LineGroupDTO, LineGroupCreateDTO>, ILineGroupService
     {
-        public LineGroupService(IGenericRepository<LineGroup> repository) : base(repository) { }
+        private readonly ILineService _lineService;
+        private readonly ILineGroupService _lineGroupService;
+        public LineGroupService(
+            ILineGroupRepository repository,
+            ILineService lineService
+            ) : base(repository) 
+        { 
+            _lineService = lineService;
+        }
 
         protected override LineGroupDTO MapToDTO(LineGroup entity)
         {
@@ -47,6 +55,14 @@ namespace CatalogService.Business.Services
             if (!isUnique)
                 return "Line group already exists.";
             return null;
+        }
+
+        protected override async Task<bool> IsInUseAsync(int id)
+        {
+            var activeLines = await _lineService.ActiveLinesByLineGroup(id);
+
+            if (activeLines > 0) return true;
+            return false;
         }
     }
 }

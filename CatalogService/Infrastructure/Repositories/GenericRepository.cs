@@ -42,17 +42,7 @@ namespace CatalogService.Infrastructure.Repositories
             }
             return await query.FirstOrDefaultAsync(entity => EF.Property<int>(entity, "Id") == id);
         }
-        //public async Task<IEnumerable<T>> GetPaginatedAsync(int page, int pageSize, params Expression<Func<T, object>>[] includes)
-        //{
-        //    IQueryable<T> query = _dbSet;
 
-        //    foreach (var include in includes)
-        //    {
-        //        query = query.Include(include);
-        //    }
-
-        //    return await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
-        //}
         public async Task AddAsync(T entity) => await _dbSet.AddAsync(entity);
         public async Task<T> AddAsyncReturnObject(T entity)
         {

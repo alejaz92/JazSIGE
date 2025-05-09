@@ -1,5 +1,9 @@
 ﻿using CatalogService.Business.Interfaces;
 using CatalogService.Business.Models.Article;
+using CatalogService.Business.Models.Brand;
+using CatalogService.Business.Models.GrossIncomeType;
+using CatalogService.Business.Models.Line;
+using CatalogService.Business.Models.Unit;
 using CatalogService.Infrastructure.Interfaces;
 using CatalogService.Infrastructure.Models;
 
@@ -8,8 +12,23 @@ namespace CatalogService.Business.Services
     public class ArticleService : GenericService<Article, ArticleDTO, ArticleCreateDTO>, IArticleService
     {
         private readonly IStockServiceClient _stockServiceClient;
-        public ArticleService(IArticleRepository repository, IStockServiceClient stockServiceClient) : base(repository) 
+        private readonly ILineService _lineService;
+        private readonly IBrandService _brandService;
+        private readonly IUnitService _unitService;
+        private readonly IGrossIncomeTypeService _grossIncomeTypeService;
+        public ArticleService(
+            IArticleRepository repository, 
+            IStockServiceClient stockServiceClient,
+            ILineService lineService,
+            IBrandService brandService,
+            IUnitService unitService,
+            IGrossIncomeTypeService grossIncomeTypeService
+            ) : base(repository) 
         {
+            _lineService = lineService;
+            _brandService = brandService;
+            _unitService = unitService;
+            _grossIncomeTypeService = grossIncomeTypeService;
             _stockServiceClient = stockServiceClient;
         }
 
@@ -68,7 +87,7 @@ namespace CatalogService.Business.Services
         }
         public async Task<bool> IsArticleDescriptionUnique(string Description)
         {
-            var articles = await _repository.FindAsync(b => b.Description == Description);
+            var articles = await _repository.FindAsync(a => a.Description == Description);
             return !articles.Any();
         }
         public override async Task<string?> ValidateBeforeSave(ArticleCreateDTO model)
@@ -119,6 +138,52 @@ namespace CatalogService.Business.Services
         {
 
             return await _stockServiceClient.HasStockAsync(id);
+
+        }
+
+        public async Task<int> ActiveArticlesByBrand(int brandId)
+        {
+            var articles = await _repository.FindAsync(
+                a => a.BrandId == brandId &&
+                a.IsActive == true);
+
+            return articles.Count();
+        }
+
+        public async Task<int> ActiveArticlesByLine(int lineId)
+        {
+            var articles = await _repository.FindAsync(
+                a => a.LineId == lineId &&
+                a.IsActive == true);
+
+            return articles.Count();
+        }
+
+        protected override async Task EnsureHierarchyActivationAsync(Article entity)
+        {
+            // check if line is activated
+            LineDTO line = await _lineService.GetByIdAsync(entity.LineId);
+
+            if (!line.IsActive)
+                await _lineService.UpdateStatusAsync(line.Id, true);
+
+
+            BrandDTO brand = await _brandService.GetByIdAsync(entity.BrandId);
+
+            if (!brand.IsActive)
+                await _brandService.UpdateStatusAsync(brand.Id, true);
+
+
+            UnitDTO unit = await _unitService.GetByIdAsync(entity.UnitId);
+
+            if(!unit.IsActive)
+                await _unitService.UpdateStatusAsync(unit.Id, true);
+           
+            GrossIncomeTypeDTO grossIncomeType = await _grossIncomeTypeService.GetByIdAsync(entity.GrossIncomeTypeId);
+
+            if (!grossIncomeType.IsActive)
+                await _grossIncomeTypeService.UpdateStatusAsync(grossIncomeType.Id, true);
+
 
         }
 

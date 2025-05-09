@@ -1,5 +1,6 @@
 ﻿using CatalogService.Business.Interfaces;
 using CatalogService.Business.Models.Line;
+using CatalogService.Business.Models.LineGroup;
 using CatalogService.Infrastructure.Interfaces;
 using CatalogService.Infrastructure.Models;
 
@@ -8,8 +9,16 @@ namespace CatalogService.Business.Services
     public class LineService : GenericService<Line, LineDTO, LineCreateDTO>, ILineService
     {
         private readonly ILineRepository _repository;
-        public LineService(ILineRepository repository) : base(repository) {
+        private readonly IArticleService _articleService;
+        private readonly ILineGroupService _lineGroupService;
+        public LineService(
+            ILineRepository repository,
+            IArticleService articleService,
+            ILineGroupService lineGroupService
+        ) : base(repository) {
             _repository = repository;
+            _articleService = articleService;
+            _lineGroupService = lineGroupService;
         }
 
         protected override LineDTO MapToDTO(Line entity)
@@ -68,6 +77,33 @@ namespace CatalogService.Business.Services
                 IsActive = line.IsActive
             }).ToList();
 
+        }
+
+        protected override async Task<bool> IsInUseAsync(int id)
+        {
+            var activeArticles = await _articleService.ActiveArticlesByBrand(id);
+
+            if (activeArticles > 0) return true;
+            return false;
+
+        }
+
+        public async Task<int> ActiveLinesByLineGroup(int lineGroupId)
+        {
+            var lines = await _repository.FindAsync(
+                a => a.LineGroupId == lineGroupId &&
+                a.IsActive);
+
+            return lines.Count();
+        }
+
+        protected override async Task EnsureHierarchyActivationAsync(Line entity)
+        {
+            // check if line group is activated
+            LineGroupDTO lineGroup = await _lineGroupService.GetByIdAsync(entity.LineGroupId);
+
+            if (!lineGroup.IsActive) 
+                await _lineGroupService.UpdateStatusAsync(lineGroup.Id, true);
         }
     }
 }

@@ -56,6 +56,10 @@ namespace CatalogService.Business.Services
             var entity = await _repository.GetByIdAsync(id);
             if (entity == null) return false;
 
+            //if isActive, check and activate higher hierarchies
+            if (isActive)  
+                await EnsureHierarchyActivationAsync(entity);
+
             if (!isActive && await IsInUseAsync(id))
                 throw new InvalidOperationException("Cannot deactivate: entity is in use.");
 
@@ -81,6 +85,7 @@ namespace CatalogService.Business.Services
 
 
         protected virtual Task<bool> IsInUseAsync(int id) => Task.FromResult(false);
+        protected virtual Task EnsureHierarchyActivationAsync(T entity) => Task.CompletedTask;
         protected virtual Task<IEnumerable<T>> GetAllWithIncludes() => _repository.GetAllAsync();
         protected virtual Task<T> GetWithIncludes(int id) => _repository.GetByIdAsync(id);
         protected abstract TDto MapToDTO(T entity);
