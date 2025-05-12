@@ -6,8 +6,16 @@ using CatalogService.Infrastructure.Models;
 namespace CatalogService.Business.Services
 {
     public class WarehouseService : GenericService<Warehouse, WarehouseDTO, WarehouseCreateDTO>, IWarehouseService   {
-        public WarehouseService(IWarehouseRepository repository) : base(repository)
-        {
+        
+        private readonly IWarehouseRepository _repository;
+        private readonly IStockServiceClient _stockServiceClient;
+        public WarehouseService(
+            IWarehouseRepository repository,
+            IStockServiceClient stockServiceClient
+            ) : base(repository)
+        {        
+            _repository = repository;
+            _stockServiceClient = stockServiceClient;
         }
 
         protected override WarehouseDTO MapToDTO(Warehouse entity)
@@ -44,6 +52,13 @@ namespace CatalogService.Business.Services
             if (!isUnique)
                 return "Warehouse already exists.";
             return null;
+        }
+
+        protected override async Task<bool> IsInUseAsync(int id)
+        {
+
+            return await _stockServiceClient.HasStockByWarehouseAsync(id);
+
         }
     }
 }

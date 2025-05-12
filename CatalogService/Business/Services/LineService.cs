@@ -9,15 +9,15 @@ namespace CatalogService.Business.Services
     public class LineService : GenericService<Line, LineDTO, LineCreateDTO>, ILineService
     {
         private readonly ILineRepository _repository;
-        private readonly IArticleService _articleService;
+        private readonly IArticleValidatorService _articleValidatorService;
         private readonly ILineGroupService _lineGroupService;
         public LineService(
             ILineRepository repository,
-            IArticleService articleService,
+            IArticleValidatorService articleValidatorService,
             ILineGroupService lineGroupService
         ) : base(repository) {
             _repository = repository;
-            _articleService = articleService;
+            _articleValidatorService = articleValidatorService;
             _lineGroupService = lineGroupService;
         }
 
@@ -81,7 +81,7 @@ namespace CatalogService.Business.Services
 
         protected override async Task<bool> IsInUseAsync(int id)
         {
-            var activeArticles = await _articleService.ActiveArticlesByBrand(id);
+            var activeArticles = await _articleValidatorService.ActiveArticlesByBrand(id);
 
             if (activeArticles > 0) return true;
             return false;

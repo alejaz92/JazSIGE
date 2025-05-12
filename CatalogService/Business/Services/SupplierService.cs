@@ -1,5 +1,9 @@
 ﻿using CatalogService.Business.Interfaces;
+using CatalogService.Business.Models.IVAType;
+using CatalogService.Business.Models.SellCondition;
 using CatalogService.Business.Models.Supplier;
+using CatalogService.Business.Models.Transport;
+using CatalogService.Business.Models.Warehouse;
 using CatalogService.Infrastructure.Interfaces;
 using CatalogService.Infrastructure.Models;
 
@@ -7,7 +11,24 @@ namespace CatalogService.Business.Services
 {
     public class SupplierService : GenericService<Supplier, SupplierDTO, SupplierCreateDTO>, ISupplierService
     {
-        public SupplierService(ISupplierRepository repository) : base(repository) { }
+        private readonly ISupplierRepository _repository;
+        private readonly IIVATypeService _ivaTypeService;
+        private readonly IWarehouseService _warehouseService;
+        private readonly ITransportService _transportService;
+        private readonly ISellConditionService _sellConditionService;
+        public SupplierService(
+            ISupplierRepository repository,
+            IIVATypeService ivaTypeService,
+            IWarehouseService warehouseService,
+            ITransportService transportService,
+            ISellConditionService sellConditionService
+            ) : base(repository) { 
+            _repository = repository;
+            _ivaTypeService = ivaTypeService;
+            _warehouseService = warehouseService;
+            _transportService = transportService;
+            _sellConditionService = sellConditionService;
+        }
 
         protected override SupplierDTO MapToDTO(Supplier entity)
         {
@@ -119,6 +140,21 @@ namespace CatalogService.Business.Services
                 s => s.SellCondition,
                 s => s.IVAType
             );
+        }
+
+        protected override async Task EnsureHierarchyActivationAsync(Supplier entity)
+        {
+            IVATypeDTO ivaType = await _ivaTypeService.GetByIdAsync( entity.IVATypeId );
+            if (!ivaType.IsActive) await _ivaTypeService.UpdateStatusAsync(ivaType.Id, true);
+
+            WarehouseDTO warehouse = await _warehouseService.GetByIdAsync(entity.WarehouseId);
+            if (!warehouse.IsActive) await _warehouseService.UpdateStatusAsync(warehouse.Id, true);
+
+            TransportDTO transport = await _transportService.GetByIdAsync(entity.TransportId);
+            if(!transport.IsActive) await _transportService.UpdateStatusAsync(transport.Id, true);
+
+            SellConditionDTO sellCondition = await _sellConditionService.GetByIdAsync(entity.SellConditionId);
+            if(!sellCondition.IsActive) await _sellConditionService.UpdateStatusAsync(sellCondition.Id, true);  
         }
     }
 }

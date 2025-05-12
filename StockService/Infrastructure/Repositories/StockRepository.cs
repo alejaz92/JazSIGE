@@ -31,5 +31,9 @@ namespace StockService.Infrastructure.Repositories
         public async Task<IEnumerable<Stock>> GetAllByArticleAsync(int articleId) => await _context.Stocks
                 .Where(s => s.ArticleId == articleId)
                 .ToListAsync();
+
+        public async Task<IEnumerable<Stock>> GetAllByWarehouseAsync(int warehouseId) => await _context.Stocks
+            .Where(s => s.WarehouseId == warehouseId)
+            .ToListAsync();
     }
 }

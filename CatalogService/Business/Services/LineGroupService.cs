@@ -7,14 +7,14 @@ namespace CatalogService.Business.Services
 {
     public class LineGroupService : GenericService<LineGroup, LineGroupDTO, LineGroupCreateDTO>, ILineGroupService
     {
-        private readonly ILineService _lineService;
+        private readonly ILineValidatorService _lineValidatorService;
         private readonly ILineGroupService _lineGroupService;
         public LineGroupService(
             ILineGroupRepository repository,
-            ILineService lineService
+            ILineValidatorService lineValidatorService
             ) : base(repository) 
         { 
-            _lineService = lineService;
+            _lineValidatorService = lineValidatorService;
         }
 
         protected override LineGroupDTO MapToDTO(LineGroup entity)
@@ -59,7 +59,7 @@ namespace CatalogService.Business.Services
 
         protected override async Task<bool> IsInUseAsync(int id)
         {
-            var activeLines = await _lineService.ActiveLinesByLineGroup(id);
+            var activeLines = await _lineValidatorService.ActiveLinesByLineGroup(id);
 
             if (activeLines > 0) return true;
             return false;

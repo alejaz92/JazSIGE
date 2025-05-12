@@ -7,8 +7,16 @@ namespace CatalogService.Business.Services
 {
     public class UnitService : GenericService<Unit, UnitDTO, UnitCreateDTO>, IUnitService
     {
-        public UnitService(IUnitRepository repository) : base(repository)
+        private readonly IUnitRepository _repository;
+        private readonly IArticleValidatorService _articleValidatorService;
+
+        public UnitService(
+            IUnitRepository repository,
+            IArticleValidatorService articleValidatorService
+            ) : base(repository)
         {
+            _repository = repository;
+            _articleValidatorService = articleValidatorService;
         }
 
         protected override UnitDTO MapToDTO(Unit entity)
@@ -45,5 +53,14 @@ namespace CatalogService.Business.Services
                 return "Unit already exists.";
             return null;
         }
+
+        protected override async Task<bool> IsInUseAsync(int id)
+        {
+            var activeArticles = await _articleValidatorService.ActiveArticlesByUnit(id);
+
+            if(activeArticles > 0) return true;
+            return false;
+        }
+
     }
 }

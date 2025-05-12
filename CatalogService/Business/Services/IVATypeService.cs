@@ -7,8 +7,18 @@ namespace CatalogService.Business.Services
 {
     public class IVATypeService : GenericService<IVAType, IVATypeDTO, IVATypeCreateDTO>, IIVATypeService
     {
-        public IVATypeService(IGenericRepository<IVAType> repository) : base(repository)
+        private readonly IIVATypeRepository _repository;
+        private readonly ICustomerValidatorService _customerValidatorService;
+        private readonly ISupplierValidatorService _supplierValidatorService;
+        public IVATypeService(
+            IIVATypeRepository repository,
+            ICustomerValidatorService customerValidatorService,
+            ISupplierValidatorService supplierValidatorService
+            ) : base(repository)
         {
+            _repository = repository;
+            _customerValidatorService = customerValidatorService;
+            _supplierValidatorService = supplierValidatorService;
         }
 
         protected  override IVATypeDTO MapToDTO(IVAType entity)
@@ -48,6 +58,16 @@ namespace CatalogService.Business.Services
             if (!isUnique)
                 return "IVA Type description already exists";
             return null;
+        }
+
+        protected override async Task<bool> IsInUseAsync(int id)
+        {
+            var activeCustomers = await _customerValidatorService.ActiveCustomersByIVAType(id);
+            if (activeCustomers > 0) return true;
+
+            var activeSuppliers = await _supplierValidatorService.ActiveSuppliersByIVAType(id);
+            if(activeSuppliers > 0) return true;
+            return false;
         }
     }
 }

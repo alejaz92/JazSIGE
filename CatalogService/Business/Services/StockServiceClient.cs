@@ -19,7 +19,7 @@ namespace CatalogService.Business.Services
             _stockBaseUrl = configuration["GatewayService:StockBaseUrl"];
         }
 
-        public async Task<bool> HasStockAsync(int articleId)
+        public async Task<bool> HasStockByArticleAsync(int articleId)
         {
             var client = CreateAuthorizedClient();
 
@@ -29,6 +29,18 @@ namespace CatalogService.Business.Services
             return false;
 
         }
+
+        public async Task<bool> HasStockByWarehouseAsync(int warehouseId)
+        {
+            var client = CreateAuthorizedClient();
+
+            var response = await client.GetFromJsonAsync<decimal>($"{_stockBaseUrl}{warehouseId}/warehouse/summary");
+
+            if (response != 0) return true;
+            return false;
+
+        }
+
 
         private HttpClient CreateAuthorizedClient()
         {

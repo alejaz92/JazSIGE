@@ -7,8 +7,15 @@ namespace CatalogService.Business.Services
 {
     public class PriceListService : GenericService<PriceList, PriceListDTO, PriceListCreateDTO>, IPriceListService
     {
-        public PriceListService(IPriceListRepository repository) : base(repository)
+        private readonly IPriceListRepository _repository;
+        private readonly ICustomerValidatorService _customerValidatorService;
+        public PriceListService(
+            IPriceListRepository repository,
+            ICustomerValidatorService customerValidatorService
+            ) : base(repository)
         {
+            _repository = repository;
+            _customerValidatorService = customerValidatorService;
         }
         protected override PriceListDTO MapToDTO(PriceList entity)
         {
@@ -43,6 +50,14 @@ namespace CatalogService.Business.Services
             if (!isUnique)
                 return "Price List already exists.";
             return null;
+        }
+
+        protected override async Task<bool> IsInUseAsync(int id)
+        {
+            var activeCustomers = await _customerValidatorService.ActiveCustomersByPriceList(id);
+
+            if (activeCustomers > 0) return true;
+            return false;
         }
 
     }

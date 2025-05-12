@@ -70,19 +70,23 @@ builder.Services.AddScoped<IWarehouseRepository, WarehouseRepository>();
 
 // declare services
 builder.Services.AddScoped<IArticleService, ArticleService>();
+builder.Services.AddScoped<IArticleValidatorService, ArticleValidatorService>();
 builder.Services.AddScoped<IBrandService, BrandService>();
 builder.Services.AddScoped<ICityService, CityService>();
 builder.Services.AddScoped<ICountryService, CountryService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
+builder.Services.AddScoped<ICustomerValidatorService, CustomerValidatorService>();
 builder.Services.AddScoped<IGrossIncomeTypeService, GrossIncomeTypeService>();
 builder.Services.AddScoped<IIVATypeService, IVATypeService>();
 builder.Services.AddScoped<ILineGroupService, LineGroupService>();
 builder.Services.AddScoped<ILineService, LineService>();
+builder.Services.AddScoped<ILineValidatorService, LineValidatorService>();
 builder.Services.AddScoped<IPostalCodeService, PostalCodeService>();
 builder.Services.AddScoped<IPriceListService, PriceListService>();
 builder.Services.AddScoped<IProvinceService, ProvinceService>();
 builder.Services.AddScoped<ISellConditionService, SellConditionService>();
 builder.Services.AddScoped<ISupplierService, SupplierService>();
+builder.Services.AddScoped<ISupplierValidatorService, SupplierValidatorService>();
 builder.Services.AddScoped<ITransportService, TransportService>();
 builder.Services.AddScoped<IUnitService, UnitService>();
 builder.Services.AddScoped<IWarehouseService, WarehouseService>();

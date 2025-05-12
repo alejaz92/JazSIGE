@@ -147,9 +147,6 @@ namespace StockService.Business.Services
             return await Task.WhenAll(tasks);
         }
 
-
-
-
         public async Task<decimal> GetStockAsync(int articleId, int warehouseId)
         {
             var stock = await _stockRepository.GetByArticleAndwarehouseAsync(articleId, warehouseId);
@@ -204,6 +201,12 @@ namespace StockService.Business.Services
         }
 
 
+        // get stock summary by warehouse
+        public async Task<decimal> GetStockSummaryByWarehouseAsync(int warehouseId)
+        {
+            var stockList = await _stockRepository.GetAllByWarehouseAsync(warehouseId);
+            return stockList.Sum(s => s.Quantity);
+        }
     }
 
 }

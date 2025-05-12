@@ -9,15 +9,15 @@ namespace CatalogService.Business.Services
     public class BrandService : GenericService<Brand, BrandDTO, BrandCreateDTO>, IBrandService
     {
         private readonly IBrandRepository _repository;
-        private readonly IArticleService _articleService;
+        private readonly IArticleValidatorService _articleValidatorService;
 
         public BrandService(
             IBrandRepository repository,
-            IArticleService articleService
+            IArticleValidatorService articleValidatorService
             ) : base(repository)
         {
             _repository = repository;
-            _articleService = articleService;
+            _articleValidatorService = articleValidatorService;
         }
 
         protected override BrandDTO MapToDTO(Brand entity)
@@ -64,7 +64,7 @@ namespace CatalogService.Business.Services
 
         protected override async Task<bool> IsInUseAsync(int id)
         {
-            var activeArticles = await _articleService.ActiveArticlesByBrand(id);
+            var activeArticles = await _articleValidatorService.ActiveArticlesByBrand(id);
 
             if (activeArticles > 0) return true;
             return false;

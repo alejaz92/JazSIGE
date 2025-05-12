@@ -7,8 +7,19 @@ namespace CatalogService.Business.Services
 {
     public class SellConditionService : GenericService<SellCondition, SellConditionDTO, SellConditionCreateDTO>, ISellConditionService
     {
-        public SellConditionService(ISellConditionRepository repository) : base(repository)
+        private readonly ISellConditionRepository _repository;
+        private readonly ICustomerValidatorService _customerValidatorService;
+        private readonly ISupplierValidatorService _supplierValidatorService;
+
+        public SellConditionService(
+            ISellConditionRepository repository,
+            ICustomerValidatorService customerValidatorService,
+            ISupplierValidatorService supplierValidatorService
+            ) : base(repository)
         {
+            _repository = repository;
+            _customerValidatorService = customerValidatorService;
+            _supplierValidatorService = supplierValidatorService;
         }
 
         protected override SellConditionDTO MapToDTO(SellCondition entity)
@@ -45,6 +56,17 @@ namespace CatalogService.Business.Services
             if (!isUnique)
                 return "Sell Condition already exists.";
             return null;
+        }
+
+        protected override async Task<bool> IsInUseAsync(int id)
+        {
+            var activeCustomers = await _customerValidatorService.ActiveCustomersBySellCondition(id);
+            if (activeCustomers > 0) return true;
+
+            var activeSuppliers = await _supplierValidatorService.ActiveSuppliersBySellCondition(id);
+            if(activeSuppliers > 0) return true;
+            return false;
+
         }
     }
 }

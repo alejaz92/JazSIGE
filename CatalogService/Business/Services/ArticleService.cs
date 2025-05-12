@@ -9,8 +9,10 @@ using CatalogService.Infrastructure.Models;
 
 namespace CatalogService.Business.Services
 {
-    public class ArticleService : GenericService<Article, ArticleDTO, ArticleCreateDTO>, IArticleService
+    public class ArticleService : GenericService<Article, ArticleDTO, ArticleCreateDTO>, 
+        IArticleService
     {
+        private readonly IArticleRepository _repository;
         private readonly IStockServiceClient _stockServiceClient;
         private readonly ILineService _lineService;
         private readonly IBrandService _brandService;
@@ -25,6 +27,7 @@ namespace CatalogService.Business.Services
             IGrossIncomeTypeService grossIncomeTypeService
             ) : base(repository) 
         {
+            _repository = repository;
             _lineService = lineService;
             _brandService = brandService;
             _unitService = unitService;
@@ -137,28 +140,9 @@ namespace CatalogService.Business.Services
         protected override async Task<bool> IsInUseAsync(int id)
         {
 
-            return await _stockServiceClient.HasStockAsync(id);
+            return await _stockServiceClient.HasStockByArticleAsync(id);
 
         }
-
-        public async Task<int> ActiveArticlesByBrand(int brandId)
-        {
-            var articles = await _repository.FindAsync(
-                a => a.BrandId == brandId &&
-                a.IsActive == true);
-
-            return articles.Count();
-        }
-
-        public async Task<int> ActiveArticlesByLine(int lineId)
-        {
-            var articles = await _repository.FindAsync(
-                a => a.LineId == lineId &&
-                a.IsActive == true);
-
-            return articles.Count();
-        }
-
         protected override async Task EnsureHierarchyActivationAsync(Article entity)
         {
             // check if line is activated

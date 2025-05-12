@@ -4,7 +4,8 @@ namespace CatalogService.Business.Interfaces
 {
     public interface IStockServiceClient
     {
-        Task<bool> HasStockAsync(int articleId);
+        Task<bool> HasStockByArticleAsync(int articleId);
+        Task<bool> HasStockByWarehouseAsync(int warehouseId);
     }
 }
 

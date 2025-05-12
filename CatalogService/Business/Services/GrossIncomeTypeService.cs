@@ -7,8 +7,15 @@ namespace CatalogService.Business.Services
 {
     public class GrossIncomeTypeService : GenericService<GrossIncomeType, GrossIncomeTypeDTO, GrossIncomeTypeCreateDTO>, IGrossIncomeTypeService
     {
-        public GrossIncomeTypeService(IGenericRepository<GrossIncomeType> repository) : base(repository)
+        private readonly IGrossIncomeTypeRepository _repository;
+        private readonly IArticleValidatorService _articleValidatorService;
+        public GrossIncomeTypeService(
+            IGrossIncomeTypeRepository repository,
+            IArticleValidatorService articleValidatorService
+            ) : base(repository)
         {
+            _repository = repository;
+            _articleValidatorService = articleValidatorService;
         }
 
         protected override GrossIncomeTypeDTO MapToDTO(GrossIncomeType entity)
@@ -45,6 +52,14 @@ namespace CatalogService.Business.Services
             if (!isUnique)
                 return "Gross Income Type description already exists.";
             return null;
+        }
+
+        protected override async Task<bool> IsInUseAsync(int id)
+        {
+            var activeArticles = await _articleValidatorService.ActiveArticlesByGrossIncomeType(id);
+
+            if (activeArticles > 0) return true;
+            return false;
         }
     }
 }

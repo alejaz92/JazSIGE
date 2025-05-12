@@ -1,5 +1,10 @@
 ﻿using CatalogService.Business.Interfaces;
 using CatalogService.Business.Models.Customer;
+using CatalogService.Business.Models.IVAType;
+using CatalogService.Business.Models.PriceList;
+using CatalogService.Business.Models.SellCondition;
+using CatalogService.Business.Models.Transport;
+using CatalogService.Business.Models.Warehouse;
 using CatalogService.Infrastructure.Interfaces;
 using CatalogService.Infrastructure.Models;
 using System.Text.Json;
@@ -12,12 +17,34 @@ namespace CatalogService.Business.Services
         private readonly string _gatewayUserServiceUrl;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private string? _cachedSellerName;
+        private readonly IIVATypeService _ivaTypeService;
+        private readonly IWarehouseService _warehouseService;
+        private readonly ITransportService _transportService;
+        private readonly ISellConditionService _sellConditionService;
+        private readonly IPriceListService _priceListService;
+        private readonly ICustomerRepository _repository;
 
-        public CustomerService(ICustomerRepository repository, IHttpClientFactory httpClientFactory, IConfiguration configuration, IHttpContextAccessor httpContextAccessor) : base(repository)
+        public CustomerService(
+            ICustomerRepository repository, 
+            IHttpClientFactory httpClientFactory, 
+            IConfiguration configuration, 
+            IHttpContextAccessor httpContextAccessor,
+            IIVATypeService ivaTypeService,
+            IWarehouseService warehouseService,
+            ITransportService transportService,
+            ISellConditionService sellConditionService,
+            IPriceListService priceListService
+            ) : base(repository)
         {
             _httpClientFactory = httpClientFactory;
             _gatewayUserServiceUrl = configuration["GatewayService:BaseUrl"];
             _httpContextAccessor = httpContextAccessor;
+            _ivaTypeService = ivaTypeService;
+            _warehouseService = warehouseService;
+            _transportService = transportService;
+            _sellConditionService = sellConditionService;
+            _priceListService = priceListService;
+            _repository = repository;
         }
 
         protected override CustomerDTO MapToDTO(Customer entity)
@@ -52,7 +79,7 @@ namespace CatalogService.Business.Services
                 SellerName = _cachedSellerName ?? "Unknown",
                 AssignedPriceListId = entity.AssignedPriceListId,
                 AssignedPriceList = entity.AssignedPriceList.Description,
-
+                IsActive = entity.IsActive
             };
         }
 
@@ -183,6 +210,24 @@ namespace CatalogService.Business.Services
             c => c.SellCondition,
             c => c.AssignedPriceList
             );
+
+        protected override async Task EnsureHierarchyActivationAsync(Customer entity)
+        {
+            IVATypeDTO ivaType = await _ivaTypeService.GetByIdAsync( entity.IVATypeId );
+            if (!ivaType.IsActive) await _ivaTypeService.UpdateStatusAsync(ivaType.Id, true);
+
+            WarehouseDTO warehouse = await _warehouseService.GetByIdAsync(entity.WarehouseId);
+            if (!warehouse.IsActive) await _warehouseService.UpdateStatusAsync(warehouse.Id, true);
+
+            TransportDTO transport = await _transportService.GetByIdAsync(entity.TransportId);
+            if (!transport.IsActive) await _transportService.UpdateStatusAsync(warehouse.Id, true);
+
+            SellConditionDTO sellCondition = await _sellConditionService.GetByIdAsync(entity.SellConditionId);
+            if (!sellCondition.IsActive) await _sellConditionService.UpdateStatusAsync(sellCondition.Id, true);
+
+            PriceListDTO priceList = await _priceListService.GetByIdAsync(entity.AssignedPriceListId);
+            if (!priceList.IsActive) await _priceListService.UpdateStatusAsync(priceList.Id, true); 
+        }
 
     }
 }
