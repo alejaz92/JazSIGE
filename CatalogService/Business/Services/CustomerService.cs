@@ -229,6 +229,33 @@ namespace CatalogService.Business.Services
             if (!priceList.IsActive) await _priceListService.UpdateStatusAsync(priceList.Id, true); 
         }
 
+
+        public override async Task<IEnumerable<CustomerDTO>> GetAllAsync()
+        {
+            var entities = await GetAllWithIncludes();
+            var result = new List<CustomerDTO>();
+
+            foreach (var entity in entities)
+            {
+                var sellerName = await GetSellerNameAsync(entity.SellerId);
+                _cachedSellerName = sellerName; // necesario porque MapToDTO lo usa
+                result.Add(MapToDTO(entity));
+            }
+
+            return result;
+        }
+
+        public override async Task<CustomerDTO> GetByIdAsync(int id)
+        {
+            var entity = await GetWithIncludes(id);
+            if (entity == null)
+                return null;
+
+            var sellerName = await GetSellerNameAsync(entity.SellerId);
+            _cachedSellerName = sellerName;
+
+            return MapToDTO(entity);
+        }
     }
 }
 

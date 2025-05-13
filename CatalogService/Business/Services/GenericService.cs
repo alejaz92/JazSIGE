@@ -14,12 +14,12 @@ namespace CatalogService.Business.Services
             _repository = repository;
         }
 
-        public async Task<IEnumerable<TDto>> GetAllAsync()
+        public virtual async Task<IEnumerable<TDto>> GetAllAsync()
         {
             var entities = await GetAllWithIncludes();
             return entities.Select(MapToDTO).ToList();
         }
-        public async Task<TDto> GetByIdAsync(int id)
+        public virtual async Task<TDto> GetByIdAsync(int id)
         {
             var entity = await GetWithIncludes(id);
             return entity != null ? MapToDTO(entity) : default(TDto);
