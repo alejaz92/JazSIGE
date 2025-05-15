@@ -26,11 +26,11 @@ namespace PurchaseService.Infrastructure.Data
                 .WithMany(p => p.Articles)
                 .HasForeignKey(pa => pa.PurchaseId);
 
-            // relacion 1 a 1 entre purchase y dispatch
-            modelBuilder.Entity<Dispatch>()
-                .HasOne(d => d.Purchase)
-                .WithOne(p => p.Dispatch)
-                .HasForeignKey<Dispatch>(d => d.PurchaseId);
+            //// relacion 1 a 1 entre purchase y dispatch
+            //modelBuilder.Entity<Dispatch>()
+            //    .HasOne(d => d.Purchase)
+            //    .WithOne(p => p.Dispatch)
+            //    .HasForeignKey<Dispatch>(d => d.PurchaseId);
         }
     }
 }

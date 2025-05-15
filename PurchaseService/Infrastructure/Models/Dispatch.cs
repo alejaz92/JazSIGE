@@ -8,7 +8,7 @@
         public DateTime Date { get; set; }
 
         public int PurchaseId { get; set; } 
-        public Purchase Purchase { get; set; }
+        
 
     }
 }

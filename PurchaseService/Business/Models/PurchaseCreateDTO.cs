@@ -7,5 +7,6 @@
         public int WarehouseId { get; set; }
         public List<PurchaseArticleCreateDTO> Articles { get; set; } = new();
         public DispatchCreateDTO? Dispatch { get; set; } 
+        public string reference { get; set; }
     }
 }

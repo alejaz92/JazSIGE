@@ -46,24 +46,6 @@ namespace PurchaseService.Business.Services
 
         private async Task<DispatchDTO> MapToDTOAsync(Infrastructure.Models.Dispatch dispatch)
         {
-            var purchase = dispatch.Purchase;
-
-            var supplierName = await _catalogServiceClient.GetSupplierNameAsync(purchase.SupplierId) ?? "N/A";
-            var warehouseName = await _catalogServiceClient.GetWarehouseNameAsync(purchase.WarehouseId) ?? "N/A";
-            var userName = await _userServiceClient.GetUserNameAsync(purchase.UserId) ?? "N/A";
-
-            var articles = new List<PurchaseArticleDTO>();
-            foreach (var a in purchase.Articles)
-            {
-                var articleName = await _catalogServiceClient.GetArticleNameAsync(a.ArticleId) ?? "N/A";
-                articles.Add(new PurchaseArticleDTO
-                {
-                    ArticleId = a.ArticleId,
-                    ArticleName = articleName,
-                    Quantity = a.Quantity,
-                    UnitCost = a.UnitCost
-                });
-            }
 
             return new DispatchDTO
             {
@@ -71,15 +53,7 @@ namespace PurchaseService.Business.Services
                 Code = dispatch.Code,
                 Origin = dispatch.Origin,
                 Date = dispatch.Date,
-                PurchaseId = dispatch.PurchaseId,
-                PurchaseDate = purchase.Date,
-                SupplierId = purchase.SupplierId,
-                SupplierName = supplierName,
-                WarehouseId = purchase.WarehouseId,
-                WarehouseName = warehouseName,
-                UserId = purchase.UserId,
-                UserName = userName,
-                Articles = articles
+                PurchaseId = dispatch.PurchaseId
             };
         }
 

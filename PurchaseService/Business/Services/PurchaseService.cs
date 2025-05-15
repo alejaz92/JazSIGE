@@ -75,63 +75,68 @@ namespace PurchaseService.Business.Services
             }
 
 
-            // create purchase
-            var purchase = new Purchase
-            {
-                Date = dto.Date,
-                SupplierId = dto.SupplierId,
-                WarehouseId = dto.WarehouseId,
-                UserId = userId,
-                Articles = dto.Articles.Select(a => new Purchase_Article
-                {
-                    ArticleId = a.ArticleId,
-                    Quantity = a.Quantity,
-                    UnitCost = a.UnitCost
-                }).ToList()
-            };
-
-            await _purchaseRepository.AddAsync(purchase);
-
-            // create dispatch if provided
-            if (dto.Dispatch != null)
-            {
-                var dispatch = new Dispatch
-                {
-                    Code = dto.Dispatch.Code,
-                    Origin = dto.Dispatch.Origin,
-                    Date = dto.Dispatch.Date,
-                    PurchaseId = purchase.Id,
-                    Purchase = purchase
-                };
-                await _dispatchRepository.AddAsync(dispatch);
-            }
-
-            await _purchaseRepository.SaveChangesAsync();
-
-
-
-            // register stock movements
+            using var transaction = await _purchaseRepository.BeginTransactionAsync();
 
             try
             {
-                await _stockServiceClient.RegisterPurchaseMovementsAsync(
-                userId,
-                purchase.WarehouseId,
-                purchase.Articles.Select(a => (a.ArticleId, a.Quantity)).ToList()
-                );
+                var purchase = new Purchase
+                {
+                    Date = dto.Date,
+                    SupplierId = dto.SupplierId,
+                    WarehouseId = dto.WarehouseId,
+                    UserId = userId,
+                    Articles = dto.Articles.Select(a => new Purchase_Article
+                    {
+                        ArticleId = a.ArticleId,
+                        Quantity = a.Quantity,
+                        UnitCost = a.UnitCost
+                    }).ToList()
+                };
 
-                purchase.StockUpdated = true;
-                await _purchaseRepository.SaveChangesAsync();
+                await _purchaseRepository.AddAsync(purchase);
+                await _purchaseRepository.SaveChangesAsync(); // Necesario para obtener el ID
+
+                if (dto.Dispatch != null)
+                {
+                    var dispatch = new Dispatch
+                    {
+                        Code = dto.Dispatch.Code,
+                        Origin = dto.Dispatch.Origin,
+                        Date = dto.Dispatch.Date,
+                        PurchaseId = purchase.Id
+                    };
+                    await _dispatchRepository.AddAsync(dispatch);
+                }
+
+                await _purchaseRepository.SaveChangesAsync(); // Guarda también el Dispatch
+
+                // Impactar stock
+                try
+                {
+                    await _stockServiceClient.RegisterPurchaseMovementsAsync(
+                        userId,
+                        purchase.WarehouseId,
+                        purchase.Articles.Select(a => (a.ArticleId, a.Quantity)).ToList(),
+                        dto.reference
+                    );
+
+                    purchase.StockUpdated = true;
+                    await _purchaseRepository.SaveChangesAsync();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error al impactar stock: {ex.Message}");
+                    throw new PartialSuccessException("La compra fue registrada, pero no se pudo actualizar el stock.");
+                }
+
+                await transaction.CommitAsync();
+                return purchase.Id;
             }
-            catch(Exception ex)
+            catch
             {
-
-                Console.WriteLine($"Error al impactar stock: {ex.Message}");
-
-                throw new PartialSuccessException("La compra fue registrada correctamente, pero no se pudo actualizar el stock. Contacte a soporte o reintente más tarde.");
+                await transaction.RollbackAsync();
+                throw;
             }
-
-            return purchase.Id;
         }
 
         public async Task RetryStockUpdateAsync(int purchaseId, int userId)
@@ -154,7 +159,8 @@ namespace PurchaseService.Business.Services
             await _stockServiceClient.RegisterPurchaseMovementsAsync(
                 userId,
                 purchase.WarehouseId,
-                purchase.Articles.Select(a => (a.ArticleId, a.Quantity)).ToList()
+                purchase.Articles.Select(a => (a.ArticleId, a.Quantity)).ToList(),
+                "ReTried stock movement"
             );
             purchase.StockUpdated = true;
             purchase.UpdatedAt = DateTime.UtcNow;
@@ -175,7 +181,8 @@ namespace PurchaseService.Business.Services
                     await _stockServiceClient.RegisterPurchaseMovementsAsync(
                         userId,
                         purchase.WarehouseId,
-                        purchase.Articles.Select(a => (a.ArticleId, a.Quantity)).ToList()
+                        purchase.Articles.Select(a => (a.ArticleId, a.Quantity)).ToList(),
+                        "ReTried Stock Movement"
                     );
 
                     purchase.StockUpdated = true;
@@ -231,6 +238,7 @@ namespace PurchaseService.Business.Services
                 });
             }
 
+
             return new PurchaseDTO
             {
                 Id = purchase.Id,
@@ -243,7 +251,14 @@ namespace PurchaseService.Business.Services
                 UserName = userName,
                 HasDispatch = purchase.Dispatch != null,
                 StockUpdated = purchase.StockUpdated,
-                Articles = articleDTOs
+                Articles = articleDTOs,
+                Dispatch = purchase.Dispatch != null ? new DispatchDTO
+                {
+                    Id = purchase.Dispatch.Id,
+                    Code = purchase.Dispatch.Code,
+                    Origin = purchase.Dispatch.Origin,
+                    Date = purchase.Dispatch.Date
+                } : null
             };
         }
     }

@@ -19,19 +19,13 @@ namespace PurchaseService.Infrastructure.Repositories
         }
 
         public async Task<Dispatch?> GetByIdAsync(int id) => await _context.Dispatches
-                .Include(d => d.Purchase)
-                    .ThenInclude(p => p.Articles)
-                .FirstOrDefaultAsync(d => d.Id == id);
+                .FirstOrDefaultAsync(d => d.PurchaseId == id);
 
         public async Task<IEnumerable<Dispatch>> GetAllAsync() => await _context.Dispatches
-                .Include(d => d.Purchase)
-                    .ThenInclude(p => p.Articles)
                 .OrderByDescending(d => d.Date)
                 .ToListAsync();
 
         public async Task<IEnumerable<Dispatch>> GetAllAsync(int pageNumber, int pageSize) => await _context.Dispatches
-                .Include(d => d.Purchase)
-                    .ThenInclude(p => p.Articles)
                 .OrderByDescending(d => d.Date)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)

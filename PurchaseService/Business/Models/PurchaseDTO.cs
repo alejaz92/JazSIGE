@@ -15,6 +15,7 @@
         public bool StockUpdated { get; set; }
 
         public List<PurchaseArticleDTO> Articles { get; set; } = new();
+        public DispatchDTO? Dispatch { get; set; } = null;
 
     }
 }

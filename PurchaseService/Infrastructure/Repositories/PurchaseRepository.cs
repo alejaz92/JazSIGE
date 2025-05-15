@@ -1,6 +1,7 @@
 ﻿
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using PurchaseService.Infrastructure.Data;
 using PurchaseService.Infrastructure.Interfaces;
 using PurchaseService.Infrastructure.Models;
@@ -52,6 +53,12 @@ namespace PurchaseService.Infrastructure.Repositories
                 .Where(p => !p.StockUpdated)
                 .OrderByDescending(p => p.Date)
                 .ToListAsync();
+
+        public async Task<IDbContextTransaction> BeginTransactionAsync()
+        {
+            return await _context.Database.BeginTransactionAsync();
+        }
+        
     }
 }
    
