@@ -52,10 +52,9 @@ namespace SalesService.Controllers
         /// Crea un nuevo precio para un artículo en una lista de precios
         /// </summary>
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create([FromBody] ArticlePriceListCreateDTO dto)
         {
-            if (!IsAdmin())
-                return Forbid();
 
             try
             {
@@ -68,11 +67,5 @@ namespace SalesService.Controllers
             
         }
 
-
-        private bool IsAdmin()
-        {
-            var roleClaim = User.FindFirst(ClaimTypes.Role);
-            return roleClaim != null && roleClaim.Value == "Admin";
-        }
     }
 }
