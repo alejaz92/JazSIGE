@@ -85,7 +85,7 @@
           "Port": 7079
         }
       ],
-      "UpstreamPathTemplate": "/{everything}",
+      "UpstreamPathTemplate": "/purchase/{everything}", 
       "UpstreamHttpMethod": [ "POST", "GET", "PUT", "DELETE" ],
       "AddHeadersToRequest": {
         "Authorization": "{Headers.Authorization}"
@@ -95,8 +95,27 @@
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
       }
+    },
+    {
+      "DownstreamPathTemplate": "/{everything}", 
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 7080
+        }
+      ],
+      "UpstreamPathTemplate": "/{everything}", 
+      "UpstreamHttpMethod": [ "POST", "GET", "PUT", "DELETE" ],
+      "AddHeadersToRequest": {
+        "Authorization": "{Headers.Authorization}"
+      },
+      "SwaggerKey": "sale",
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      }
     }
-
   ],
   "SwaggerEndPoints": [
     {
@@ -138,8 +157,17 @@
           "Url": "https://localhost:7079/swagger/v1/swagger.json"
         }
       ]
+    },
+    {
+      "Key": "sale",
+      "Config": [
+        {
+          "Name": "SalesService API",
+          "Version": "v1",
+          "Url": "https://localhost:7080/swagger/v1/swagger.json"
+        }
+      ]
     }
-
   ],
   "GlobalConfiguration": {
     "BaseUrl": "https://localhost:7273"
