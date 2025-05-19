@@ -8,10 +8,15 @@ namespace SalesService.Business.Services
     public class ArticlePriceListService : IArticlePriceListService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly ICatalogServiceClient _catalogServiceClient;
 
-        public ArticlePriceListService(IUnitOfWork unitOfWork)
+        public ArticlePriceListService(
+            IUnitOfWork unitOfWork,
+            ICatalogServiceClient catalogServiceClient
+            )
         {
             _unitOfWork = unitOfWork;
+            _catalogServiceClient = catalogServiceClient;
         }
 
         public async Task<ArticlePriceListDTO> CreateAsync(ArticlePriceListCreateDTO dto)
@@ -52,19 +57,39 @@ namespace SalesService.Business.Services
         public async Task<IEnumerable<ArticlePriceListDTO>> GetCurrentPricesByArticleAsync(int articleId)
         {
             var list = await _unitOfWork.ArticlePriceListRepository.GetCurrentPricesByArticleAsync(articleId);
-            return list.Select(MapToDTO);
+            var priceLists = await _catalogServiceClient.GetPriceLists();
+
+            return list.Select(p =>
+            {
+                var dto = MapToDTO(p);
+                dto.PriceListName = priceLists.FirstOrDefault(pl => pl.Id == p.PriceListId)?.Description ?? "Unknown";
+                return dto;
+            });
         }
 
         public async Task<ArticlePriceListDTO?> GetCurrentPriceAsync(int articleId, int priceListId)
         {
             var price = await _unitOfWork.ArticlePriceListRepository.GetCurrentPriceAsync(articleId, priceListId);
-            return price == null ? null : MapToDTO(price);
+            if (price == null) return null;
+
+            var dto = MapToDTO(price);
+            var priceLists = await _catalogServiceClient.GetPriceLists();
+            dto.PriceListName = priceLists.FirstOrDefault(pl => pl.Id == dto.PriceListId)?.Description ?? "Unknown";
+
+            return dto;
         }
 
         public async Task<IEnumerable<ArticlePriceListDTO>> GetPriceHistoryAsync(int articleId, int priceListId)
         {
             var history = await _unitOfWork.ArticlePriceListRepository.GetPriceHistoryAsync(articleId, priceListId);
-            return history.Select(MapToDTO);
+            var priceLists = await _catalogServiceClient.GetPriceLists();
+
+            return history.Select(p =>
+            {
+                var dto = MapToDTO(p);
+                dto.PriceListName = priceLists.FirstOrDefault(pl => pl.Id == p.PriceListId)?.Description ?? "Unknown";
+                return dto;
+            });
         }
     }
 }

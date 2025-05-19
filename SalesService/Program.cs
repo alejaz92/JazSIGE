@@ -53,6 +53,7 @@ builder.Services.AddScoped<IArticlePriceListRepository, ArticlePriceListReposito
 
 //Services
 builder.Services.AddScoped<IArticlePriceListService, ArticlePriceListService>();
+builder.Services.AddScoped<ICatalogServiceClient, CatalogServiceClient>();
 
 
 
