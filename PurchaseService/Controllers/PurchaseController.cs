@@ -73,10 +73,11 @@ public class PurchaseController : ControllerBase
     }
 
     [HttpPost("{id}/retry-stock")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> RetryStockUpdate(int id)
     {
-        if (!IsAdmin())
-            return Forbid();
+        //if (!IsAdmin())
+        //    return Forbid();
 
         var userIdHeader = HttpContext.Request.Headers["X-UserId"].ToString();
         if (!int.TryParse(userIdHeader, out int userId))
@@ -102,10 +103,11 @@ public class PurchaseController : ControllerBase
     }
 
     [HttpPost("retry-all-pending-stock")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> RetryAllPendingStock()
     {
-        if (!IsAdmin())
-            return Forbid();
+        //if (!IsAdmin())
+        //    return Forbid();
 
         var userIdHeader = HttpContext.Request.Headers["X-UserId"].ToString();
         if (!int.TryParse(userIdHeader, out int userId))
@@ -123,10 +125,11 @@ public class PurchaseController : ControllerBase
     }
 
     [HttpGet("pending-stock")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<IEnumerable<PurchaseDTO>>> GetPendingStock()
     {
-        if (!IsAdmin())
-            return Forbid();
+        //if (!IsAdmin())
+        //    return Forbid();
 
         try
         {
@@ -139,9 +142,9 @@ public class PurchaseController : ControllerBase
         }
     }
 
-    private bool IsAdmin()
-    {
-        var roleClaim = User.FindFirst(ClaimTypes.Role);
-        return roleClaim != null && roleClaim.Value == "Admin";
-    }
+    //private bool IsAdmin()
+    //{
+    //    var roleClaim = User.FindFirst(ClaimTypes.Role);
+    //    return roleClaim != null && roleClaim.Value == "Admin";
+    //}
 }
