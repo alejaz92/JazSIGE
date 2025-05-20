@@ -8,7 +8,7 @@ using System.Security.Claims;
 namespace PurchaseService.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api")]
 public class PurchaseController : ControllerBase
 {
     private readonly IPurchaseService _purchaseService;
