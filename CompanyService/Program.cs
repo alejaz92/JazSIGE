@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+ï»¿using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -70,9 +70,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "CompanyService API v1");
-        c.RoutePrefix = "swagger";  // Podés cambiar el prefijo o dejarlo vacío
+        c.RoutePrefix = "swagger";  // PodÃ©s cambiar el prefijo o dejarlo vacÃ­o
     });
 }
+
+app.UseStaticFiles();
+
 
 app.UseHttpsRedirection();
 app.UseCors("FrontendPolicy");

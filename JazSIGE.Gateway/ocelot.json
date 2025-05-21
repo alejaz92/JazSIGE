@@ -98,7 +98,7 @@
     },
 
     {
-      "DownstreamPathTemplate": "/api/companyinfo",
+      "DownstreamPathTemplate": "/api/companyinfo/{everything}",
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
         {
@@ -106,7 +106,7 @@
           "Port": 7168
         }
       ],
-      "UpstreamPathTemplate": "/companyinfo",
+      "UpstreamPathTemplate": "/companyinfo/{everything}",
       "UpstreamHttpMethod": [ "GET", "PUT" ],
       "AddHeadersToRequest": {
         "Authorization": "{Headers.Authorization}"

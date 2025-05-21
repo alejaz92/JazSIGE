@@ -6,5 +6,6 @@ namespace CompanyService.Business.Interfaces
     {
         Task<CompanyInfoDTO> GetAsync();
         Task UpdateAsync(CompanyInfoUpdateDTO dto);
+        Task UpdateLogoUrlAsync(CompanyLogoUpdateDTO dto);
     }
 }

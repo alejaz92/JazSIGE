@@ -76,5 +76,18 @@ namespace CompanyService.Business.Services
             await _repository.SaveChangesAsync();
         }
 
+        public async Task UpdateLogoUrlAsync(CompanyLogoUpdateDTO dto)
+        {
+            var company = await _repository.GetAsync();
+            if (company == null)
+                throw new Exception("Company info not found.");
+
+            company.LogoUrl = dto.LogoUrl;
+            company.UpdatedAt = DateTime.UtcNow;
+
+            await _repository.UpdateAsync(company);
+            await _repository.SaveChangesAsync();
+        }
+
     }
 }

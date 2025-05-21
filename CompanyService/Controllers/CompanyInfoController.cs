@@ -41,5 +41,24 @@ namespace CompanyService.Controllers
             }
         }
 
+
+        [HttpPut("logo-url")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> UpdateLogoUrl([FromBody] CompanyLogoUpdateDTO dto)
+        {
+            if (dto == null || string.IsNullOrWhiteSpace(dto.LogoUrl))
+                return BadRequest("Invalid logo URL.");
+
+            try
+            {
+                await _service.UpdateLogoUrlAsync(dto);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
     }
 }
