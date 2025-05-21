@@ -85,7 +85,7 @@
           "Port": 7079
         }
       ],
-      "UpstreamPathTemplate": "/purchase/{everything}", 
+      "UpstreamPathTemplate": "/purchase/{everything}",
       "UpstreamHttpMethod": [ "POST", "GET", "PUT", "DELETE" ],
       "AddHeadersToRequest": {
         "Authorization": "{Headers.Authorization}"
@@ -96,8 +96,30 @@
         "AllowedScopes": []
       }
     },
+
     {
-      "DownstreamPathTemplate": "/{everything}", 
+      "DownstreamPathTemplate": "/api/companyinfo",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 7168
+        }
+      ],
+      "UpstreamPathTemplate": "/companyinfo",
+      "UpstreamHttpMethod": [ "GET", "PUT" ],
+      "AddHeadersToRequest": {
+        "Authorization": "{Headers.Authorization}"
+      },
+      "SwaggerKey": "company",
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      }
+    },
+
+    {
+      "DownstreamPathTemplate": "/{everything}",
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
         {
@@ -105,7 +127,7 @@
           "Port": 7080
         }
       ],
-      "UpstreamPathTemplate": "/{everything}", 
+      "UpstreamPathTemplate": "/{everything}",
       "UpstreamHttpMethod": [ "POST", "GET", "PUT", "DELETE" ],
       "AddHeadersToRequest": {
         "Authorization": "{Headers.Authorization}"
@@ -158,6 +180,7 @@
         }
       ]
     },
+
     {
       "Key": "sale",
       "Config": [
@@ -165,6 +188,16 @@
           "Name": "SalesService API",
           "Version": "v1",
           "Url": "https://localhost:7080/swagger/v1/swagger.json"
+        }
+      ]
+    },
+    {
+      "Key": "company",
+      "Config": [
+        {
+          "Name": "CompanyService API",
+          "Version": "v1",
+          "Url": "https://localhost:7168/swagger/v1/swagger.json"
         }
       ]
     }
