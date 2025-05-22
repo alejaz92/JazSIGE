@@ -1,4 +1,4 @@
-﻿namespace SalesService.Business.Models
+﻿namespace SalesService.Business.Models.Article_PriceLists
 {
     public class ArticlePriceListCreateDTO
     {

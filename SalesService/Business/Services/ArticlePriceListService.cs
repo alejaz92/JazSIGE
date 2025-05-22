@@ -1,5 +1,6 @@
 ﻿using SalesService.Business.Interfaces;
-using SalesService.Business.Models;
+using SalesService.Business.Interfaces.Clients;
+using SalesService.Business.Models.Article_PriceLists;
 using SalesService.Infrastructure.Interfaces;
 using SalesService.Infrastructure.Models;
 

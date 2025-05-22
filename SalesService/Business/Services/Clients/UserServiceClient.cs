@@ -1,0 +1,36 @@
+﻿using SalesService.Business.Interfaces.Clients;
+using SalesService.Business.Models.SalesQuote;
+
+namespace SalesService.Business.Services.Clients
+{
+    public class UserServiceClient : IUserServiceClient
+    {
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly string _userBaseUrl;
+
+        public UserServiceClient(IHttpClientFactory httpClientFactory, IHttpContextAccessor httpContextAccessor, IConfiguration configuration)
+        {
+            _httpClientFactory = httpClientFactory;
+            _httpContextAccessor = httpContextAccessor;
+            _userBaseUrl = configuration["GatewayService:UserBaseUrl"];
+        }
+
+        private HttpClient CreateAuthorizedClient()
+        {
+            var client = _httpClientFactory.CreateClient();
+            var token = _httpContextAccessor.HttpContext?.Request.Headers["Authorization"].ToString();
+            if (!string.IsNullOrEmpty(token))
+                client.DefaultRequestHeaders.Add("Authorization", token);
+            return client;
+        }
+
+        public async Task<UserDTO?> GetUserByIdAsync(int userId)
+        {
+            var client = CreateAuthorizedClient();
+            var response = await client.GetAsync($"{_userBaseUrl}{userId}");
+            if (!response.IsSuccessStatusCode) return null;
+            return await response.Content.ReadFromJsonAsync<UserDTO>();
+        }
+    }
+}

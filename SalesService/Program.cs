@@ -8,6 +8,8 @@ using SalesService.Infrastructure.Data;
 using SalesService.Business.Interfaces;
 using SalesService.Business.Services;
 using System.Security.Claims;
+using SalesService.Business.Interfaces.Clients;
+using SalesService.Business.Services.Clients;
 
 
 
@@ -48,12 +50,17 @@ builder.Services.AddCors(options => {
 // Repositories
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IArticlePriceListRepository, ArticlePriceListRepository>();
+builder.Services.AddScoped<ISalesQuoteRepository, SalesQuoteRepository>();
+builder.Services.AddScoped<ISalesQuoteArticleRepository, SalesQuoteArticleRepository>();
 
 
 
 //Services
 builder.Services.AddScoped<IArticlePriceListService, ArticlePriceListService>();
 builder.Services.AddScoped<ICatalogServiceClient, CatalogServiceClient>();
+builder.Services.AddScoped<IUserServiceClient, UserServiceClient>();
+builder.Services.AddScoped<ICompanyServiceClient, CompanyServiceClient>();
+builder.Services.AddScoped<ISalesQuoteService, SalesQuoteService>();
 
 
 

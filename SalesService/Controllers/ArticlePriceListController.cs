@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SalesService.Business.Interfaces;
-using SalesService.Business.Models;
+using SalesService.Business.Models.Article_PriceLists;
 using System.Security.Claims;
 
 namespace SalesService.Controllers

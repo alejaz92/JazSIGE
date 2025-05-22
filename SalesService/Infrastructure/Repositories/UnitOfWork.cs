@@ -7,23 +7,26 @@ namespace SalesService.Infrastructure.Repositories
     {
         private readonly SalesDbContext _context;
 
-        public IArticlePriceListRepository _articlePriceListRepository { get; }
+        public IArticlePriceListRepository ArticlePriceListRepository { get; }
+        public ISalesQuoteRepository SalesQuoteRepository { get; }
+        public ISalesQuoteArticleRepository SalesQuoteArticleRepository { get; }
 
-        public IArticlePriceListRepository ArticlePriceListRepository => _articlePriceListRepository;
+     
 
 
         public UnitOfWork(
             SalesDbContext context,
-            IArticlePriceListRepository articlePriceListRepository
+            IArticlePriceListRepository articlePriceListRepository,
+            ISalesQuoteRepository salesQuoteRepository,
+            ISalesQuoteArticleRepository salesQuoteArticleRepository
             )
         {
             _context = context;
-            _articlePriceListRepository = articlePriceListRepository;
+            ArticlePriceListRepository = articlePriceListRepository;
+            SalesQuoteRepository = salesQuoteRepository;
+            SalesQuoteArticleRepository = salesQuoteArticleRepository;
         }
 
-        public async Task SaveAsync()
-        {
-            await _context.SaveChangesAsync();
-        }
+        public async Task SaveAsync() => await _context.SaveChangesAsync();
     }
 }

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SalesService.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using SalesService.Infrastructure.Data;
 namespace SalesService.Migrations
 {
     [DbContext(typeof(SalesDbContext))]
-    partial class SalesDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250522134150_creation of salesQuote objects")]
+    partial class creationofsalesQuoteobjects
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -73,9 +76,6 @@ namespace SalesService.Migrations
                     b.Property<decimal>("ExchangeRate")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<DateTime>("ExpirationDate")
-                        .HasColumnType("datetime2");
-
                     b.Property<decimal>("IVAAmountUSD")
                         .HasColumnType("decimal(18,4)");
 
@@ -94,7 +94,7 @@ namespace SalesService.Migrations
                     b.Property<decimal>("TotalUSD")
                         .HasColumnType("decimal(18,4)");
 
-                    b.Property<int>("TransportId")
+                    b.Property<int?>("TransportId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");

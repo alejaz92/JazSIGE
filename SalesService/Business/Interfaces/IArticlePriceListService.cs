@@ -1,4 +1,4 @@
-﻿using SalesService.Business.Models;
+﻿using SalesService.Business.Models.Article_PriceLists;
 
 namespace SalesService.Business.Interfaces
 {
