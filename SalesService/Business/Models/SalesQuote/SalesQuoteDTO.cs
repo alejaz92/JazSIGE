@@ -13,6 +13,7 @@
     public string CustomerCity { get; set; } = string.Empty;
     public string CustomerProvince { get; set; } = string.Empty;
     public string CustomerCountry { get; set; } = string.Empty;
+    public string CustomerSellCondition { get; set; } = string.Empty;
 
     // selller
     public int SellerId { get; set; }

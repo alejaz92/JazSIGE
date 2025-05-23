@@ -120,6 +120,7 @@ namespace SalesService.Business.Services
                 CustomerCity = customer.City,
                 CustomerProvince = customer.Province,
                 CustomerCountry = customer.Country,
+                CustomerSellCondition = customer.SellCondition,
 
                 SellerId = seller.Id,
                 SellerName = $"{seller.FirstName} {seller.LastName}",
@@ -201,6 +202,7 @@ namespace SalesService.Business.Services
                 CustomerCity = customer.City,
                 CustomerProvince = customer.Province,
                 CustomerCountry = customer.Country,
+                CustomerSellCondition = customer.SellCondition,
 
                 SellerId = seller.Id,
                 SellerName = $"{seller.FirstName} {seller.LastName}",
