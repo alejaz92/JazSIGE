@@ -121,6 +121,7 @@ namespace SalesService.Business.Services
                 CustomerProvince = customer.Province,
                 CustomerCountry = customer.Country,
                 CustomerSellCondition = customer.SellCondition,
+                CustomerIVAType = customer.IVAType,
 
                 SellerId = seller.Id,
                 SellerName = $"{seller.FirstName} {seller.LastName}",
@@ -136,9 +137,19 @@ namespace SalesService.Business.Services
                 PriceListName = priceList.Description,
 
                 CompanyName = company.Name,
+                CompanyShortName = company.ShortName,
                 CompanyTaxId = company.TaxId,
                 CompanyAddress = company.Address,
+                CompanyPostalCode = company.PostalCode,
+                CompanyCity = company.City,
+                CompanyProvince = company.Province,
+                CompanyCountry = company.Country,
+                CompanyPhone = company.Phone,
+                CompanyEmail = company.Email,
                 CompanyLogoUrl = company.LogoUrl,
+                CompanyIVAType = company.IVAType,
+                CompanyGrossIncome = company.GrossIncome,
+                CompanyDateOfIncorporation = company.DateOfIncorporation,
 
                 ExchangeRate = dto.ExchangeRate,
                 SubtotalUSD = subtotal,
@@ -203,6 +214,8 @@ namespace SalesService.Business.Services
                 CustomerProvince = customer.Province,
                 CustomerCountry = customer.Country,
                 CustomerSellCondition = customer.SellCondition,
+                CustomerIVAType = customer.IVAType,
+
 
                 SellerId = seller.Id,
                 SellerName = $"{seller.FirstName} {seller.LastName}",
@@ -218,9 +231,19 @@ namespace SalesService.Business.Services
                 PriceListName = priceList.Description,
 
                 CompanyName = company.Name,
+                CompanyShortName = company.ShortName,
                 CompanyTaxId = company.TaxId,
                 CompanyAddress = company.Address,
+                CompanyPostalCode = company.PostalCode,
+                CompanyCity = company.City,
+                CompanyProvince = company.Province,
+                CompanyCountry = company.Country,
+                CompanyPhone = company.Phone,
+                CompanyEmail = company.Email,
                 CompanyLogoUrl = company.LogoUrl,
+                CompanyIVAType = company.IVAType,
+                CompanyGrossIncome = company.GrossIncome,
+                CompanyDateOfIncorporation = company.DateOfIncorporation,
 
                 ExchangeRate = salesQuote.ExchangeRate,
                 SubtotalUSD = salesQuote.SubtotalUSD,

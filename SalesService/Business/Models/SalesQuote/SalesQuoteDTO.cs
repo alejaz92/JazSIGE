@@ -14,6 +14,7 @@
     public string CustomerProvince { get; set; } = string.Empty;
     public string CustomerCountry { get; set; } = string.Empty;
     public string CustomerSellCondition { get; set; } = string.Empty;
+    public string CustomerIVAType { get; set; } = string.Empty;
 
     // selller
     public int SellerId { get; set; }
@@ -33,9 +34,19 @@
 
     // company
     public string CompanyName { get; set; } = string.Empty;
+    public string CompanyShortName { get; set; } = string.Empty;
     public string CompanyTaxId { get; set; } = string.Empty;
     public string CompanyAddress { get; set; } = string.Empty;
+    public string CompanyPostalCode { get; set; } = string.Empty;
+    public string CompanyCity { get; set; } = string.Empty;
+    public string CompanyProvince { get; set; } = string.Empty;
+    public string CompanyCountry { get; set; } = string.Empty;
+    public string? CompanyPhone { get; set; }
+    public string? CompanyEmail { get; set; } = string.Empty;
     public string CompanyLogoUrl { get; set; } = string.Empty;
+    public string CompanyIVAType { get; set; }
+    public string CompanyGrossIncome { get; set; } = string.Empty;
+    public DateTime CompanyDateOfIncorporation { get; set; }
 
     // Calculations
     public decimal ExchangeRate { get; set; }
