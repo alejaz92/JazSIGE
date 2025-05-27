@@ -273,7 +273,8 @@ namespace SalesService.Business.Services
                     ExpirationDate = q.ExpirationDate,
                     CustomerName = customer?.CompanyName ?? "Unknown",
                     SellerName = seller != null ? $"{seller.FirstName} {seller.LastName}" : "Unknown",
-                    TotalUSD = q.TotalUSD
+                    TotalUSD = q.TotalUSD,
+                    ExchangeRate = q.ExchangeRate
                 });
             }
 
