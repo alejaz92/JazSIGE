@@ -1,6 +1,6 @@
 ﻿using SalesService.Business.Interfaces.Clients;
 using SalesService.Business.Models.Article_PriceLists;
-using SalesService.Business.Models.SalesQuote;
+using SalesService.Business.Models.Clients;
 
 namespace SalesService.Business.Services.Clients
 {
@@ -63,6 +63,14 @@ namespace SalesService.Business.Services.Clients
             var response = await client.GetAsync($"{_catalogBaseUrl}Article/{articleId}");
             if (!response.IsSuccessStatusCode) return null;
             return await response.Content.ReadFromJsonAsync<ArticleDTO>();
+        }
+
+        public async Task<WarehouseDTO?> GetWarehouseByIdAsync(int warehouseId)
+        {
+            var client = CreateAuthorizedClient();
+            var response = await client.GetAsync($"{_catalogBaseUrl}Warehouse/{warehouseId}");
+            if (!response.IsSuccessStatusCode) return null;
+            return await response.Content.ReadFromJsonAsync<WarehouseDTO>();
         }
     }
 }

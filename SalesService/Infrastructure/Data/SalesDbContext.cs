@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SalesService.Infrastructure.Models;
+using SalesService.Infrastructure.Models.SalesOrder;
 using SalesService.Infrastructure.Models.SalesQuote;
 
 namespace SalesService.Infrastructure.Data
@@ -10,15 +11,23 @@ namespace SalesService.Infrastructure.Data
         {
         }
 
+        //article prices
         public DbSet<ArticlePriceList> ArticlePriceLists { get; set; } = null!;
 
+        //salesQuote
         public DbSet<SalesQuote> SalesQuotes { get; set; } = null!;
         public DbSet<SalesQuote_Article> SalesQuoteArticles { get; set; } = null!;
+
+        //salesOrder
+        public DbSet<SalesOrder> SalesOrders { get; set; }
+        public DbSet<SalesOrder_Article> SalesOrder_Articles { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
+
+            //salesQuote
             modelBuilder.Entity<SalesQuote>()
                 .HasMany(sq => sq.Articles)
                 .WithOne(a => a.SalesQuote)
@@ -44,6 +53,13 @@ namespace SalesService.Infrastructure.Data
             modelBuilder.Entity<SalesQuote>()
                 .Property(sq => sq.TotalUSD)
                 .HasColumnType("decimal(18,4)");
+
+            // salesOrder
+            modelBuilder.Entity<SalesOrder>()
+                .HasMany(o => o.Articles)
+                .WithOne(a => a.SalesOrder)
+                .HasForeignKey(a => a.SalesOrderId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

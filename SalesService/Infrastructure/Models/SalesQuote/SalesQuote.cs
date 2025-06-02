@@ -14,6 +14,8 @@
         public decimal IVAAmountUSD { get; set; }
         public decimal TotalUSD { get; set; }
         public string? Observations { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         public ICollection<SalesQuote_Article> Articles { get; set; } = new List<SalesQuote_Article>();
     }

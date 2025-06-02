@@ -1,6 +1,6 @@
 ﻿using SalesService.Business.Models.SalesQuote;
 
-namespace SalesService.Business.Interfaces.Clients
+namespace SalesService.Business.Interfaces
 {
     public interface ISalesQuoteService
     {

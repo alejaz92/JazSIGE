@@ -1,4 +1,4 @@
-﻿namespace SalesService.Business.Models.SalesQuote
+﻿namespace SalesService.Business.Models.Clients
 {
     public class CustomerDTO
     {

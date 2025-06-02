@@ -1,4 +1,5 @@
-﻿using SalesService.Business.Interfaces.Clients;
+﻿using SalesService.Business.Interfaces;
+using SalesService.Business.Interfaces.Clients;
 using SalesService.Business.Models.SalesQuote;
 using SalesService.Infrastructure.Interfaces;
 using SalesService.Infrastructure.Models.SalesQuote;

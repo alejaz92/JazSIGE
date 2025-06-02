@@ -1,27 +1,27 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SalesService.Business.Interfaces;
-using SalesService.Business.Models.SalesQuote;
+using SalesService.Business.Models.SalesOrder;
 
 namespace SalesService.Controllers
 {
     [Route("[controller]")]
     [ApiController]
-    public class SalesQuoteController : ControllerBase
+    public class SalesOrderController : ControllerBase
     {
-        private readonly ISalesQuoteService _salesQuoteService;
+        private readonly ISalesOrderService _salesOrderService;
 
-        public SalesQuoteController(ISalesQuoteService salesQuoteService)
+        public SalesOrderController(ISalesOrderService salesOrderService)
         {
-            _salesQuoteService = salesQuoteService;
+            _salesOrderService = salesOrderService;
         }
 
         [HttpPost]
-        public async Task<ActionResult<SalesQuoteDTO>> Create(SalesQuoteCreateDTO dto)
+        public async Task<ActionResult<SalesOrderDTO>> Create(SalesOrderCreateDTO dto)
         {
             try
             {
-                var result = await _salesQuoteService.CreateAsync(dto);
+                var result = await _salesOrderService.CreateAsync(dto);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -31,25 +31,25 @@ namespace SalesService.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<SalesQuoteDTO>> GetById(int id)
+        public async Task<ActionResult<SalesOrderDTO>> GetById(int id)
         {
             try
             {
-                var result = await _salesQuoteService.GetByIdAsync(id);
+                var result = await _salesOrderService.GetByIdAsync(id);
                 return Ok(result);
             }
             catch (Exception ex)
             {
-                return NotFound(new { message = ex.Message });
+                return NotFound(new {message = ex.Message});
             }
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<SalesQuoteListDTO>>> GetAll()
+        public async Task<ActionResult<IEnumerable<SalesOrderListDTO>>> GetAll()
         {
             try
             {
-                var result = await _salesQuoteService.GetAllAsync();
+                var result = await _salesOrderService.GetAllAsync();
                 return Ok(result);
             }
             catch (Exception ex)
