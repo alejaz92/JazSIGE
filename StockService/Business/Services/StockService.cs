@@ -10,22 +10,25 @@ namespace StockService.Business.Services
     {
         private readonly IStockRepository _stockRepository;
         private readonly IStockMovementRepository _stockMovementRepository;
+        private readonly IStockByDispatchRepository _stockByDispatchRepository;
         private readonly ICatalogValidatorService _catalogValidatorService;
         private readonly IUserServiceClient _userServiceClient;
 
         public StockService(
             IStockRepository stockRepository,
             IStockMovementRepository stockMovementRepository,
+            IStockByDispatchRepository stockByDispatchRepository,
             ICatalogValidatorService catalogValidatorService,
             IUserServiceClient userServiceClient)
         {
             _stockRepository = stockRepository;
             _stockMovementRepository = stockMovementRepository;
+            _stockByDispatchRepository = stockByDispatchRepository;
             _catalogValidatorService = catalogValidatorService;
             _userServiceClient = userServiceClient;
         }
 
-        public async Task RegisterMovementAsync(StockMovementCreateDTO dto, int userId)
+        public async Task<List<DispatchStockDetailDTO>> RegisterMovementAsync(StockMovementCreateDTO dto, int userId)
         {
             if (!await _catalogValidatorService.ArticleExistsAsync(dto.ArticleId))
             {
@@ -75,13 +78,19 @@ namespace StockService.Business.Services
                     if (!dto.ToWarehouseId.HasValue)
                         throw new ArgumentException("ToWarehouseId is required for this movement.");
                     await UpdateStockAsync(dto.ArticleId, dto.ToWarehouseId.Value, dto.Quantity);
+
+                    await UpdateStockByDispatchAsync(dto.ArticleId, dto.DispatchId, dto.Quantity);
                     break;
 
                 case StockMovementType.Sale:
                     if (!dto.FromWarehouseId.HasValue)
                         throw new ArgumentException("FromWarehouseId is required for this movement.");
+
+                    var breakdown = await DiscountStockByDispatchAsync(dto.ArticleId, dto.Quantity);
                     await UpdateStockAsync(dto.ArticleId, dto.FromWarehouseId.Value, -dto.Quantity);
-                    break;
+
+                    return breakdown;
+
 
                 case StockMovementType.Transfer:
                     if (!dto.FromWarehouseId.HasValue || !dto.ToWarehouseId.HasValue)
@@ -94,6 +103,9 @@ namespace StockService.Business.Services
                     break;
 
             }
+
+            return new List<DispatchStockDetailDTO>();
+
 
         }
 
@@ -200,13 +212,64 @@ namespace StockService.Business.Services
             };
         }
 
-
-        // get stock summary by warehouse
         public async Task<decimal> GetStockSummaryByWarehouseAsync(int warehouseId)
         {
             var stockList = await _stockRepository.GetAllByWarehouseAsync(warehouseId);
             return stockList.Sum(s => s.Quantity);
         }
+
+        private async Task UpdateStockByDispatchAsync(int articleId, int? dispatchId, decimal quantity)
+        {
+            var entry = await _stockByDispatchRepository.GetByArticleAndDispatchAsync(articleId, dispatchId);
+
+            if (entry != null)
+            {
+                entry.Quantity += quantity;
+                await _stockByDispatchRepository.UpdateAsync(entry);
+            }
+            else
+            {
+                var newEntry = new StockByDispatch
+                {
+                    ArticleId = articleId,
+                    DispatchId = dispatchId,
+                    Quantity = quantity
+                };
+                await _stockByDispatchRepository.AddAsync(newEntry);
+            }
+        }
+
+        private async Task<List<DispatchStockDetailDTO>> DiscountStockByDispatchAsync(int articleId, decimal quantityToSubtract)
+        {
+            var dispatchEntries = await _stockByDispatchRepository.GetAvailableByArticleOrderedAsync(articleId);
+            var result = new List<DispatchStockDetailDTO>();
+            decimal remaining = quantityToSubtract;
+
+            foreach (var entry in dispatchEntries)
+            {
+                if (remaining <= 0) break;
+
+                var deducted = Math.Min(entry.Quantity, remaining);
+                entry.Quantity -= deducted;
+                remaining -= deducted;
+
+                await _stockByDispatchRepository.UpdateAsync(entry);
+
+                result.Add(new DispatchStockDetailDTO
+                {
+                    DispatchId = entry.DispatchId,
+                    Quantity = deducted
+                });
+            }
+
+            if (remaining > 0)
+            {
+                throw new InvalidOperationException($"Not enough stock available for article {articleId} across dispatches.");
+            }
+
+            return result;
+        }
+
     }
 
 }

@@ -16,8 +16,6 @@ namespace SalesService.Infrastructure.Repositories
         public ISalesOrderArticleRepository SalesOrderArticleRepository { get; }
 
 
-
-
         public UnitOfWork(
             SalesDbContext context,
             IArticlePriceListRepository articlePriceListRepository,

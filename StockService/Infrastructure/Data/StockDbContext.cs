@@ -13,6 +13,7 @@ namespace StockService.Infrastructure.Data
 
         public DbSet<Stock> Stocks { get; set; }
         public DbSet<StockMovement> StockMovements { get; set; }
+        public DbSet<StockByDispatch> StockByDispatches { get; set; }
         
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -30,6 +31,10 @@ namespace StockService.Infrastructure.Data
             modelBuilder.Entity<StockMovement>()
                 .Property(s => s.Quantity)
                 .HasPrecision(18, 4);
+            modelBuilder.Entity<StockByDispatch>()
+                .Property(s => s.Quantity)
+                .HasPrecision(18, 4);
+
         }
     }
 }

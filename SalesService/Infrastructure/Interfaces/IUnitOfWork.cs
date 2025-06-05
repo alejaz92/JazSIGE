@@ -1,4 +1,6 @@
-﻿namespace SalesService.Infrastructure.Interfaces
+﻿using SalesService.Infrastructure.Repositories;
+
+namespace SalesService.Infrastructure.Interfaces
 {
     public interface IUnitOfWork
     {
@@ -9,7 +11,6 @@
 
         ISalesOrderRepository SalesOrderRepository { get; }
         ISalesOrderArticleRepository SalesOrderArticleRepository { get; }
-
 
         Task SaveAsync();
     }

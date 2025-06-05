@@ -10,6 +10,7 @@
         public decimal DiscountPercent { get; set; }
         public decimal IVA { get; set; }
         public decimal Total { get; set; }
+        public int? DispatchId { get; set; }
 
         public SalesOrder SalesOrder { get; set; } = null!;
     }

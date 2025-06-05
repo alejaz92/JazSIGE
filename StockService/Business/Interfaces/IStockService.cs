@@ -8,9 +8,10 @@ namespace StockService.Business.Interfaces
     {
         Task<decimal> GetStockAsync(int articleId, int warehouseId);
         Task<decimal> GetStockSummaryAsync(int articleId);
-        Task RegisterMovementAsync(StockMovementCreateDTO dto, int userId);
+        
         Task<PaginatedResultDTO<StockMovementDTO>> GetMovementsByArticleAsync(int articleId, int page, int pageSize);
         Task<IEnumerable<StockDTO>> GetStockByArticleAsync(int articleId);
         Task<decimal> GetStockSummaryByWarehouseAsync(int warehouseId);
+        Task<List<DispatchStockDetailDTO>> RegisterMovementAsync(StockMovementCreateDTO dto, int userId);
     }
 }

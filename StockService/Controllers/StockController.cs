@@ -18,18 +18,43 @@ public class StockController : ControllerBase
         _enumService = enumService;
     }
 
-    [HttpPost("movement")]
-    public async Task<IActionResult> RegisterMovement([FromBody] StockMovementCreateDTO dto)
-    {
+    //[HttpPost("movement")]
+    //public async Task<IActionResult> RegisterMovement([FromBody] StockMovementCreateDTO dto)
+    //{
 
+    //    var userIdHeader = HttpContext.Request.Headers["X-UserId"].ToString();
+    //    if (!int.TryParse(userIdHeader, out int userId))
+    //        return Unauthorized(new { error = "Usuario no autenticado correctamente" });
+
+    //    try
+    //    {
+    //        await _stockService.RegisterMovementAsync(dto, userId);
+    //        return Ok();
+    //    }
+    //    catch (ArgumentException ex)
+    //    {
+    //        return BadRequest(new { error = ex.Message });
+    //    }
+    //    catch (InvalidOperationException ex)
+    //    {
+    //        return BadRequest(new { error = ex.Message });
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
+    //    }
+    //}
+    [HttpPost("movement")]
+    public async Task<ActionResult<List<DispatchStockDetailDTO>>> RegisterMovement([FromBody] StockMovementCreateDTO dto)
+    {
         var userIdHeader = HttpContext.Request.Headers["X-UserId"].ToString();
         if (!int.TryParse(userIdHeader, out int userId))
             return Unauthorized(new { error = "Usuario no autenticado correctamente" });
 
         try
         {
-            await _stockService.RegisterMovementAsync(dto, userId);
-            return Ok();
+            var result = await _stockService.RegisterMovementAsync(dto, userId);
+            return Ok(result);
         }
         catch (ArgumentException ex)
         {
@@ -44,6 +69,7 @@ public class StockController : ControllerBase
             return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
         }
     }
+
 
     [HttpGet("{articleId}/warehouse/{warehouseId}")]
     public async Task<ActionResult<decimal>> GetStock(int articleId, int warehouseId)

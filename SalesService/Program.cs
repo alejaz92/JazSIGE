@@ -55,14 +55,12 @@ builder.Services.AddScoped<ISalesQuoteArticleRepository, SalesQuoteArticleReposi
 builder.Services.AddScoped<ISalesOrderRepository, SalesOrderRepository>();
 builder.Services.AddScoped<ISalesOrderArticleRepository, SalesOrderArticleRepository>();
 
-
-
-
 //Services
 builder.Services.AddScoped<IArticlePriceListService, ArticlePriceListService>();
 builder.Services.AddScoped<ICatalogServiceClient, CatalogServiceClient>();
 builder.Services.AddScoped<IUserServiceClient, UserServiceClient>();
 builder.Services.AddScoped<ICompanyServiceClient, CompanyServiceClient>();
+builder.Services.AddScoped<IStockServiceClient, StockServiceClient>();
 builder.Services.AddScoped<ISalesQuoteService, SalesQuoteService>();
 builder.Services.AddScoped<ISalesOrderService, SalesOrderService>();
 

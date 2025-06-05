@@ -17,5 +17,6 @@
         public int? FromWarehouseId { get; set; }
         public int? ToWarehouseId { get; set; }
         public string? Reference { get; set; }
+        public int? DispatchId { get; set; }
     }
 }

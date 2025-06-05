@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using StockService.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using StockService.Infrastructure.Data;
 namespace StockService.Migrations
 {
     [DbContext(typeof(StockDbContext))]
-    partial class StockDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250602182550_se agrego stockByDispatch al stockservice")]
+    partial class seagregostockByDispatchalstockservice
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -74,7 +77,7 @@ namespace StockService.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("StockByDispatches");
+                    b.ToTable("stockByDispatches");
                 });
 
             modelBuilder.Entity("StockService.Infrastructure.Models.StockMovement", b =>

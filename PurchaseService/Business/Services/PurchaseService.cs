@@ -96,6 +96,8 @@ namespace PurchaseService.Business.Services
                 await _purchaseRepository.AddAsync(purchase);
                 await _purchaseRepository.SaveChangesAsync(); // Necesario para obtener el ID
 
+                int? dispatchId = null;
+
                 if (dto.Dispatch != null)
                 {
                     var dispatch = new Dispatch
@@ -106,9 +108,11 @@ namespace PurchaseService.Business.Services
                         PurchaseId = purchase.Id
                     };
                     await _dispatchRepository.AddAsync(dispatch);
+                    await _purchaseRepository.SaveChangesAsync();
+
+                    dispatchId = dispatch.Id;
                 }
 
-                await _purchaseRepository.SaveChangesAsync(); // Guarda también el Dispatch
 
                 // Impactar stock
                 try
@@ -117,7 +121,8 @@ namespace PurchaseService.Business.Services
                         userId,
                         purchase.WarehouseId,
                         purchase.Articles.Select(a => (a.ArticleId, a.Quantity)).ToList(),
-                        dto.reference
+                        dto.reference,
+                        dispatchId
                     );
 
                     purchase.StockUpdated = true;
@@ -160,7 +165,8 @@ namespace PurchaseService.Business.Services
                 userId,
                 purchase.WarehouseId,
                 purchase.Articles.Select(a => (a.ArticleId, a.Quantity)).ToList(),
-                "ReTried stock movement"
+                "ReTried stock movement",
+                null
             );
             purchase.StockUpdated = true;
             purchase.UpdatedAt = DateTime.UtcNow;
@@ -182,7 +188,8 @@ namespace PurchaseService.Business.Services
                         userId,
                         purchase.WarehouseId,
                         purchase.Articles.Select(a => (a.ArticleId, a.Quantity)).ToList(),
-                        "ReTried Stock Movement"
+                        "ReTried Stock Movement",
+                        null
                     );
 
                     purchase.StockUpdated = true;

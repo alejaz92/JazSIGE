@@ -32,6 +32,7 @@ builder.Services.AddHttpClient();
 // Repositories
 builder.Services.AddScoped<IStockRepository, StockRepository>();
 builder.Services.AddScoped<IStockMovementRepository, StockMovementRepository>();
+builder.Services.AddScoped<IStockByDispatchRepository, StockByDispatchRepository>();
 
 // Services
 builder.Services.AddScoped<IStockService, StockService.Business.Services.StockService>();

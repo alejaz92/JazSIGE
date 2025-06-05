@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SalesService.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using SalesService.Infrastructure.Data;
 namespace SalesService.Migrations
 {
     [DbContext(typeof(SalesDbContext))]
-    partial class SalesDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250603154523_se agrego SalesOrder_ArticleDispatch")]
+    partial class seagregoSalesOrder_ArticleDispatch
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -122,9 +125,6 @@ namespace SalesService.Migrations
                     b.Property<decimal>("DiscountPercent")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int?>("DispatchId")
-                        .HasColumnType("int");
-
                     b.Property<decimal>("IVA")
                         .HasColumnType("decimal(18,2)");
 
@@ -145,6 +145,30 @@ namespace SalesService.Migrations
                     b.HasIndex("SalesOrderId");
 
                     b.ToTable("SalesOrder_Articles");
+                });
+
+            modelBuilder.Entity("SalesService.Infrastructure.Models.SalesOrder.SalesOrder_ArticleDispatch", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("DispatchId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<int>("SalesOrderArticleId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SalesOrderArticleId");
+
+                    b.ToTable("salesOrder_ArticleDispatches");
                 });
 
             modelBuilder.Entity("SalesService.Infrastructure.Models.SalesQuote.SalesQuote", b =>
@@ -244,6 +268,17 @@ namespace SalesService.Migrations
                         .IsRequired();
 
                     b.Navigation("SalesOrder");
+                });
+
+            modelBuilder.Entity("SalesService.Infrastructure.Models.SalesOrder.SalesOrder_ArticleDispatch", b =>
+                {
+                    b.HasOne("SalesService.Infrastructure.Models.SalesOrder.SalesOrder_Article", "SalesOrder_Article")
+                        .WithMany()
+                        .HasForeignKey("SalesOrderArticleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SalesOrder_Article");
                 });
 
             modelBuilder.Entity("SalesService.Infrastructure.Models.SalesQuote.SalesQuote_Article", b =>
