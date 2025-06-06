@@ -12,8 +12,12 @@ namespace SalesService.Infrastructure.Repositories
         public ISalesQuoteRepository SalesQuoteRepository { get; }
         public ISalesQuoteArticleRepository SalesQuoteArticleRepository { get; }
 
-        public ISalesOrderRepository SalesOrderRepository { get; }
-        public ISalesOrderArticleRepository SalesOrderArticleRepository { get; }
+        //public ISalesOrderRepository SalesOrderRepository { get; }
+        //public ISalesOrderArticleRepository SalesOrderArticleRepository { get; }
+
+        public ISaleRepository SaleRepository { get; }
+        public ISaleArticleRepository SaleArticleRepository { get; }
+
 
 
         public UnitOfWork(
@@ -21,16 +25,17 @@ namespace SalesService.Infrastructure.Repositories
             IArticlePriceListRepository articlePriceListRepository,
             ISalesQuoteRepository salesQuoteRepository,
             ISalesQuoteArticleRepository salesQuoteArticleRepository,
-            ISalesOrderRepository salesOrderRepository,
-            ISalesOrderArticleRepository salesOrderArticleRepository
+            ISaleRepository saleRepository,
+            ISaleArticleRepository saleArticleRepository
             )
         {
             _context = context;
             ArticlePriceListRepository = articlePriceListRepository;
             SalesQuoteRepository = salesQuoteRepository;
             SalesQuoteArticleRepository = salesQuoteArticleRepository;
-            SalesOrderRepository = salesOrderRepository;
-            SalesOrderArticleRepository = salesOrderArticleRepository;
+            SaleRepository = saleRepository;
+            SaleArticleRepository = saleArticleRepository;
+
         }
 
         public async Task SaveAsync() => await _context.SaveChangesAsync();

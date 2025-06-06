@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SalesService.Infrastructure.Models;
+using SalesService.Infrastructure.Models.Sale;
 using SalesService.Infrastructure.Models.SalesOrder;
 using SalesService.Infrastructure.Models.SalesQuote;
 
@@ -18,9 +19,13 @@ namespace SalesService.Infrastructure.Data
         public DbSet<SalesQuote> SalesQuotes { get; set; } = null!;
         public DbSet<SalesQuote_Article> SalesQuoteArticles { get; set; } = null!;
 
-        //salesOrder
-        public DbSet<SalesOrder> SalesOrders { get; set; }
-        public DbSet<SalesOrder_Article> SalesOrder_Articles { get; set; }
+        ////salesOrder
+        //public DbSet<SalesOrder> SalesOrders { get; set; }
+        //public DbSet<SalesOrder_Article> SalesOrder_Articles { get; set; }
+
+        // Sale
+        public DbSet<Sale> Sales {  get; set; } 
+        public DbSet<Sale_Article> Sale_Articles { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -54,12 +59,36 @@ namespace SalesService.Infrastructure.Data
                 .Property(sq => sq.TotalUSD)
                 .HasColumnType("decimal(18,4)");
 
-            // salesOrder
-            modelBuilder.Entity<SalesOrder>()
-                .HasMany(o => o.Articles)
-                .WithOne(a => a.SalesOrder)
-                .HasForeignKey(a => a.SalesOrderId)
-                .OnDelete(DeleteBehavior.Cascade);
+            //// salesOrder
+            //modelBuilder.Entity<SalesOrder>()
+            //    .HasMany(o => o.Articles)
+            //    .WithOne(a => a.SalesOrder)
+            //    .HasForeignKey(a => a.SalesOrderId)
+            //    .OnDelete(DeleteBehavior.Cascade);
+
+
+            // sale
+            modelBuilder.Entity<Sale>()
+            .HasMany(s => s.Articles)
+            .WithOne(a => a.Sale)
+            .HasForeignKey(a => a.SaleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Sale_Article>()
+                .Property(a => a.UnitPrice)
+                .HasColumnType("decimal(18,4)");
+
+            modelBuilder.Entity<Sale_Article>()
+                .Property(a => a.DiscountPercent)
+                .HasColumnType("decimal(5,2)");
+
+            modelBuilder.Entity<Sale_Article>()
+                .Property(a => a.IVAPercent)
+                .HasColumnType("decimal(5,2)");
+
+            modelBuilder.Entity<Sale>()
+                .Property(s => s.ExchangeRate)
+                .HasColumnType("decimal(18,4)");
         }
     }
 }

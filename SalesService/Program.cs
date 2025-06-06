@@ -52,8 +52,10 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IArticlePriceListRepository, ArticlePriceListRepository>();
 builder.Services.AddScoped<ISalesQuoteRepository, SalesQuoteRepository>();
 builder.Services.AddScoped<ISalesQuoteArticleRepository, SalesQuoteArticleRepository>();
-builder.Services.AddScoped<ISalesOrderRepository, SalesOrderRepository>();
-builder.Services.AddScoped<ISalesOrderArticleRepository, SalesOrderArticleRepository>();
+builder.Services.AddScoped<ISaleRepository, SaleRepository>();
+builder.Services.AddScoped<ISaleArticleRepository, SaleArticleRepository>();
+//builder.Services.AddScoped<ISalesOrderRepository, SalesOrderRepository>();
+//builder.Services.AddScoped<ISalesOrderArticleRepository, SalesOrderArticleRepository>();
 
 //Services
 builder.Services.AddScoped<IArticlePriceListService, ArticlePriceListService>();
@@ -62,7 +64,8 @@ builder.Services.AddScoped<IUserServiceClient, UserServiceClient>();
 builder.Services.AddScoped<ICompanyServiceClient, CompanyServiceClient>();
 builder.Services.AddScoped<IStockServiceClient, StockServiceClient>();
 builder.Services.AddScoped<ISalesQuoteService, SalesQuoteService>();
-builder.Services.AddScoped<ISalesOrderService, SalesOrderService>();
+//builder.Services.AddScoped<ISalesOrderService, SalesOrderService>();
+builder.Services.AddScoped<ISaleService, SaleService>();
 
 
 
