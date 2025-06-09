@@ -7,5 +7,6 @@
         public string SellerName { get; set; }
         public DateTime Date {  get; set; }
         public decimal Total { get; set; }
+        public decimal ExchangeRate { get; set; }
     }
 }

@@ -47,7 +47,8 @@ namespace SalesService.Business.Services
                     CustomerName = customer.CompanyName,
                     SellerName = $"{seller.FirstName} {seller.LastName}",
                     Date = sale.Date,
-                    Total = Math.Round(subtotal + ivaTotal, 2)
+                    Total = Math.Round(subtotal + ivaTotal, 2),
+                    ExchangeRate = sale.ExchangeRate,
                 });
             }
 
