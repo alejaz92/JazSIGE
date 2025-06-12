@@ -18,6 +18,10 @@ namespace SalesService.Infrastructure.Repositories
         public ISaleRepository SaleRepository { get; }
         public ISaleArticleRepository SaleArticleRepository { get; }
 
+        public IDeliveryNoteRepository DeliveryNoteRepository { get; }
+        public IDeliveryNoteArticleRepository DeliveryNoteArticleRepository { get; }
+
+
 
 
         public UnitOfWork(
@@ -26,7 +30,9 @@ namespace SalesService.Infrastructure.Repositories
             ISalesQuoteRepository salesQuoteRepository,
             ISalesQuoteArticleRepository salesQuoteArticleRepository,
             ISaleRepository saleRepository,
-            ISaleArticleRepository saleArticleRepository
+            ISaleArticleRepository saleArticleRepository,
+            IDeliveryNoteRepository deliveryNoteRepository,
+            IDeliveryNoteArticleRepository deliveryNoteArticleRepository
             )
         {
             _context = context;
@@ -35,6 +41,9 @@ namespace SalesService.Infrastructure.Repositories
             SalesQuoteArticleRepository = salesQuoteArticleRepository;
             SaleRepository = saleRepository;
             SaleArticleRepository = saleArticleRepository;
+            DeliveryNoteRepository = deliveryNoteRepository;
+            DeliveryNoteArticleRepository = deliveryNoteArticleRepository;
+
 
         }
 

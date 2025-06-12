@@ -27,6 +27,12 @@ namespace SalesService.Infrastructure.Data
         public DbSet<Sale> Sales {  get; set; } 
         public DbSet<Sale_Article> Sale_Articles { get; set; }
 
+        // Delivery Note
+        public DbSet<DeliveryNote> DeliveryNotes { get; set; } = null!;
+        public DbSet<DeliveryNote_Article> DeliveryNoteArticles { get; set; } = null!;
+
+
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -89,6 +95,24 @@ namespace SalesService.Infrastructure.Data
             modelBuilder.Entity<Sale>()
                 .Property(s => s.ExchangeRate)
                 .HasColumnType("decimal(18,4)");
+
+            // deliveryNote
+            modelBuilder.Entity<DeliveryNote>()
+                .HasMany(dn => dn.Articles)
+                .WithOne(a => a.DeliveryNote)
+                .HasForeignKey(a => a.DeliveryNoteId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<DeliveryNote>()
+                .HasOne(dn => dn.Sale)
+                .WithMany(s => s.DeliveryNotes)
+                .HasForeignKey(dn => dn.SaleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<DeliveryNote_Article>()
+                .Property(a => a.Quantity)
+                .HasColumnType("decimal(18,4)");
+
         }
     }
 }

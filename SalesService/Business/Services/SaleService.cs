@@ -60,6 +60,32 @@ namespace SalesService.Business.Services
             var sale = await _unitOfWork.SaleRepository.GetIncludingAsync(id, s => s.Articles);
             if (sale == null) return null;
 
+            var deliveryNotes = await _unitOfWork.DeliveryNoteRepository.FindIncludingAsync(
+                dn => dn.SaleId == sale.Id,
+                dn => dn.Articles
+            );
+
+            var hasDeliveryNotes = deliveryNotes.Any();
+
+            // Agrupamos artículos entregados
+            var deliveredQuantities = deliveryNotes
+                .SelectMany(dn => dn.Articles)
+                .GroupBy(a => a.ArticleId)
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.Quantity));
+
+            // Comparamos con lo vendido
+            bool isFullyDelivered = true;
+            foreach (var a in sale.Articles)
+            {
+                deliveredQuantities.TryGetValue(a.ArticleId, out decimal delivered);
+                if (delivered < a.Quantity)
+                {
+                    isFullyDelivered = false;
+                    break;
+                }
+            }
+
+
             var customer = await _catalogService.GetCustomerByIdAsync(sale.CustomerId);
             var seller = await _userService.GetUserByIdAsync(sale.SellerId);
 
@@ -73,6 +99,7 @@ namespace SalesService.Business.Services
                 {
                     ArticleId = article.ArticleId,
                     ArticleName = articleInfo.Description,
+                    ArticleSKU = articleInfo.SKU,
                     Quantity = article.Quantity,
                     UnitPrice = article.UnitPrice,
                     DiscountPercent = article.DiscountPercent,
@@ -86,9 +113,25 @@ namespace SalesService.Business.Services
                 Date = sale.Date,
                 ExchangeRate = sale.ExchangeRate,
                 Observations = sale.Observations,
+
+                CustomerId = customer.Id,
                 CustomerName = customer.CompanyName,
+                CustomerTaxID = customer.TaxId,
+                CustomerAddress = customer.Address,
+                CustomerPostalCode = customer.PostalCode,
+                CustomerCity = customer.City,
+                CustomerProvince = customer.Province,
+                CustomerCountry = customer.Country,
+                CustomerSellCondition = customer.SellCondition,
+                CustomerIVAType = customer.IVAType,
+
+                SellerId = sale.SellerId,
                 SellerName = $"{seller.FirstName} {seller.LastName}",
-                Articles = articleDTOs
+
+                Articles = articleDTOs,
+                HasInvoice = sale.HasInvoice,
+                HasDeliveryNotes = hasDeliveryNotes,
+                IsFullyDelivered = isFullyDelivered
             };
         }
 

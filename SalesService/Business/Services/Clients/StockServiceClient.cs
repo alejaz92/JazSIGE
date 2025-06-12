@@ -1,5 +1,5 @@
 ﻿using SalesService.Business.Interfaces.Clients;
-using SalesService.Business.Models.SalesOrder;
+using SalesService.Business.Models.Clients;
 
 namespace SalesService.Business.Services.Clients
 {

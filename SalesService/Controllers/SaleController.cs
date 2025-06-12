@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SalesService.Business.Interfaces;
+using SalesService.Business.Models.DeliveryNote;
 using SalesService.Business.Models.Sale;
 using SalesService.Business.Models.SalesOrder;
+using SalesService.Business.Services;
 
 namespace SalesService.Controllers
 {
@@ -11,10 +13,13 @@ namespace SalesService.Controllers
     public class SaleController : ControllerBase
     {
         private readonly ISaleService _saleService;
+        private readonly IDeliveryNoteService _deliveryNoteService;
 
-        public SaleController(ISaleService saleService)
+        public SaleController(
+            ISaleService saleService, IDeliveryNoteService deliveryNoteService)
         {
             _saleService = saleService;
+            _deliveryNoteService = deliveryNoteService;
         }
 
         [HttpGet]
@@ -58,5 +63,59 @@ namespace SalesService.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+
+        [HttpPost("{saleId}/delivery-note")]
+        public async Task<ActionResult<DeliveryNoteDTO>> CreateDeliveryNote(int saleId, [FromBody] DeliveryNoteCreateDTO dto)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+                if (userIdClaim == null)
+                    return Unauthorized();
+
+                int userId = int.Parse(userIdClaim.Value);
+
+                var result = await _deliveryNoteService.CreateAsync(saleId, dto, userId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpGet("{saleId}/delivery-notes")]
+        public async Task<ActionResult<IEnumerable<DeliveryNoteDTO>>> GetDeliveryNotes(int saleId)
+        {
+            try
+            {
+                var result = await _deliveryNoteService.GetAllBySaleIdAsync(saleId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+
+        [HttpGet("delivery-note/{id}")]
+        public async Task<ActionResult<DeliveryNoteDTO>> GetDeliveryNoteById(int id)
+        {
+            try
+            {
+                var result = await _deliveryNoteService.GetByIdAsync(id);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+
+
     }
 }

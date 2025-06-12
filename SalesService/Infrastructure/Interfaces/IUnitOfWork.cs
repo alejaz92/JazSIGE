@@ -15,6 +15,10 @@ namespace SalesService.Infrastructure.Interfaces
         ISaleRepository SaleRepository { get; }
         ISaleArticleRepository SaleArticleRepository { get; }
 
+        IDeliveryNoteRepository DeliveryNoteRepository { get; }
+        IDeliveryNoteArticleRepository DeliveryNoteArticleRepository { get; }
+
+
 
         Task SaveAsync();
     }

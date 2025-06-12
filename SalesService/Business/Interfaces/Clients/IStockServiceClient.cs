@@ -1,4 +1,4 @@
-﻿using SalesService.Business.Models.SalesOrder;
+﻿using SalesService.Business.Models.Clients;
 
 namespace SalesService.Business.Interfaces.Clients
 {

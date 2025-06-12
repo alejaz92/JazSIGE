@@ -1,4 +1,4 @@
-﻿namespace SalesService.Business.Models.SalesOrder
+﻿namespace SalesService.Business.Models.Clients
 {
     public class DispatchStockDetailDTO
     {
