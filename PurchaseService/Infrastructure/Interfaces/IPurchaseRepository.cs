@@ -13,6 +13,7 @@ namespace PurchaseService.Infrastructure.Interfaces
         Task<Purchase?> GetByIdAsync(int id);
         Task<IEnumerable<Purchase>> GetPendingStockAsync();
         Task<int> GetTotalCountAsync();
+        Task MarkAsDeliveredAsync(int purchaseId);
         Task SaveChangesAsync();
     }
 }

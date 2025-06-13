@@ -22,16 +22,12 @@ namespace PurchaseService.Infrastructure.Repositories
             await _context.Purchases.AddAsync(purchase);
             return purchase;
         }
-
         public async Task SaveChangesAsync() => await _context.SaveChangesAsync();
-
         public async Task<IEnumerable<Purchase>> GetAllAsync() => await _context.Purchases
                 .Include(p => p.Articles)
                 .Include(p => p.Dispatch)
                 .OrderByDescending(p => p.Date)
                 .ToListAsync();
-
-
         public async Task<IEnumerable<Purchase>> GetAllAsync(int pageNumber, int pageSize) => await _context.Purchases
                 .Include(p => p.Articles)
                 .Include(p => p.Dispatch)
@@ -39,26 +35,30 @@ namespace PurchaseService.Infrastructure.Repositories
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
-
         public async Task<int> GetTotalCountAsync() => await _context.Purchases.CountAsync();
-
         public async Task<Purchase?> GetByIdAsync(int id) => await _context.Purchases
                 .Include(p => p.Articles)
                 .Include(p => p.Dispatch)
                 .FirstOrDefaultAsync(p => p.Id == id);
-
         public async Task<IEnumerable<Purchase>> GetPendingStockAsync() => await _context.Purchases
                 .Include(p => p.Articles)
                 .Include(p => p.Dispatch)
                 .Where(p => !p.StockUpdated)
                 .OrderByDescending(p => p.Date)
                 .ToListAsync();
-
         public async Task<IDbContextTransaction> BeginTransactionAsync()
         {
             return await _context.Database.BeginTransactionAsync();
         }
-        
+        public async Task MarkAsDeliveredAsync(int purchaseId)
+        {
+            var purchase = await _context.Purchases.FirstOrDefaultAsync(p => p.Id == purchaseId);
+            if (purchase != null)
+            {
+                purchase.IsDelivered = true;
+                await _context.SaveChangesAsync();
+            }
+        }        
     }
 }
    

@@ -15,5 +15,8 @@
         public ICollection<Purchase_Article> Articles { get; set; } = new List<Purchase_Article>();
         public Dispatch? Dispatch { get; set; }
         public bool StockUpdated { get; set; } = false;
+
+        public bool IsImportation { get; set; } = false;
+        public bool IsDelivered { get; set; } = false;
     }
 }
