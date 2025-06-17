@@ -72,57 +72,57 @@ public class PurchaseController : ControllerBase
         }
     }
 
-    [HttpPost("{id}/retry-stock")]
-    [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> RetryStockUpdate(int id)
-    {
-        //if (!IsAdmin())
-        //    return Forbid();
+    //[HttpPost("{id}/retry-stock")]
+    //[Authorize(Roles = "Admin")]
+    //public async Task<IActionResult> RetryStockUpdate(int id)
+    //{
+    //    //if (!IsAdmin())
+    //    //    return Forbid();
 
-        var userIdHeader = HttpContext.Request.Headers["X-UserId"].ToString();
-        if (!int.TryParse(userIdHeader, out int userId))
-            return Unauthorized(new { error = "Usuario no autenticado correctamente" });
+    //    var userIdHeader = HttpContext.Request.Headers["X-UserId"].ToString();
+    //    if (!int.TryParse(userIdHeader, out int userId))
+    //        return Unauthorized(new { error = "Usuario no autenticado correctamente" });
 
-        try
-        {
-            await _purchaseService.RetryStockUpdateAsync(id, userId);
-            return Ok(new { message = "Stock actualizado correctamente." });
-        }
-        catch (ArgumentException ex)
-        {
-            return NotFound(new { error = ex.Message });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
-        }
-    }
+    //    try
+    //    {
+    //        await _purchaseService.RetryStockUpdateAsync(id, userId);
+    //        return Ok(new { message = "Stock actualizado correctamente." });
+    //    }
+    //    catch (ArgumentException ex)
+    //    {
+    //        return NotFound(new { error = ex.Message });
+    //    }
+    //    catch (InvalidOperationException ex)
+    //    {
+    //        return BadRequest(new { error = ex.Message });
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
+    //    }
+    //}
 
-    [HttpPost("retry-all-pending-stock")]
-    [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> RetryAllPendingStock()
-    {
-        //if (!IsAdmin())
-        //    return Forbid();
+    //[HttpPost("retry-all-pending-stock")]
+    //[Authorize(Roles = "Admin")]
+    //public async Task<IActionResult> RetryAllPendingStock()
+    //{
+    //    //if (!IsAdmin())
+    //    //    return Forbid();
 
-        var userIdHeader = HttpContext.Request.Headers["X-UserId"].ToString();
-        if (!int.TryParse(userIdHeader, out int userId))
-            return Unauthorized(new { error = "Usuario no autenticado correctamente" });
+    //    var userIdHeader = HttpContext.Request.Headers["X-UserId"].ToString();
+    //    if (!int.TryParse(userIdHeader, out int userId))
+    //        return Unauthorized(new { error = "Usuario no autenticado correctamente" });
 
-        try
-        {
-            var updatedCount = await _purchaseService.RetryAllPendingStockAsync(userId);
-            return Ok(new { message = $"Se actualizaron correctamente {updatedCount} compras." });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
-        }
-    }
+    //    try
+    //    {
+    //        var updatedCount = await _purchaseService.RetryAllPendingStockAsync(userId);
+    //        return Ok(new { message = $"Se actualizaron correctamente {updatedCount} compras." });
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
+    //    }
+    //}
 
     [HttpGet("pending-stock")]
     [Authorize(Roles = "Admin")]

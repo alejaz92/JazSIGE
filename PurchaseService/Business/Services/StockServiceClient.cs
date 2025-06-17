@@ -58,5 +58,24 @@ namespace PurchaseService.Business.Services
                 }
             }
         }
+
+        public async Task RegisterPendingStockAsync(PendingStockEntryCreateDTO dto)
+        {
+            var client = _httpClientFactory.CreateClient();
+
+            var token = _httpContextAccessor.HttpContext?.Request.Headers["Authorization"].ToString();
+            if (!string.IsNullOrEmpty(token))
+                client.DefaultRequestHeaders.Add("Authorization", token);
+
+            var url = $"{_stockBaseUrl.TrimEnd('/')}/pending-entry";
+            var response = await client.PostAsJsonAsync(url, dto);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                throw new InvalidOperationException($"StockService error: {response.StatusCode} - {content}");
+            }
+        }
+
     }
 }
