@@ -33,12 +33,14 @@ builder.Services.AddHttpClient();
 builder.Services.AddScoped<IStockRepository, StockRepository>();
 builder.Services.AddScoped<IStockMovementRepository, StockMovementRepository>();
 builder.Services.AddScoped<IStockByDispatchRepository, StockByDispatchRepository>();
+builder.Services.AddScoped<IPendingStockEntryRepository, PendingStockEntryRepository>();
 
 // Services
 builder.Services.AddScoped<IStockService, StockService.Business.Services.StockService>();
 builder.Services.AddScoped<ICatalogValidatorService, CatalogValidatorService>();
 builder.Services.AddScoped<IUserServiceClient, UserServiceClient>();
 builder.Services.AddScoped<IEnumService, EnumService>();
+builder.Services.AddScoped<IPendingStockService, PendingStockService>();
 
 
 

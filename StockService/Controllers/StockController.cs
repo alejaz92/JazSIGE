@@ -10,11 +10,16 @@ namespace StockService.Controllers;
 public class StockController : ControllerBase
 {
     private readonly IStockService _stockService;
+    private readonly IPendingStockService _pendingStockService;
     private readonly IEnumService _enumService;
 
-    public StockController(IStockService stockService, IEnumService enumService)
+    public StockController(
+        IStockService stockService, 
+        IPendingStockService pendingStockService,
+        IEnumService enumService)
     {
         _stockService = stockService;
+        _pendingStockService = pendingStockService;
         _enumService = enumService;
     }
 
@@ -157,4 +162,32 @@ public class StockController : ControllerBase
             return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
         }
     }
+
+    [HttpPost("pending-entry")]
+    public async Task<IActionResult> CreatePendingEntry([FromBody] PendingStockEntryCreateDTO dto)
+    {
+        await _pendingStockService.AddAsync(dto);
+        return Ok();
+    }
+
+    [HttpGet("pending-entry/{purchaseId}")]
+    public async Task<ActionResult<List<PendingStockEntryDTO>>> GetPendingByPurchase(int purchaseId)
+    {
+        var result = await _pendingStockService.GetByPurchaseIdAsync(purchaseId);
+        return Ok(result);
+    }
+
+    [HttpPost("pending-entry/register")]
+    public async Task<IActionResult> RegisterPendingStock([FromBody] RegisterPendingStockInputDTO dto)
+    {
+        if (!HttpContext.Request.Headers.TryGetValue("X-UserId", out var userIdHeader) ||
+            !int.TryParse(userIdHeader, out var userId))
+        {
+            return Unauthorized("User ID is missing or invalid.");
+        }
+
+        await _pendingStockService.RegisterPendingStockAsync(dto, userId);
+        return Ok();
+    }
+
 }

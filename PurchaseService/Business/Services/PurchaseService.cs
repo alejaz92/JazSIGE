@@ -261,6 +261,28 @@ namespace PurchaseService.Business.Services
             return await MapToDTOListAsync(purchases);
         }
 
+        public async Task RegisterStockFromPendingAsync(int purchaseId, int warehouseId, string reference, int userId, int? dispatchId)
+        {
+            var purchase = await _purchaseRepository.GetByIdAsync(purchaseId);
+            if (purchase == null)
+                throw new ArgumentException($"Purchase with ID {purchaseId} not found.");
+
+            if (purchase.IsDelivered)
+                throw new InvalidOperationException("This purchase has already been marked as delivered.");
+
+            await _stockServiceClient.RegisterPendingStockConsolidatedAsync(new RegisterPendingStockInputDTO
+            {
+                PurchaseId = purchaseId,
+                WarehouseId = warehouseId,
+                Reference = reference,
+                DispatchId = dispatchId
+            }, userId);
+
+            purchase.IsDelivered = true; // Marcar como entregada
+            purchase.UpdatedAt = DateTime.UtcNow; // Actualizar la fecha de actualización
+
+            await _purchaseRepository.SaveChangesAsync(); 
+        }
 
         private async Task<IEnumerable<PurchaseDTO>> MapToDTOListAsync(IEnumerable<Purchase> purchases)
         {
@@ -304,7 +326,7 @@ namespace PurchaseService.Business.Services
                 UserId = purchase.UserId,
                 UserName = userName,
                 //HasDispatch = purchase.Dispatch != null,
-                StockUpdated = purchase.StockUpdated,
+                //StockUpdated = purchase.StockUpdated,
                 Articles = articleDTOs,
                 IsImportation = purchase.IsImportation,
                 IsDelivered = purchase.IsDelivered,

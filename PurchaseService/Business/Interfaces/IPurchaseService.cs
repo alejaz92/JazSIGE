@@ -9,6 +9,7 @@ namespace PurchaseService.Business.Interfaces
         Task<(IEnumerable<PurchaseDTO> purchases, int totalCount)> GetAllAsync(int pageNumber, int pageSize);
         Task<PurchaseDTO?> GetByIdAsync(int id);
         Task<IEnumerable<PurchaseDTO>> GetPendingStockAsync();
+        Task RegisterStockFromPendingAsync(int purchaseId, int warehouseId, string reference, int userId, int? dispatchId);
         //Task<int> RetryAllPendingStockAsync(int userId);
         //Task RetryStockUpdateAsync(int purchaseId, int userId);
     }

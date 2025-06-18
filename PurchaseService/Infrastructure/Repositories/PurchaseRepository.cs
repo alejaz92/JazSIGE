@@ -43,7 +43,7 @@ namespace PurchaseService.Infrastructure.Repositories
         public async Task<IEnumerable<Purchase>> GetPendingStockAsync() => await _context.Purchases
                 .Include(p => p.Articles)
                 .Include(p => p.Dispatch)
-                .Where(p => !p.StockUpdated)
+                .Where(p => !p.IsDelivered)
                 .OrderByDescending(p => p.Date)
                 .ToListAsync();
         public async Task<IDbContextTransaction> BeginTransactionAsync()

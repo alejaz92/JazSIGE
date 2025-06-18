@@ -142,6 +142,26 @@ public class PurchaseController : ControllerBase
         }
     }
 
+    [HttpPost("{id}/register-stock")]
+    public async Task<IActionResult> RegisterStockFromPending(int id, [FromBody] RegisterStockInputDTO dto)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+                return Unauthorized();
+
+            await _purchaseService.RegisterStockFromPendingAsync(id, dto.WarehouseId, dto.Reference, userId, dto.DispatchId);
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
+        }
+
+    }
+
+
     //private bool IsAdmin()
     //{
     //    var roleClaim = User.FindFirst(ClaimTypes.Role);
