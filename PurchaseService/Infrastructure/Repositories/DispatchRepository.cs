@@ -32,5 +32,11 @@ namespace PurchaseService.Infrastructure.Repositories
                 .ToListAsync();
 
         public async Task<int> GetTotalCountAsync() => await _context.Dispatches.CountAsync();
+
+        //save changes to the database
+        public async Task SaveChangesAsync()
+        {
+            await _context.SaveChangesAsync();
+        }
     }
 }

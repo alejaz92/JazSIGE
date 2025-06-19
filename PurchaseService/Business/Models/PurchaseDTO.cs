@@ -10,7 +10,7 @@
         public string WarehouseName { get; set; } = string.Empty;
         public int UserId { get; set; }
         public string UserName { get; set; } = string.Empty;        
-        public bool StockUpdated { get; set; }
+        //public bool StockUpdated { get; set; }
         public string Reference { get; set; } = string.Empty;
         public bool IsImportation { get; set; }
         public bool IsDelivered { get; set; }

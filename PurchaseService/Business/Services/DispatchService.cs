@@ -9,12 +9,18 @@ namespace PurchaseService.Business.Services
         private readonly IDispatchRepository _dispatchRepository;
         private readonly ICatalogServiceClient _catalogServiceClient;
         private readonly IUserServiceClient _userServiceClient;
+        private readonly IPurchaseService _purchaseService;
 
-        public DispatchService(IDispatchRepository dispatchRepository, ICatalogServiceClient catalogServiceClient, IUserServiceClient userServiceClient)
+        public DispatchService(
+            IDispatchRepository dispatchRepository, 
+            ICatalogServiceClient catalogServiceClient, 
+            IUserServiceClient userServiceClient,
+            IPurchaseService purchaseService)
         {
             _dispatchRepository = dispatchRepository;
             _catalogServiceClient = catalogServiceClient;
             _userServiceClient = userServiceClient;
+            _purchaseService = purchaseService;
         }
 
         public async Task<IEnumerable<DispatchDTO>> GetAllAsync()
@@ -55,6 +61,35 @@ namespace PurchaseService.Business.Services
                 Date = dispatch.Date,
                 PurchaseId = dispatch.PurchaseId
             };
+        }
+
+        // create dispatch. first check if purchase importation and does not have dispatch yet  
+        public async Task<int> CreateAsync(DispatchCreateDTO dto, int userId, int purchaseId)
+        {
+            var purchase = await _purchaseService.GetByIdAsync(purchaseId);
+            if (purchase == null)
+                throw new Exception("Purchase not found");
+
+            //chec if purchase.Dispatch exists
+            if (purchase.Dispatch != null)
+                throw new Exception("Purchase already has a dispatch");
+
+            // check if user exists
+            var user = await _userServiceClient.GetUserNameAsync(userId);
+            if (user == null)
+                throw new Exception("User not found");
+
+            var dispatch = new Infrastructure.Models.Dispatch
+            {
+                Code = dto.Code,
+                Origin = dto.Origin,
+                Date = dto.Date,
+                PurchaseId = purchaseId
+            };
+            dispatch = await _dispatchRepository.AddAsync(dispatch);
+            await _dispatchRepository.SaveChangesAsync();
+
+            return dispatch.Id;
         }
 
     }

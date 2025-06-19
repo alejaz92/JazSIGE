@@ -36,4 +36,25 @@ public class DispatchController : ControllerBase
         if (dispatch == null) return NotFound();
         return Ok(dispatch);
     }
+
+
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] DispatchCreateDTO dto, [FromQuery] int purchaseId)
+    {
+        var userIdHeader = HttpContext.Request.Headers["X-UserId"].ToString();
+        if (!int.TryParse(userIdHeader, out int userId))
+            return Unauthorized(new { error = "Usuario no autenticado correctamente" });
+        try
+        {
+            var id = await _dispatchService.CreateAsync(dto, userId, purchaseId);
+            return CreatedAtAction(nameof(GetById), new { id }, new { id });
+        }
+        catch (Exception ex)
+        {
+            // Handle specific exceptions if needed
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
+
 }

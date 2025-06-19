@@ -10,5 +10,6 @@ namespace PurchaseService.Infrastructure.Interfaces
         Task<IEnumerable<Dispatch>> GetAllAsync();
         Task<Dispatch?> GetByIdAsync(int id);
         Task<int> GetTotalCountAsync();
+        Task SaveChangesAsync();
     }
 }

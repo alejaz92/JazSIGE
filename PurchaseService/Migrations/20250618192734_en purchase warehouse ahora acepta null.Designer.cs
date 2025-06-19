@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PurchaseService.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using PurchaseService.Infrastructure.Data;
 namespace PurchaseService.Migrations
 {
     [DbContext(typeof(PurchaseDbContext))]
-    partial class PurchaseDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250618192734_en purchase warehouse ahora acepta null")]
+    partial class enpurchasewarehouseahoraaceptanull
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
