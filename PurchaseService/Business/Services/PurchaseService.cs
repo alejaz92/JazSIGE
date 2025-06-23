@@ -56,13 +56,17 @@ namespace PurchaseService.Business.Services
             // Impactar stock
             try
             {
+
+                
+
                 await _stockServiceClient.RegisterPurchaseMovementsAsync(
                     userId,
                     warehouseId,
                     articles.Select(a => (a.ArticleId, a.Quantity)).ToList(),
                     reference,
                     dispatchId
-                );                
+                );               
+
             }
             catch (Exception ex)
             {
@@ -279,6 +283,7 @@ namespace PurchaseService.Business.Services
             }, userId);
 
             purchase.IsDelivered = true; // Marcar como entregada
+            purchase.WarehouseId = warehouseId; // Actualizar el almacén
             purchase.UpdatedAt = DateTime.UtcNow; // Actualizar la fecha de actualización
 
             await _purchaseRepository.SaveChangesAsync(); 
@@ -298,7 +303,13 @@ namespace PurchaseService.Business.Services
         private async Task<PurchaseDTO> MapToDTOAsync(Purchase purchase)
         {
             var supplierName = await _catalogServiceClient.GetSupplierNameAsync(purchase.SupplierId) ?? "N/A";
-            //var warehouseName = await _catalogServiceClient.GetWarehouseNameAsync(purchase.WarehouseId) ?? "N/A";
+
+            var warehouseName = null as string;
+            if (purchase.WarehouseId != null)
+            {
+                warehouseName = await _catalogServiceClient.GetWarehouseNameAsync(purchase.WarehouseId.Value) ?? "N/A";
+            }                
+            
             var userName = await _userServiceClient.GetUserNameAsync(purchase.UserId) ?? "N/A";
 
             var articleDTOs = new List<PurchaseArticleDTO>();
@@ -321,8 +332,8 @@ namespace PurchaseService.Business.Services
                 Date = purchase.Date,
                 SupplierId = purchase.SupplierId,
                 SupplierName = supplierName,
-                //WarehouseId = purchase.WarehouseId,
-                //WarehouseName = warehouseName,
+                WarehouseId = purchase.WarehouseId,
+                WarehouseName = warehouseName,
                 UserId = purchase.UserId,
                 UserName = userName,
                 //HasDispatch = purchase.Dispatch != null,
