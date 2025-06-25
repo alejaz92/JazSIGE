@@ -1,5 +1,6 @@
 ﻿using SalesService.Business.Interfaces;
 using SalesService.Business.Interfaces.Clients;
+using SalesService.Business.Models.Clients;
 using SalesService.Business.Models.Sale;
 using SalesService.Infrastructure.Interfaces;
 using SalesService.Infrastructure.Models.Sale;
@@ -10,15 +11,18 @@ namespace SalesService.Business.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly ICatalogServiceClient _catalogService;
+        private readonly IStockServiceClient _stockService;
         private readonly IUserServiceClient _userService;
 
         public SaleService(
             IUnitOfWork unitOfWork,
             ICatalogServiceClient catalogService,
+            IStockServiceClient stockService,
             IUserServiceClient userService)
         {
             _unitOfWork = unitOfWork;
             _catalogService = catalogService;
+            _stockService = stockService;
             _userService = userService;
         }
 
@@ -49,6 +53,8 @@ namespace SalesService.Business.Services
                     Date = sale.Date,
                     Total = Math.Round(subtotal + ivaTotal, 2),
                     ExchangeRate = sale.ExchangeRate,
+                    HasInvoice = sale.HasInvoice,
+                    IsFullyDelivered = sale.IsFullyDelivered
                 });
             }
 
@@ -65,25 +71,7 @@ namespace SalesService.Business.Services
                 dn => dn.Articles
             );
 
-            var hasDeliveryNotes = deliveryNotes.Any();
-
-            // Agrupamos artículos entregados
-            var deliveredQuantities = deliveryNotes
-                .SelectMany(dn => dn.Articles)
-                .GroupBy(a => a.ArticleId)
-                .ToDictionary(g => g.Key, g => g.Sum(x => x.Quantity));
-
-            // Comparamos con lo vendido
-            bool isFullyDelivered = true;
-            foreach (var a in sale.Articles)
-            {
-                deliveredQuantities.TryGetValue(a.ArticleId, out decimal delivered);
-                if (delivered < a.Quantity)
-                {
-                    isFullyDelivered = false;
-                    break;
-                }
-            }
+            var hasDeliveryNotes = deliveryNotes.Any();            
 
 
             var customer = await _catalogService.GetCustomerByIdAsync(sale.CustomerId);
@@ -131,33 +119,71 @@ namespace SalesService.Business.Services
                 Articles = articleDTOs,
                 HasInvoice = sale.HasInvoice,
                 HasDeliveryNotes = hasDeliveryNotes,
-                IsFullyDelivered = isFullyDelivered
+                IsFullyDelivered = sale.IsFullyDelivered
             };
         }
 
         public async Task<SaleDetailDTO> CreateAsync(SaleCreateDTO dto)
         {
-            var sale = new Sale
+            // validate user
+            var user = await _userService.GetUserByIdAsync(dto.SellerId);
+            if (user == null)
+                throw new ArgumentException("Invalid seller ID.");
+
+            // validate customer
+            var customer = await _catalogService.GetCustomerByIdAsync(dto.CustomerId);
+            if (customer == null)
+                throw new ArgumentException("Invalid customer ID.");
+
+            // validate articles
+            foreach( var article in dto.Articles)
             {
-                CustomerId = dto.CustomerId,
-                SellerId = dto.SellerId,
-                Date = dto.Date,
-                ExchangeRate = dto.ExchangeRate,
-                Observations = dto.Observations,
-                Articles = dto.Articles.Select(a => new Sale_Article
+                var articleInfo = await _catalogService.GetArticleByIdAsync(article.ArticleId);
+                if (articleInfo == null)
+                    throw new ArgumentException($"Invalid article ID: {article.ArticleId}");
+                if (article.Quantity <= 0)
+                    throw new ArgumentException($"Invalid quantity for article {article.ArticleId}.");
+            }
+
+
+            using var transaction = await _unitOfWork.SaleRepository.BeginTransactionAsync();
+
+
+            try
+            {
+                var sale = new Sale
                 {
-                    ArticleId = a.ArticleId,
-                    Quantity = a.Quantity,
-                    UnitPrice = a.UnitPrice,
-                    DiscountPercent = a.DiscountPercent,
-                    IVAPercent = a.IVAPercent
-                }).ToList()
-            };
+                    CustomerId = dto.CustomerId,
+                    SellerId = dto.SellerId,
+                    Date = dto.Date,
+                    ExchangeRate = dto.ExchangeRate,
+                    Observations = dto.Observations,
+                    Articles = dto.Articles.Select(a => new Sale_Article
+                    {
+                        ArticleId = a.ArticleId,
+                        Quantity = a.Quantity,
+                        UnitPrice = a.UnitPrice,
+                        DiscountPercent = a.DiscountPercent,
+                        IVAPercent = a.IVAPercent
+                    }).ToList()
+                };
 
-            await _unitOfWork.SaleRepository.AddAsync(sale);
-            await _unitOfWork.SaveAsync();
 
-            return await GetByIdAsync(sale.Id) ?? throw new Exception("sale not available.");
+                await _unitOfWork.SaleRepository.AddAsync(sale);
+
+                await _unitOfWork.SaveAsync();
+
+                await UpdateStockCommited(sale.Id, dto.Articles);
+
+                await transaction.CommitAsync();
+
+                return await GetByIdAsync(sale.Id);
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                throw new InvalidOperationException("Error creating sale.", ex);
+            }
         }
 
         public async Task DeleteAsync(int id)
@@ -165,6 +191,20 @@ namespace SalesService.Business.Services
             await _unitOfWork.SaleRepository.DeleteAsync(id);
             await _unitOfWork.SaveAsync();
         }
-    
+
+        private async Task UpdateStockCommited(int saleId, List<SaleArticleCreateDTO> articles)
+        {
+            foreach (var article in articles)
+            {
+                var commitedEntry = new CommitedStockEntryCreateDTO
+                {
+                    SaleId = saleId,
+                    ArticleId = article.ArticleId,
+                    Quantity = article.Quantity
+                };
+                await _stockService.RegisterCommitedStockAsync(commitedEntry);
+            }
+        }
+
     }
 }

@@ -15,6 +15,7 @@ namespace StockService.Infrastructure.Data
         public DbSet<StockMovement> StockMovements { get; set; }
         public DbSet<StockByDispatch> StockByDispatches { get; set; }
         public DbSet<PendingStockEntry> PendingStockEntries { get; set; }
+        public DbSet<CommitedStockEntry> CommitedStockEntries { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -39,6 +40,16 @@ namespace StockService.Infrastructure.Data
             modelBuilder.Entity<PendingStockEntry>()
                 .Property(p => p.Quantity)
                 .HasPrecision(18, 4);
+
+            modelBuilder.Entity<CommitedStockEntry>()
+                .Property(c => c.Quantity)
+                .HasPrecision(18, 4);
+
+            modelBuilder.Entity<CommitedStockEntry>()
+                .Property(c => c.Delivered)
+                .HasPrecision(18, 4);
+
+
         }
     }
 }

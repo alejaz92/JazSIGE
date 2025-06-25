@@ -3,8 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using SalesService.Business.Interfaces;
 using SalesService.Business.Models.DeliveryNote;
 using SalesService.Business.Models.Sale;
-using SalesService.Business.Models.SalesOrder;
-using SalesService.Business.Services;
 
 namespace SalesService.Controllers
 {
@@ -116,6 +114,6 @@ namespace SalesService.Controllers
             }
         }
 
-
+        
     }
 }

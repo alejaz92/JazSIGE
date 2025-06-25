@@ -111,5 +111,12 @@ namespace StockService.Business.Services
                 await _pendingRepository.MarkAsProcessedAsync(entry.Id);
             }
         }
+
+        public async Task<decimal> GetPendingStockByArticleAsync(int articleId)
+        {
+            var pendingEntriesSum = await _pendingRepository.GetTotalPendingStockByArticleIdAsync(articleId);
+            return pendingEntriesSum;
+
+        }
     }
 }

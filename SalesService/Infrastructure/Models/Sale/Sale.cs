@@ -12,6 +12,7 @@
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         public bool HasInvoice { get; set; } = false;
+        public bool IsFullyDelivered { get; set; } = false; 
 
         public List<Sale_Article> Articles { get; set; } = new();
         public List<DeliveryNote> DeliveryNotes { get; set; } = new(); 

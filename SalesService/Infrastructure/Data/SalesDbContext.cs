@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SalesService.Infrastructure.Models;
 using SalesService.Infrastructure.Models.Sale;
-using SalesService.Infrastructure.Models.SalesOrder;
 using SalesService.Infrastructure.Models.SalesQuote;
 
 namespace SalesService.Infrastructure.Data
@@ -18,10 +17,6 @@ namespace SalesService.Infrastructure.Data
         //salesQuote
         public DbSet<SalesQuote> SalesQuotes { get; set; } = null!;
         public DbSet<SalesQuote_Article> SalesQuoteArticles { get; set; } = null!;
-
-        ////salesOrder
-        //public DbSet<SalesOrder> SalesOrders { get; set; }
-        //public DbSet<SalesOrder_Article> SalesOrder_Articles { get; set; }
 
         // Sale
         public DbSet<Sale> Sales {  get; set; } 
@@ -65,20 +60,12 @@ namespace SalesService.Infrastructure.Data
                 .Property(sq => sq.TotalUSD)
                 .HasColumnType("decimal(18,4)");
 
-            //// salesOrder
-            //modelBuilder.Entity<SalesOrder>()
-            //    .HasMany(o => o.Articles)
-            //    .WithOne(a => a.SalesOrder)
-            //    .HasForeignKey(a => a.SalesOrderId)
-            //    .OnDelete(DeleteBehavior.Cascade);
-
-
             // sale
             modelBuilder.Entity<Sale>()
-            .HasMany(s => s.Articles)
-            .WithOne(a => a.Sale)
-            .HasForeignKey(a => a.SaleId)
-            .OnDelete(DeleteBehavior.Cascade);
+                .HasMany(s => s.Articles)
+                .WithOne(a => a.Sale)
+                .HasForeignKey(a => a.SaleId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Sale_Article>()
                 .Property(a => a.UnitPrice)

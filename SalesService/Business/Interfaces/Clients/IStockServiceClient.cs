@@ -4,6 +4,7 @@ namespace SalesService.Business.Interfaces.Clients
 {
     public interface IStockServiceClient
     {
-        Task<List<DispatchStockDetailDTO>> RegisterMovementAsync(StockMovementCreateDTO dto, int userId);
+        Task RegisterCommitedStockAsync(CommitedStockEntryCreateDTO dto);
+        Task<CommitedStockEntryOutputDTO> RegisterCommitedStockConsolidatedAsync(CommitedStockInputDTO dto, int userId);
     }
 }

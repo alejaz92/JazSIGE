@@ -8,10 +8,6 @@ namespace SalesService.Infrastructure.Interfaces
 
         ISalesQuoteRepository SalesQuoteRepository { get; }
         ISalesQuoteArticleRepository SalesQuoteArticleRepository { get; }
-
-        //ISalesOrderRepository SalesOrderRepository { get; }
-        //ISalesOrderArticleRepository SalesOrderArticleRepository { get; }
-
         ISaleRepository SaleRepository { get; }
         ISaleArticleRepository SaleArticleRepository { get; }
 

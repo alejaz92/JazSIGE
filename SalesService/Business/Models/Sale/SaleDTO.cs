@@ -8,5 +8,7 @@
         public DateTime Date {  get; set; }
         public decimal Total { get; set; }
         public decimal ExchangeRate { get; set; }
+        public bool IsFullyDelivered { get; set; }
+        public bool HasInvoice { get; set; }
     }
 }

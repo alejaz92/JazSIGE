@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using StockService.Business.Interfaces;
 using StockService.Business.Models;
+using StockService.Business.Models.CommitedStock;
 using System.Security.Claims;
 
 namespace StockService.Controllers;
@@ -11,44 +12,21 @@ public class StockController : ControllerBase
 {
     private readonly IStockService _stockService;
     private readonly IPendingStockService _pendingStockService;
+    private readonly ICommitedStockService _commitedStockService;
     private readonly IEnumService _enumService;
 
     public StockController(
         IStockService stockService, 
         IPendingStockService pendingStockService,
+        ICommitedStockService commitedStockService,
         IEnumService enumService)
     {
         _stockService = stockService;
         _pendingStockService = pendingStockService;
+        _commitedStockService = commitedStockService;
         _enumService = enumService;
     }
 
-    //[HttpPost("movement")]
-    //public async Task<IActionResult> RegisterMovement([FromBody] StockMovementCreateDTO dto)
-    //{
-
-    //    var userIdHeader = HttpContext.Request.Headers["X-UserId"].ToString();
-    //    if (!int.TryParse(userIdHeader, out int userId))
-    //        return Unauthorized(new { error = "Usuario no autenticado correctamente" });
-
-    //    try
-    //    {
-    //        await _stockService.RegisterMovementAsync(dto, userId);
-    //        return Ok();
-    //    }
-    //    catch (ArgumentException ex)
-    //    {
-    //        return BadRequest(new { error = ex.Message });
-    //    }
-    //    catch (InvalidOperationException ex)
-    //    {
-    //        return BadRequest(new { error = ex.Message });
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
-    //    }
-    //}
     [HttpPost("movement")]
     public async Task<ActionResult<List<DispatchStockDetailDTO>>> RegisterMovement([FromBody] StockMovementCreateDTO dto)
     {
@@ -166,8 +144,30 @@ public class StockController : ControllerBase
     [HttpPost("pending-entry")]
     public async Task<IActionResult> CreatePendingEntry([FromBody] PendingStockEntryCreateDTO dto)
     {
-        await _pendingStockService.AddAsync(dto);
-        return Ok();
+        try
+        {
+            await _pendingStockService.AddAsync(dto);
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
+        }
+    }
+
+
+    [HttpPost("commited-entry")]
+    public async Task<ActionResult> CreateCommitedEntry([FromBody] CommitedStockEntryCreateDTO dto)
+    {
+        try
+        {
+            await _commitedStockService.AddAsync(dto);
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
+        }
     }
 
     [HttpGet("pending-entry/{purchaseId}")]
@@ -188,6 +188,56 @@ public class StockController : ControllerBase
 
         await _pendingStockService.RegisterPendingStockAsync(dto, userId);
         return Ok();
+    }
+
+    [HttpPost("commited-entry/register")]
+    public async Task<IActionResult> RegisterCommitedStock([FromBody] RegisterCommitedStockInputDTO dto)
+    {
+        if (!HttpContext.Request.Headers.TryGetValue("X-UserId", out var userIdHeader) ||
+            !int.TryParse(userIdHeader, out var userId))
+        {
+            return Unauthorized("User ID is missing or invalid.");
+        }
+        try
+        {
+            var output = await _commitedStockService.RegisterCommitedStockAsync(dto, userId);
+            return Ok(output);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
+        }
+    }
+
+
+    // get pending stock by article
+    [HttpGet("pending/{articleId}")]
+    public async Task<ActionResult<decimal>> GetPendingStockByArticle(int articleId)
+    {
+        try
+        {
+            var total = await _pendingStockService.GetPendingStockByArticleAsync(articleId);
+            return Ok(total);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
+        }
+    }
+
+    // get commited stock by article id
+    [HttpGet("commited/{articleId}")]
+    public async Task<ActionResult<decimal>> GetCommitedStockByArticle(int articleId)
+    {
+        try
+        {
+            var total = await _commitedStockService.GetTotalCommitedStockByArticleIdAsync(articleId);
+            return Ok(total);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
+        }
     }
 
 }

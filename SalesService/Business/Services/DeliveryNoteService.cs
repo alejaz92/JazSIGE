@@ -28,7 +28,7 @@ namespace SalesService.Business.Services
 
         public async Task<DeliveryNoteDTO> CreateAsync(int saleId, DeliveryNoteCreateDTO dto, int userId)
         {
-            var sale = await _unitOfWork.SaleRepository.GetIncludingAsync(saleId, s => s.Articles);
+            var sale = await _unitOfWork.SaleRepository.GetIncludingAsync(saleId, s => s.Articles, s => s.DeliveryNotes);
             if (sale == null)
                 throw new ArgumentException("Venta no encontrada.");
 
@@ -41,31 +41,77 @@ namespace SalesService.Business.Services
                 Observations = dto.Observations
             };
 
-            foreach (var item in dto.Articles)
-            {
-                // Descontar stock por venta
-                var breakdown = await _stockServiceClient.RegisterMovementAsync(new StockMovementCreateDTO
-                {
-                    ArticleId = item.ArticleId,
-                    Quantity = item.Quantity,
-                    MovementType = 4, // codigo del stockMovement Type para Sale
-                    FromWarehouseId = dto.WarehouseId,
-                    Reference = $"Remito por venta #{sale.Id}"
-                }, userId);
+            //foreach (var item in dto.Articles)
+            //{
+            //    // Descontar stock por venta
+            //    var breakdown = await _stockServiceClient.RegisterMovementAsync(new StockMovementCreateDTO
+            //    {
+            //        ArticleId = item.ArticleId,
+            //        Quantity = item.Quantity,
+            //        MovementType = 4, // codigo del stockMovement Type para Sale
+            //        FromWarehouseId = dto.WarehouseId,
+            //        Reference = $"Remito por venta #{sale.Id}"
+            //    }, userId);
 
-                foreach (var b in breakdown)
+            //    foreach (var b in breakdown)
+            //    {
+            //        deliveryNote.Articles.Add(new DeliveryNote_Article
+            //        {
+            //            ArticleId = item.ArticleId,
+            //            Quantity = b.Quantity,
+            //            DispatchId = b.DispatchId,
+            //            DispatchCode = b.DispatchId.HasValue ? await GetDispatchCode(b.DispatchId.Value) : null
+            //        });
+            //    }
+            //}
+
+            // hacer descuento de stock.
+            // crear commitedinput dto
+            var inputDTO = new CommitedStockInputDTO
+            {
+                SaleId = saleId,
+                WarehouseId = dto.WarehouseId,
+                Articles = dto.Articles.Select(a => new CommitedStockArticleInputDTO
                 {
-                    deliveryNote.Articles.Add(new DeliveryNote_Article
-                    {
-                        ArticleId = item.ArticleId,
-                        Quantity = b.Quantity,
-                        DispatchId = b.DispatchId,
-                        DispatchCode = b.DispatchId.HasValue ? await GetDispatchCode(b.DispatchId.Value) : null
-                    });
-                }
+                    ArticleId = a.ArticleId,
+                    Quantity = a.Quantity
+                }).ToList()
+            };
+
+            CommitedStockEntryOutputDTO outputDTO = await _stockServiceClient.RegisterCommitedStockConsolidatedAsync(inputDTO, userId);
+
+            foreach (var articleDispatch in outputDTO.Dispatches)
+            {
+                deliveryNote.Articles.Add(new DeliveryNote_Article
+                {
+                    ArticleId = articleDispatch.ArticleId,
+                    Quantity = articleDispatch.Quantity,
+                    DispatchId = articleDispatch.DispatchId,
+                    DispatchCode = await GetDispatchCode(articleDispatch.DispatchId)
+                });
             }
 
             await _unitOfWork.DeliveryNoteRepository.AddAsync(deliveryNote);
+
+            var allArticlesDelivered = sale.Articles.All(sa =>
+            {
+                var totalDelivered = sale.DeliveryNotes
+                    .SelectMany(dn => dn.Articles)
+                    .Concat(deliveryNote.Articles)
+                    .Where(dna => dna.ArticleId == sa.ArticleId)
+                    .Sum(dna => dna.Quantity);
+
+                return totalDelivered >= sa.Quantity;
+            });
+
+            if (allArticlesDelivered)
+            {
+                sale.IsFullyDelivered = true;
+                _unitOfWork.SaleRepository.Update(sale);
+            }
+            
+
+
             await _unitOfWork.SaveAsync();
 
             deliveryNote.Code = $"RN-{deliveryNote.Id:D8}";
@@ -76,9 +122,13 @@ namespace SalesService.Business.Services
         }
         public async Task<IEnumerable<DeliveryNoteDTO>> GetAllBySaleIdAsync(int saleId)
         {
-            var notes = await _unitOfWork.DeliveryNoteRepository.GetAllIncludingAsync(dn => dn.SaleId == saleId, dn => dn.Articles, dn => dn.Sale);
-            var result = new List<DeliveryNoteDTO>();
+            var notes = await _unitOfWork.DeliveryNoteRepository.FindIncludingAsync(
+                dn => dn.SaleId == saleId,
+                dn => dn.Articles,
+                dn => dn.Sale
+            );
 
+            var result = new List<DeliveryNoteDTO>();
             foreach (var dn in notes)
             {
                 result.Add(await MapToDTO(dn));

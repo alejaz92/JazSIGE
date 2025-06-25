@@ -34,5 +34,9 @@ namespace StockService.Infrastructure.Repositories
                 await _context.SaveChangesAsync();
             }
         }
+
+        public async Task<decimal> GetTotalPendingStockByArticleIdAsync(int articleId) => await _context.PendingStockEntries
+                .Where(p => p.ArticleId == articleId && !p.IsProcessed)
+                .SumAsync(p => p.Quantity);
     }
 }

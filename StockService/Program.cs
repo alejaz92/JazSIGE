@@ -34,6 +34,7 @@ builder.Services.AddScoped<IStockRepository, StockRepository>();
 builder.Services.AddScoped<IStockMovementRepository, StockMovementRepository>();
 builder.Services.AddScoped<IStockByDispatchRepository, StockByDispatchRepository>();
 builder.Services.AddScoped<IPendingStockEntryRepository, PendingStockEntryRepository>();
+builder.Services.AddScoped<ICommitedStockEntryRepository, CommitedStockEntryRepository>();
 
 // Services
 builder.Services.AddScoped<IStockService, StockService.Business.Services.StockService>();
@@ -41,6 +42,7 @@ builder.Services.AddScoped<ICatalogValidatorService, CatalogValidatorService>();
 builder.Services.AddScoped<IUserServiceClient, UserServiceClient>();
 builder.Services.AddScoped<IEnumService, EnumService>();
 builder.Services.AddScoped<IPendingStockService, PendingStockService>();
+builder.Services.AddScoped<ICommitedStockService, CommitedStockService>();
 
 
 

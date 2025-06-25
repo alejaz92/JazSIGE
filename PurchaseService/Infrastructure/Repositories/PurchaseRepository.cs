@@ -32,6 +32,7 @@ namespace PurchaseService.Infrastructure.Repositories
                 .Include(p => p.Articles)
                 .Include(p => p.Dispatch)
                 .OrderByDescending(p => p.Date)
+                .ThenByDescending(p => p.Id)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();

@@ -11,10 +11,6 @@ namespace SalesService.Infrastructure.Repositories
 
         public ISalesQuoteRepository SalesQuoteRepository { get; }
         public ISalesQuoteArticleRepository SalesQuoteArticleRepository { get; }
-
-        //public ISalesOrderRepository SalesOrderRepository { get; }
-        //public ISalesOrderArticleRepository SalesOrderArticleRepository { get; }
-
         public ISaleRepository SaleRepository { get; }
         public ISaleArticleRepository SaleArticleRepository { get; }
 

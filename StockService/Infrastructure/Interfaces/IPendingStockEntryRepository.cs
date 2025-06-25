@@ -6,6 +6,7 @@ namespace StockService.Infrastructure.Interfaces
     {
         Task AddAsync(PendingStockEntry entry);
         Task<List<PendingStockEntry>> GetByPurchaseIdAsync(int purchaseId);
+        Task<decimal> GetTotalPendingStockByArticleIdAsync(int articleId);
         Task MarkAsProcessedAsync(int id);
     }
 }
