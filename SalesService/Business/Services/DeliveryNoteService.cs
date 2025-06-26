@@ -4,6 +4,8 @@ using SalesService.Business.Models.Clients;
 using SalesService.Business.Models.DeliveryNote;
 using SalesService.Infrastructure.Interfaces;
 using SalesService.Infrastructure.Models.Sale;
+using Microsoft.EntityFrameworkCore;
+
 
 namespace SalesService.Business.Services
 {
@@ -28,7 +30,14 @@ namespace SalesService.Business.Services
 
         public async Task<DeliveryNoteDTO> CreateAsync(int saleId, DeliveryNoteCreateDTO dto, int userId)
         {
-            var sale = await _unitOfWork.SaleRepository.GetIncludingAsync(saleId, s => s.Articles, s => s.DeliveryNotes);
+            var sale = await _unitOfWork.SaleRepository.GetIncludingAsync(
+                saleId,
+                query => query
+                    .Include(s => s.Articles)
+                    .Include(s => s.DeliveryNotes)
+                        .ThenInclude(dn => dn.Articles)
+            );
+
             if (sale == null)
                 throw new ArgumentException("Venta no encontrada.");
 
@@ -41,32 +50,7 @@ namespace SalesService.Business.Services
                 Observations = dto.Observations
             };
 
-            //foreach (var item in dto.Articles)
-            //{
-            //    // Descontar stock por venta
-            //    var breakdown = await _stockServiceClient.RegisterMovementAsync(new StockMovementCreateDTO
-            //    {
-            //        ArticleId = item.ArticleId,
-            //        Quantity = item.Quantity,
-            //        MovementType = 4, // codigo del stockMovement Type para Sale
-            //        FromWarehouseId = dto.WarehouseId,
-            //        Reference = $"Remito por venta #{sale.Id}"
-            //    }, userId);
 
-            //    foreach (var b in breakdown)
-            //    {
-            //        deliveryNote.Articles.Add(new DeliveryNote_Article
-            //        {
-            //            ArticleId = item.ArticleId,
-            //            Quantity = b.Quantity,
-            //            DispatchId = b.DispatchId,
-            //            DispatchCode = b.DispatchId.HasValue ? await GetDispatchCode(b.DispatchId.Value) : null
-            //        });
-            //    }
-            //}
-
-            // hacer descuento de stock.
-            // crear commitedinput dto
             var inputDTO = new CommitedStockInputDTO
             {
                 SaleId = saleId,
@@ -87,7 +71,10 @@ namespace SalesService.Business.Services
                     ArticleId = articleDispatch.ArticleId,
                     Quantity = articleDispatch.Quantity,
                     DispatchId = articleDispatch.DispatchId,
-                    DispatchCode = await GetDispatchCode(articleDispatch.DispatchId)
+                    DispatchCode = articleDispatch.DispatchId.HasValue
+                        ? await GetDispatchCode(articleDispatch.DispatchId.Value)
+                        : null
+
                 });
             }
 
@@ -97,7 +84,7 @@ namespace SalesService.Business.Services
             {
                 var totalDelivered = sale.DeliveryNotes
                     .SelectMany(dn => dn.Articles)
-                    .Concat(deliveryNote.Articles)
+                    //.Concat(deliveryNote.Articles)
                     .Where(dna => dna.ArticleId == sa.ArticleId)
                     .Sum(dna => dna.Quantity);
 

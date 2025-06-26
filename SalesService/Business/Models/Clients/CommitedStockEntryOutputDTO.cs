@@ -13,6 +13,6 @@
     {
         public int ArticleId { get; set; }
         public decimal Quantity { get; set; } = 0;
-        public int DispatchId { get; set; }
+        public int? DispatchId { get; set; }
     }
 }

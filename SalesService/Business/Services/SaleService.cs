@@ -1,6 +1,7 @@
 ﻿using SalesService.Business.Interfaces;
 using SalesService.Business.Interfaces.Clients;
 using SalesService.Business.Models.Clients;
+using SalesService.Business.Models.DeliveryNote;
 using SalesService.Business.Models.Sale;
 using SalesService.Infrastructure.Interfaces;
 using SalesService.Infrastructure.Models.Sale;
@@ -60,7 +61,6 @@ namespace SalesService.Business.Services
 
             return result;
         }
-
         public async Task<SaleDetailDTO?> GetByIdAsync(int id)
         {
             var sale = await _unitOfWork.SaleRepository.GetIncludingAsync(id, s => s.Articles);
@@ -117,12 +117,27 @@ namespace SalesService.Business.Services
                 SellerName = $"{seller.FirstName} {seller.LastName}",
 
                 Articles = articleDTOs,
+                DeliveryNotes = deliveryNotes.Select(dn => new DeliveryNoteDTO
+                {
+                    Id = dn.Id,
+                    Code = dn.Code!,
+                    Date = dn.Date,
+                    Observations = dn.Observations,
+                    Articles = dn.Articles.Select(a => new DeliveryNoteArticleDTO
+                    {
+                        ArticleId = a.ArticleId,
+                        Quantity = a.Quantity,
+                        DispatchCode = a.DispatchCode
+                    }).ToList()
+                }).ToList(),
+
                 HasInvoice = sale.HasInvoice,
                 HasDeliveryNotes = hasDeliveryNotes,
                 IsFullyDelivered = sale.IsFullyDelivered
+
+                
             };
         }
-
         public async Task<SaleDetailDTO> CreateAsync(SaleCreateDTO dto)
         {
             // validate user
@@ -143,12 +158,16 @@ namespace SalesService.Business.Services
                     throw new ArgumentException($"Invalid article ID: {article.ArticleId}");
                 if (article.Quantity <= 0)
                     throw new ArgumentException($"Invalid quantity for article {article.ArticleId}.");
+
+                // validate stock
+                var availableStock = await _stockService.GetAvailableStockAsync(article.ArticleId, customer.WarehouseId);
+                if (availableStock < article.Quantity)
+                    throw new InvalidOperationException($"Insufficient stock for article {article.ArticleId}. Available: {availableStock}, Requested: {article.Quantity}.");
+
             }
 
 
             using var transaction = await _unitOfWork.SaleRepository.BeginTransactionAsync();
-
-
             try
             {
                 var sale = new Sale
@@ -185,13 +204,11 @@ namespace SalesService.Business.Services
                 throw new InvalidOperationException("Error creating sale.", ex);
             }
         }
-
         public async Task DeleteAsync(int id)
         {
             await _unitOfWork.SaleRepository.DeleteAsync(id);
             await _unitOfWork.SaveAsync();
         }
-
         private async Task UpdateStockCommited(int saleId, List<SaleArticleCreateDTO> articles)
         {
             foreach (var article in articles)
@@ -205,6 +222,5 @@ namespace SalesService.Business.Services
                 await _stockService.RegisterCommitedStockAsync(commitedEntry);
             }
         }
-
     }
 }

@@ -209,7 +209,6 @@ public class StockController : ControllerBase
         }
     }
 
-
     // get pending stock by article
     [HttpGet("pending/{articleId}")]
     public async Task<ActionResult<decimal>> GetPendingStockByArticle(int articleId)
@@ -233,6 +232,23 @@ public class StockController : ControllerBase
         {
             var total = await _commitedStockService.GetTotalCommitedStockByArticleIdAsync(articleId);
             return Ok(total);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
+        }
+    }
+
+    //get available stock for sale by article id
+    [HttpGet("available/{articleId}")]
+    public async Task<ActionResult<decimal>> GetAvailableStockForSale(int articleId)
+    {
+        try
+        {
+            var currentStock = await _stockService.GetStockSummaryAsync(articleId);
+            var pendingStock = await _pendingStockService.GetPendingStockByArticleAsync(articleId);
+            var commitedStock = await _commitedStockService.GetTotalCommitedStockByArticleIdAsync(articleId);
+            return Ok(currentStock + pendingStock - commitedStock);
         }
         catch (Exception ex)
         {

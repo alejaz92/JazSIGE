@@ -18,6 +18,7 @@ namespace SalesService.Infrastructure.Interfaces
         Task<T> GetByIdAsync(int id);
         Task<IEnumerable<T>> GetByUserIdAsync(int userId);
         Task<T> GetIncludingAsync(int id, params Expression<Func<T, object>>[] includes);
+        Task<T> GetIncludingAsync(int id, Func<IQueryable<T>, IQueryable<T>> includeFunc);
         Task RollbackTransactionAsync();
         Task SaveChangesAsync();
         void Update(T entity);

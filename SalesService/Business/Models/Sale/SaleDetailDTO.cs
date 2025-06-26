@@ -1,4 +1,6 @@
-﻿namespace SalesService.Business.Models.Sale
+﻿using SalesService.Business.Models.DeliveryNote;
+
+namespace SalesService.Business.Models.Sale
 {
     public class SaleDetailDTO
     {
@@ -33,7 +35,9 @@
         public bool IsFullyDelivered { get; set; }
 
         //lists
-        public List<SaleArticleDetailDTO> Articles { get; set; } = new();        
+        public List<SaleArticleDetailDTO> Articles { get; set; } = new();   
+        
+        public List<DeliveryNoteDTO> DeliveryNotes { get; set; } = new();
     }
 
     public class SaleArticleDetailDTO

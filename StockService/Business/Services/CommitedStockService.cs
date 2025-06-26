@@ -92,12 +92,16 @@ namespace StockService.Business.Services
 
                     foreach(var b in breakdown)
                     {
-                        if(b.DispatchId == null)
-                            continue; // Skip if no dispatch ID
+                        //if(b.DispatchId == null)
+                        //    continue; // Skip if no dispatch ID
+
+                        //si el dispatchId es null, se agrega igualmente
+
+
 
                         outputDto.Dispatches.Add(new RegisterCommitedStockDispatchOutputDTO
                         {
-                            DispatchId = b.DispatchId.Value,
+                            DispatchId = b.DispatchId,
                             ArticleId = entry.ArticleId,
                             Quantity = b.Quantity
                         });

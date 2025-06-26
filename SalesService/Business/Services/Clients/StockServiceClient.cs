@@ -19,29 +19,6 @@ namespace SalesService.Business.Services.Clients
             _stockBaseUrl = configuration["GatewayService:StockBaseUrl"];
         }
 
-        //public async Task<List<DispatchStockDetailDTO>> RegisterMovementAsync(StockMovementCreateDTO dto, int userId)
-        //{
-        //    var client = _httpClientFactory.CreateClient();
-
-        //    // Enviar token y userId
-        //    var token = _httpContextAccessor.HttpContext?.Request.Headers["Authorization"].ToString();
-        //    if (!string.IsNullOrEmpty(token))
-        //        client.DefaultRequestHeaders.Add("Authorization", token);
-
-        //    client.DefaultRequestHeaders.Add("X-UserId", userId.ToString());
-
-        //    var response = await client.PostAsJsonAsync($"{_stockBaseUrl.TrimEnd('/')}/movement", dto);
-        //    var responseContent = await response.Content.ReadAsStringAsync();
-
-        //    if (!response.IsSuccessStatusCode)
-        //        throw new InvalidOperationException($"StockService error: {response.StatusCode} - {responseContent}");
-
-        //    var breakdown = System.Text.Json.JsonSerializer.Deserialize<List<DispatchStockDetailDTO>>(responseContent,
-        //        new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-        //    return breakdown ?? new();
-        //}
-
         public async Task RegisterCommitedStockAsync(CommitedStockEntryCreateDTO dto)
         {
             var client = _httpClientFactory.CreateClient();
@@ -59,7 +36,6 @@ namespace SalesService.Business.Services.Clients
                 throw new InvalidOperationException($"StockService error: {response.StatusCode} - {content}");
             }
         }
-
         public async Task<CommitedStockEntryOutputDTO> RegisterCommitedStockConsolidatedAsync(CommitedStockInputDTO dto, int userId)
         {
             var client = _httpClientFactory.CreateClient();
@@ -81,5 +57,24 @@ namespace SalesService.Business.Services.Clients
 
             return await response.Content.ReadFromJsonAsync<CommitedStockEntryOutputDTO>();
         }
+        // get available stock by article
+        public async Task<decimal> GetAvailableStockAsync(int articleId, int warehouseId)
+        {
+            var client = _httpClientFactory.CreateClient();
+            var token = _httpContextAccessor.HttpContext?.Request.Headers["Authorization"].ToString();
+            if (!string.IsNullOrEmpty(token))
+                client.DefaultRequestHeaders.Add("Authorization", token);
+            var url = $"{_stockBaseUrl.TrimEnd('/')}/available/{articleId}";
+            var response = await client.GetAsync(url);
+            if (!response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                throw new InvalidOperationException($"StockService error: {response.StatusCode} - {content}");
+            }
+            return await response.Content.ReadFromJsonAsync<decimal>();
+
+
+        }
+
     }
 }
