@@ -31,5 +31,6 @@
         public int AssignedPriceListId { get; set; }
         public string AssignedPriceList { get; set; }
         public bool IsActive { get; set; }
+        public string DeliveryAddress { get; set; } = string.Empty;
     }
 }

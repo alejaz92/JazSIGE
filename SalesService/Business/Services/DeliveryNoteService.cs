@@ -41,13 +41,22 @@ namespace SalesService.Business.Services
             if (sale == null)
                 throw new ArgumentException("Venta no encontrada.");
 
+
+            var existingWithSameCode = await _unitOfWork.DeliveryNoteRepository.FindAsync(dn => dn.Code == dto.Code);
+            if (existingWithSameCode.Any())
+                throw new InvalidOperationException("Ya existe un remito con el mismo número.");
+
+
             var deliveryNote = new DeliveryNote
             {
                 SaleId = saleId,
                 WarehouseId = dto.WarehouseId,
                 TransportId = dto.TransportId,
                 Date = dto.Date,
-                Observations = dto.Observations
+                Observations = dto.Observations,
+                DeclaredValue = dto.DeclaredValue,
+                NumberOfPackages = dto.NumberOfPackages,
+                Code = dto.Code
             };
 
 
@@ -101,8 +110,8 @@ namespace SalesService.Business.Services
 
             await _unitOfWork.SaveAsync();
 
-            deliveryNote.Code = $"RN-{deliveryNote.Id:D8}";
-            _unitOfWork.DeliveryNoteRepository.Update(deliveryNote);
+            //deliveryNote.Code = $"RN-{deliveryNote.Id:D8}";
+            //_unitOfWork.DeliveryNoteRepository.Update(deliveryNote);
             await _unitOfWork.SaveAsync();
 
             return await MapToDTO(deliveryNote);
@@ -139,13 +148,18 @@ namespace SalesService.Business.Services
         private async Task<string?> GetDispatchCode(int dispatchId)
         {
             var dispatch = await _purchaseServiceClient.GetDispatchByIdAsync(dispatchId);
-            return dispatch?.Code;
+            var response = "";
+            if (dispatch != null)
+            {
+                response = "Orig: " + dispatch.Origin + " Desp: " + dispatch.Code;
+            }
+            return response;
         }
         private async Task<DeliveryNoteDTO> MapToDTO(DeliveryNote dn)
         {
-            var customerName = (await _catalogServiceClient.GetCustomerByIdAsync(dn.Sale.CustomerId)).CompanyName;
+            CustomerDTO customerDTO = (await _catalogServiceClient.GetCustomerByIdAsync(dn.Sale.CustomerId));
             var warehouseName = (await _catalogServiceClient.GetWarehouseByIdAsync(dn.WarehouseId)).Description;
-            var transportName = (await _catalogServiceClient.GetTransportByIdAsync(dn.TransportId)).Name;
+            TransportDTO transportDTO = (await _catalogServiceClient.GetTransportByIdAsync(dn.TransportId));
 
             var articleDtos = new List<DeliveryNoteArticleDTO>();
             foreach (var a in dn.Articles)
@@ -166,10 +180,25 @@ namespace SalesService.Business.Services
                 Code = dn.Code!,
                 Date = dn.Date,
                 Observations = dn.Observations,
-                CustomerName = customerName,
                 WarehouseName = warehouseName,
-                TransportName = transportName,
-                Articles = articleDtos
+                DeclaredValue = dn.DeclaredValue,
+                NumberOfPackages = dn.NumberOfPackages,
+                Articles = articleDtos,
+                CustomerId = customerDTO.Id,
+                CustomerName = customerDTO.CompanyName,
+                CustomerAddress = customerDTO.Address,
+                CustomerPostalCode = customerDTO.PostalCode,
+                CustomerCity = customerDTO.City,
+                CustomerTaxId = customerDTO.TaxId,
+                CustomerSellCondition = customerDTO.SellCondition,
+                CustomerDeliveryAddress = customerDTO.DeliveryAddress,
+                CustomerIVAType = customerDTO.IVAType,
+                TransportId = transportDTO.Id,
+                TransportName = transportDTO.Name,
+                TransportAddress = transportDTO.Address,
+                TransportCity = transportDTO.City,
+                TransportTaxId = transportDTO.TaxId,
+                TransportPhone = transportDTO.PhoneNumber
             };
         }
     }

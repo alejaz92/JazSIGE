@@ -9,6 +9,8 @@
         public DateTime Date { get; set; }
         public string? Code { get; set; }
         public string? Observations { get; set; }
+        public decimal DeclaredValue { get; set; }
+        public int NumberOfPackages { get; set; }
 
         public Sale Sale { get; set; }
         public List<DeliveryNote_Article> Articles { get; set; } = new();

@@ -50,8 +50,6 @@ namespace CatalogService.Infrastructure.Repositories
 
             return await query.FirstOrDefaultAsync(entity => EF.Property<int>(entity, "Id") == id);
         }
-
-
         public async Task AddAsync(T entity) => await _dbSet.AddAsync(entity);
         public async Task<T> AddAsyncReturnObject(T entity)
         {

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SalesService.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using SalesService.Infrastructure.Data;
 namespace SalesService.Migrations
 {
     [DbContext(typeof(SalesDbContext))]
-    partial class SalesDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250627144653_actualizacion de deliveryNote")]
+    partial class actualizaciondedeliveryNote
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -73,9 +76,6 @@ namespace SalesService.Migrations
                     b.Property<decimal>("DeclaredValue")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int>("NumberOfPackages")
-                        .HasColumnType("int");
-
                     b.Property<string>("Observations")
                         .HasColumnType("nvarchar(max)");
 
@@ -86,6 +86,9 @@ namespace SalesService.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("WarehouseId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("numberOfPackages")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
