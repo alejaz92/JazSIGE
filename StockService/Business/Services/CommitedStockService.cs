@@ -34,6 +34,8 @@ namespace StockService.Business.Services
             var entity = new CommitedStockEntry
             {
                 SaleId = dto.SaleId,
+                CustomerId = dto.CustomerId,
+                CustomerName = dto.CustomerName,
                 ArticleId = dto.ArticleId,
                 Quantity = dto.Quantity,
                 Delivered = 0 // Initial delivered quantity is 0
@@ -49,6 +51,8 @@ namespace StockService.Business.Services
             {
                 Id = e.Id,
                 SaleId = e.SaleId,
+                CustomerId = e.CustomerId,
+                CustomerName = e.CustomerName,
                 ArticleId = e.ArticleId,
                 Quantity = e.Quantity,
                 Delivered = e.Delivered,
@@ -115,9 +119,31 @@ namespace StockService.Business.Services
 
         }
 
-        public async Task<decimal> GetTotalCommitedStockByArticleIdAsync(int articleId)
+        public async Task<CommitedStockSummaryByArticleDTO> GetTotalCommitedStockByArticleIdAsync(int articleId)
         {
-            return await _commitedStockEntryRepository.GetTotalCommitedStockByArticleIdAsync(articleId);
+            var result = new CommitedStockSummaryByArticleDTO();
+
+
+
+            result.Total = await _commitedStockEntryRepository.GetTotalCommitedStockByArticleIdAsync(articleId);
+
+            // get the commited stock entries by article with remaining quantity
+            var entries = await _commitedStockEntryRepository.GetRemainingByArticleAsync(articleId);
+
+            // summarize the remaining quantities by Customer and asign to the result
+            result.Customers = entries
+                .GroupBy(e => new { e.CustomerId, e.CustomerName })
+                .Select(g => new CommitedStockSummaryByArticleCustomerDTO
+                {
+                    CustomerId = g.Key.CustomerId,
+                    CustomerName = g.Key.CustomerName,
+                    Quantity = g.Sum(e => e.Remaining)
+                })
+                .ToList();
+
+
+
+            return result;
         }
     }
 }

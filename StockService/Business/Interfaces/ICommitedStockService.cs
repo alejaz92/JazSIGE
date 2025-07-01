@@ -7,7 +7,7 @@ namespace StockService.Business.Interfaces
     {
         Task AddAsync(CommitedStockEntryCreateDTO dto);
         Task<List<CommitedStockEntryDTO>> GetBySaleIdAsync(int saleId);
-        Task<decimal> GetTotalCommitedStockByArticleIdAsync(int articleId);
+        Task<CommitedStockSummaryByArticleDTO> GetTotalCommitedStockByArticleIdAsync(int articleId);
         Task<RegisterCommitedStockOutputDTO> RegisterCommitedStockAsync(RegisterCommitedStockInputDTO dto, int userId);
     }
 }

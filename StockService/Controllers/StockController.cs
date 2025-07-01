@@ -226,12 +226,12 @@ public class StockController : ControllerBase
 
     // get commited stock by article id
     [HttpGet("commited/{articleId}")]
-    public async Task<ActionResult<decimal>> GetCommitedStockByArticle(int articleId)
+    public async Task<ActionResult<CommitedStockSummaryByArticleDTO>> GetCommitedStockByArticle(int articleId)
     {
         try
         {
-            var total = await _commitedStockService.GetTotalCommitedStockByArticleIdAsync(articleId);
-            return Ok(total);
+            var result = await _commitedStockService.GetTotalCommitedStockByArticleIdAsync(articleId);
+            return Ok(result);
         }
         catch (Exception ex)
         {
@@ -248,7 +248,7 @@ public class StockController : ControllerBase
             var currentStock = await _stockService.GetStockSummaryAsync(articleId);
             var pendingStock = await _pendingStockService.GetPendingStockByArticleAsync(articleId);
             var commitedStock = await _commitedStockService.GetTotalCommitedStockByArticleIdAsync(articleId);
-            return Ok(currentStock + pendingStock - commitedStock);
+            return Ok(currentStock + pendingStock - commitedStock.Total);
         }
         catch (Exception ex)
         {

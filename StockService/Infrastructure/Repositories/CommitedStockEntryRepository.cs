@@ -43,5 +43,9 @@ namespace StockService.Infrastructure.Repositories
         public async Task<decimal> GetTotalCommitedStockByArticleIdAsync(int articleId) => await _context.CommitedStockEntries
                 .Where(c => c.ArticleId == articleId && (c.Quantity - c.Delivered) != 0)
                 .SumAsync(c => (c.Quantity - c.Delivered));
+
+        public async Task<List<CommitedStockEntry>> GetRemainingByArticleAsync(int articleId) => await _context.CommitedStockEntries
+                .Where(c => c.ArticleId == articleId && (c.Quantity - c.Delivered) > 0)
+                .ToListAsync();
     }
 }

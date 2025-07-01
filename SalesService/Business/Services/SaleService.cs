@@ -192,7 +192,7 @@ namespace SalesService.Business.Services
 
                 await _unitOfWork.SaveAsync();
 
-                await UpdateStockCommited(sale.Id, dto.Articles);
+                await UpdateStockCommited(sale.Id, dto.Articles, customer);
 
                 await transaction.CommitAsync();
 
@@ -209,13 +209,15 @@ namespace SalesService.Business.Services
             await _unitOfWork.SaleRepository.DeleteAsync(id);
             await _unitOfWork.SaveAsync();
         }
-        private async Task UpdateStockCommited(int saleId, List<SaleArticleCreateDTO> articles)
+        private async Task UpdateStockCommited(int saleId, List<SaleArticleCreateDTO> articles, CustomerDTO customer)
         {
             foreach (var article in articles)
             {
                 var commitedEntry = new CommitedStockEntryCreateDTO
                 {
                     SaleId = saleId,
+                    CustomerId =  customer.Id,
+                    CustomerName = customer.CompanyName,
                     ArticleId = article.ArticleId,
                     Quantity = article.Quantity
                 };
