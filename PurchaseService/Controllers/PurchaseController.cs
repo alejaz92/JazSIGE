@@ -72,58 +72,6 @@ public class PurchaseController : ControllerBase
         }
     }
 
-    //[HttpPost("{id}/retry-stock")]
-    //[Authorize(Roles = "Admin")]
-    //public async Task<IActionResult> RetryStockUpdate(int id)
-    //{
-    //    //if (!IsAdmin())
-    //    //    return Forbid();
-
-    //    var userIdHeader = HttpContext.Request.Headers["X-UserId"].ToString();
-    //    if (!int.TryParse(userIdHeader, out int userId))
-    //        return Unauthorized(new { error = "Usuario no autenticado correctamente" });
-
-    //    try
-    //    {
-    //        await _purchaseService.RetryStockUpdateAsync(id, userId);
-    //        return Ok(new { message = "Stock actualizado correctamente." });
-    //    }
-    //    catch (ArgumentException ex)
-    //    {
-    //        return NotFound(new { error = ex.Message });
-    //    }
-    //    catch (InvalidOperationException ex)
-    //    {
-    //        return BadRequest(new { error = ex.Message });
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
-    //    }
-    //}
-
-    //[HttpPost("retry-all-pending-stock")]
-    //[Authorize(Roles = "Admin")]
-    //public async Task<IActionResult> RetryAllPendingStock()
-    //{
-    //    //if (!IsAdmin())
-    //    //    return Forbid();
-
-    //    var userIdHeader = HttpContext.Request.Headers["X-UserId"].ToString();
-    //    if (!int.TryParse(userIdHeader, out int userId))
-    //        return Unauthorized(new { error = "Usuario no autenticado correctamente" });
-
-    //    try
-    //    {
-    //        var updatedCount = await _purchaseService.RetryAllPendingStockAsync(userId);
-    //        return Ok(new { message = $"Se actualizaron correctamente {updatedCount} compras." });
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
-    //    }
-    //}
-
     [HttpGet("pending-stock")]
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<IEnumerable<PurchaseDTO>>> GetPendingStock()
@@ -161,10 +109,17 @@ public class PurchaseController : ControllerBase
 
     }
 
-
-    //private bool IsAdmin()
-    //{
-    //    var roleClaim = User.FindFirst(ClaimTypes.Role);
-    //    return roleClaim != null && roleClaim.Value == "Admin";
-    //}
+    [HttpGet("article/{articleId}/history")]
+    public async Task<ActionResult<IEnumerable<ArticlePurchaseHistoryDTO>>> GetPurchaseHistoryByArticleId(int articleId)
+    {
+        try
+        {
+            var history = await _purchaseService.GetPurchaseHistoryByArticleIdAsync(articleId);
+            return Ok(history);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
+        }
+    }
 }

@@ -17,7 +17,7 @@ namespace PurchaseService.Business.Services
         public PurchaseService(
             IPurchaseRepository purchaseRepository,
             IDispatchRepository dispatchRepository,
-            ICatalogServiceClient catalogServiceClient, 
+            ICatalogServiceClient catalogServiceClient,
             IUserServiceClient userServiceClient,
             IStockServiceClient stockServiceClient
             )
@@ -34,7 +34,6 @@ namespace PurchaseService.Business.Services
             var purchases = await _purchaseRepository.GetAllAsync();
             return await MapToDTOListAsync(purchases);
         }
-
         public async Task<(IEnumerable<PurchaseDTO> purchases, int totalCount)> GetAllAsync(int pageNumber, int pageSize)
         {
             var purchases = await _purchaseRepository.GetAllAsync(pageNumber, pageSize);
@@ -42,22 +41,20 @@ namespace PurchaseService.Business.Services
             var purchaseDTOs = await MapToDTOListAsync(purchases);
             return (purchaseDTOs, totalCount);
         }
-
         public async Task<PurchaseDTO?> GetByIdAsync(int id)
         {
             var purchase = await _purchaseRepository.GetByIdAsync(id);
-            if (purchase == null)  return null;
-            
+            if (purchase == null) return null;
+
             return await MapToDTOAsync(purchase);
         }
-
-        private async Task UpdateStockConsolidated(int userId, int warehouseId, string  reference, int? dispatchId, List<PurchaseArticleCreateDTO> articles)
+        private async Task UpdateStockConsolidated(int userId, int warehouseId, string reference, int? dispatchId, List<PurchaseArticleCreateDTO> articles)
         {
             // Impactar stock
             try
             {
 
-                
+
 
                 await _stockServiceClient.RegisterPurchaseMovementsAsync(
                     userId,
@@ -65,7 +62,7 @@ namespace PurchaseService.Business.Services
                     articles.Select(a => (a.ArticleId, a.Quantity)).ToList(),
                     reference,
                     dispatchId
-                );               
+                );
 
             }
             catch (Exception ex)
@@ -74,7 +71,6 @@ namespace PurchaseService.Business.Services
                 throw new PartialSuccessException("La compra fue registrada, pero no se pudo actualizar el stock.");
             }
         }
-
         private async Task UpdateStockPending(int purchaseId, List<PurchaseArticleCreateDTO> articles)
         {
             foreach (var item in articles)
@@ -89,8 +85,6 @@ namespace PurchaseService.Business.Services
                 await _stockServiceClient.RegisterPendingStockAsync(pendingDto);
             }
         }
-
-
         private async Task<int> RegisterDispatch(int purchaseId, DateTime date, string origin, string code)
         {
             var dispatch = new Dispatch
@@ -106,7 +100,6 @@ namespace PurchaseService.Business.Services
 
             return dispatch.Id;
         }
-
         public async Task<int> CreateAsync(PurchaseCreateDTO dto, int userId)
         {
             //validate supplier
@@ -121,7 +114,7 @@ namespace PurchaseService.Business.Services
                 if (warehouseName == null)
                     throw new ArgumentException($"Warehouse with ID {dto.WarehouseId} does not exist.");
             }
-            
+
             //validate user
             var userName = await _userServiceClient.GetUserNameAsync(userId);
             if (userName == null)
@@ -194,77 +187,11 @@ namespace PurchaseService.Business.Services
                 throw;
             }
         }
-
-        //public async Task RetryStockUpdateAsync(int purchaseId, int userId)
-        //{
-        //    var purchase = await _purchaseRepository.GetByIdAsync(purchaseId);
-        //    if (purchase == null)
-        //        throw new ArgumentException($"Purchase with ID {purchaseId} does not exist.");
-        //    if (purchase.StockUpdated)
-        //        throw new InvalidOperationException($"Stock for purchase with ID {purchaseId} has already been updated.");
-
-        //    // Revalidar existencia de artículos (opcional, podés saltearlo si estás seguro)
-        //    foreach (var pa in purchase.Articles)
-        //    {
-        //        var exists = await _catalogServiceClient.GetArticleNameAsync(pa.ArticleId);
-        //        if (exists == null)
-        //            throw new ArgumentException($"Article with ID {pa.ArticleId} no longer exists.");
-        //    }
-
-
-        //    await _stockServiceClient.RegisterPurchaseMovementsAsync(
-        //        userId,
-        //        //purchase.WarehouseId,
-        //        purchase.Articles.Select(a => (a.ArticleId, a.Quantity)).ToList(),
-        //        "ReTried stock movement",
-        //        null
-        //    );
-        //    purchase.StockUpdated = true;
-        //    purchase.UpdatedAt = DateTime.UtcNow;
-        //    await _purchaseRepository.SaveChangesAsync();
-            
-           
-        //}
-
-        //public async Task<int> RetryAllPendingStockAsync(int userId)
-        //{
-        //    var purchases = await _purchaseRepository.GetPendingStockAsync();
-        //    int successCount = 0;
-
-        //    foreach (var purchase in purchases)
-        //    {
-        //        try
-        //        {
-        //            await _stockServiceClient.RegisterPurchaseMovementsAsync(
-        //                userId,
-        //                purchase.WarehouseId,
-        //                purchase.Articles.Select(a => (a.ArticleId, a.Quantity)).ToList(),
-        //                "ReTried Stock Movement",
-        //                null
-        //            );
-
-        //            purchase.StockUpdated = true;
-        //            purchase.UpdatedAt = DateTime.UtcNow;
-        //            successCount++;
-        //        }
-        //        catch
-        //        {
-        //            // Loguear o ignorar individualmente
-        //        }
-        //    }
-
-        //    await _purchaseRepository.SaveChangesAsync(); // guardar todos los cambios juntos
-
-        //    return successCount;
-        //}
-
-
         public async Task<IEnumerable<PurchaseDTO>> GetPendingStockAsync()
         {
             var purchases = await _purchaseRepository.GetPendingStockAsync();
             return await MapToDTOListAsync(purchases);
         }
-
         public async Task RegisterStockFromPendingAsync(int purchaseId, int warehouseId, string reference, int userId, int? dispatchId)
         {
             var purchase = await _purchaseRepository.GetByIdAsync(purchaseId);
@@ -286,9 +213,8 @@ namespace PurchaseService.Business.Services
             purchase.WarehouseId = warehouseId; // Actualizar el almacén
             purchase.UpdatedAt = DateTime.UtcNow; // Actualizar la fecha de actualización
 
-            await _purchaseRepository.SaveChangesAsync(); 
+            await _purchaseRepository.SaveChangesAsync();
         }
-
         private async Task<IEnumerable<PurchaseDTO>> MapToDTOListAsync(IEnumerable<Purchase> purchases)
         {
             var purchaseDTOs = new List<PurchaseDTO>();
@@ -299,7 +225,6 @@ namespace PurchaseService.Business.Services
             }
             return purchaseDTOs;
         }
-
         private async Task<PurchaseDTO> MapToDTOAsync(Purchase purchase)
         {
             var supplierName = await _catalogServiceClient.GetSupplierNameAsync(purchase.SupplierId) ?? "N/A";
@@ -308,8 +233,8 @@ namespace PurchaseService.Business.Services
             if (purchase.WarehouseId != null)
             {
                 warehouseName = await _catalogServiceClient.GetWarehouseNameAsync(purchase.WarehouseId.Value) ?? "N/A";
-            }                
-            
+            }
+
             var userName = await _userServiceClient.GetUserNameAsync(purchase.UserId) ?? "N/A";
 
             var articleDTOs = new List<PurchaseArticleDTO>();
@@ -349,6 +274,17 @@ namespace PurchaseService.Business.Services
                     Date = purchase.Dispatch.Date
                 } : null
             };
+        }
+        public async Task<IEnumerable<ArticlePurchaseHistoryDTO>> GetPurchaseHistoryByArticleIdAsync(int articleId)
+        {
+            var records = await _purchaseRepository.GetByArticleIdAsync(articleId);
+
+            return records.Select(pa => new ArticlePurchaseHistoryDTO
+            {
+                PurchaseDate = pa.Purchase.Date,
+                Quantity = pa.Quantity,
+                UnitCost = pa.UnitCost
+            });
         }
     }
 }

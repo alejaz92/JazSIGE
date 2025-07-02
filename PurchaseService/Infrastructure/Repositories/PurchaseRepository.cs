@@ -16,7 +16,6 @@ namespace PurchaseService.Infrastructure.Repositories
         {
             _context = context;
         }
-
         public async Task<Purchase> AddAsync(Purchase purchase)
         {
             await _context.Purchases.AddAsync(purchase);
@@ -41,6 +40,11 @@ namespace PurchaseService.Infrastructure.Repositories
                 .Include(p => p.Articles)
                 .Include(p => p.Dispatch)
                 .FirstOrDefaultAsync(p => p.Id == id);
+        public async Task<IEnumerable<Purchase_Article>> GetByArticleIdAsync(int articleId) => await _context.PurchaseArticles
+                .Include(pa => pa.Purchase)
+                .Where(pa => pa.ArticleId == articleId)
+                .OrderByDescending(pa => pa.Purchase.Date)
+                .ToListAsync();
         public async Task<IEnumerable<Purchase>> GetPendingStockAsync() => await _context.Purchases
                 .Include(p => p.Articles)
                 .Include(p => p.Dispatch)
@@ -59,7 +63,8 @@ namespace PurchaseService.Infrastructure.Repositories
                 purchase.IsDelivered = true;
                 await _context.SaveChangesAsync();
             }
-        }        
+        }              
+
     }
 }
    
