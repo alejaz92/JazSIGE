@@ -74,7 +74,7 @@ namespace StockService.Business.Services
             switch (dto.MovementType)
             {
                 case StockMovementType.Purchase:
-                case StockMovementType.Adjustment:
+                //case StockMovementType.Adjustment:
                     if (!dto.ToWarehouseId.HasValue)
                         throw new ArgumentException("ToWarehouseId is required for this movement.");
                     await UpdateStockAsync(dto.ArticleId, dto.ToWarehouseId.Value, dto.Quantity);
@@ -91,6 +91,43 @@ namespace StockService.Business.Services
 
                     return breakdown;
 
+                case StockMovementType.Adjustment:
+                    if (dto.FromWarehouseId.HasValue)
+                    {
+                        await UpdateStockAsync(dto.ArticleId, dto.FromWarehouseId.Value, -dto.Quantity);
+
+                        // Ajuste negativo → usar lógica FIFO
+                        var dispatch = await DiscountStockByDispatchAsync(dto.ArticleId, dto.Quantity);
+                        // Podés loguear que esto fue ajuste, no venta
+                    }
+                    else if (dto.ToWarehouseId.HasValue)
+                    {
+                        await UpdateStockAsync(dto.ArticleId, dto.ToWarehouseId.Value, dto.Quantity);
+
+                        // Ajuste positivo → agregar al último despacho disponible
+                        var latestEntry = await _stockByDispatchRepository.GetLatestByArticleAsync(dto.ArticleId);
+                        if (latestEntry != null)
+                        {
+                            latestEntry.Quantity += dto.Quantity;
+                            await _stockByDispatchRepository.UpdateAsync(latestEntry);
+                        }
+                        else
+                        {
+                            // No hay entradas previas → creamos con DispatchId null
+                            var newEntry = new StockByDispatch
+                            {
+                                ArticleId = dto.ArticleId,
+                                DispatchId = null,
+                                Quantity = dto.Quantity
+                            };
+                            await _stockByDispatchRepository.AddAsync(newEntry);
+                        }
+                    }
+                    else
+                    {
+                        throw new ArgumentException("Either FromWarehouseId or ToWarehouseId must be provided for adjustments.");
+                    }
+                    break;
 
                 case StockMovementType.Transfer:
                     if (!dto.FromWarehouseId.HasValue || !dto.ToWarehouseId.HasValue)

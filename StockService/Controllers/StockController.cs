@@ -81,6 +81,7 @@ public class StockController : ControllerBase
             return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
         }
     }
+
     [HttpGet("{warehouseId}/warehouse/summary")]
     public async Task<ActionResult<decimal>> GetStockSummaryByWarehouse(int warehouseId)
     {
@@ -112,7 +113,6 @@ public class StockController : ControllerBase
             return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
         }
     }
-
 
     [HttpGet("movement-types")]
     public ActionResult<IEnumerable<EnumDTO>> GetMovementTypes()
@@ -154,7 +154,6 @@ public class StockController : ControllerBase
             return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
         }
     }
-
 
     [HttpPost("commited-entry")]
     public async Task<ActionResult> CreateCommitedEntry([FromBody] CommitedStockEntryCreateDTO dto)

@@ -13,5 +13,10 @@
 
         public string? Reference { get; set; }
         public int UserId { get; set; }
+
+
+        //Stock Transfer related properties
+        public int? StockTransferId { get; set; }
+        public StockTransfer? StockTransfer { get; set; }
     }
 }

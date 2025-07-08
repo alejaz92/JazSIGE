@@ -35,6 +35,7 @@ builder.Services.AddScoped<IStockMovementRepository, StockMovementRepository>();
 builder.Services.AddScoped<IStockByDispatchRepository, StockByDispatchRepository>();
 builder.Services.AddScoped<IPendingStockEntryRepository, PendingStockEntryRepository>();
 builder.Services.AddScoped<ICommitedStockEntryRepository, CommitedStockEntryRepository>();
+builder.Services.AddScoped<IStockTransferRepository, StockTransferRepository>();
 
 // Services
 builder.Services.AddScoped<IStockService, StockService.Business.Services.StockService>();
@@ -43,6 +44,7 @@ builder.Services.AddScoped<IUserServiceClient, UserServiceClient>();
 builder.Services.AddScoped<IEnumService, EnumService>();
 builder.Services.AddScoped<IPendingStockService, PendingStockService>();
 builder.Services.AddScoped<ICommitedStockService, CommitedStockService>();
+builder.Services.AddScoped<IStockTransferService, StockTransferService>();
 
 
 

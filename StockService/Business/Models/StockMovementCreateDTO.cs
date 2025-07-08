@@ -11,5 +11,7 @@ namespace StockService.Business.Models
         public decimal Quantity { get; set; }
         public string? Reference { get; set; }
         public int? DispatchId { get; set; }
+
+        public int? StockTransferId { get; set; }
     }
 }

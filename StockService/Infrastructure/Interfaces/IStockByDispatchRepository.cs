@@ -7,6 +7,7 @@ namespace StockService.Infrastructure.Interfaces
         Task AddAsync(StockByDispatch entry);
         Task<List<StockByDispatch>> GetAvailableByArticleOrderedAsync(int articleId);
         Task<StockByDispatch?> GetByArticleAndDispatchAsync(int articleId, int? dispatchId);
+        Task<StockByDispatch?> GetLatestByArticleAsync(int articleId);
         Task UpdateAsync(StockByDispatch entry);
     }
 }
