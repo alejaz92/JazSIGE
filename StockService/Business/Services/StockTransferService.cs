@@ -1,4 +1,5 @@
-﻿using StockService.Business.Interfaces;
+﻿using Microsoft.EntityFrameworkCore;
+using StockService.Business.Interfaces;
 using StockService.Business.Models;
 using StockService.Business.Models.StockTransfer;
 using StockService.Infrastructure.Interfaces;
@@ -24,10 +25,14 @@ namespace StockService.Business.Services
 
         public async Task<int> CreateAsync(StockTransferCreateDTO dto, int userId)
         {
+
+            // get code
+            var code = await _stockTransferRepository.GenerateNextCodeAsync();
+
             // 1. Armar la transferencia
             var transfer = new StockTransfer
             {
-                Code = dto.Code,
+                Code = code,
                 Date = dto.Date,
                 OriginWarehouseId = dto.OriginWarehouseId,
                 DestinationWarehouseId = dto.DestinationWarehouseId,
@@ -55,24 +60,14 @@ namespace StockService.Business.Services
                     Quantity = item.Quantity,
                     MovementType = StockMovementType.Transfer,
                     FromWarehouseId = dto.OriginWarehouseId,
-                    ToWarehouseId = null,
-                    Reference = $"Transferencia {dto.Code} - Salida",
+                    ToWarehouseId = dto.DestinationWarehouseId,
+                    Reference = $"Transferencia {code}",
                     StockTransferId = transfer.Id
                 };
 
-                var movementIn = new StockMovementCreateDTO
-                {
-                    ArticleId = item.ArticleId,
-                    Quantity = item.Quantity,
-                    MovementType = StockMovementType.Transfer,
-                    FromWarehouseId = null,
-                    ToWarehouseId = dto.DestinationWarehouseId,
-                    Reference = $"Transferencia {dto.Code} - Ingreso",
-                    StockTransferId = transfer.Id
-                };
 
                 await _stockService.RegisterMovementAsync(movementOut, userId);
-                await _stockService.RegisterMovementAsync(movementIn, userId);
+
             }
 
             return transfer.Id;
@@ -84,6 +79,17 @@ namespace StockService.Business.Services
 
             // Obtener nombres de artículos uno por uno (llamadas individuales)
             var articles = new List<StockTransferArticleDTO>();
+
+            var originWarehouseName = await _catalogValidatorService.GetWarehouseNameAsync(transfer.OriginWarehouseId);
+            var destinationWarehouseName = await _catalogValidatorService.GetWarehouseNameAsync(transfer.DestinationWarehouseId);
+
+            string transportName = "";
+
+            if (transfer.TransportId != null)
+            {
+                transportName = await _catalogValidatorService.GetTransportNameAsync(transfer.TransportId.Value);
+            }
+
 
             foreach (var a in transfer.Articles)
             {
@@ -102,8 +108,11 @@ namespace StockService.Business.Services
                 Code = transfer.Code,
                 Date = transfer.Date,
                 OriginWarehouseId = transfer.OriginWarehouseId,
+                OriginWarehouseName = originWarehouseName,
                 DestinationWarehouseId = transfer.DestinationWarehouseId,
+                DestinationWarehouseName = destinationWarehouseName,
                 TransportId = transfer.TransportId,
+                TransportName = transportName,
                 NumberOfPackages = transfer.NumberOfPackages,
                 DeclaredValue = transfer.DeclaredValue,
                 Observations = transfer.Observations,
@@ -131,13 +140,19 @@ namespace StockService.Business.Services
                     });
                 }
 
+                // get warehouses name
+                var originWarehouseName = await _catalogValidatorService.GetWarehouseNameAsync(transfer.OriginWarehouseId);
+                var destinationWarehouseName = await _catalogValidatorService.GetWarehouseNameAsync(transfer.DestinationWarehouseId);
+
                 result.Add(new StockTransferDTO
                 {
                     Id = transfer.Id,
                     Code = transfer.Code,
                     Date = transfer.Date,
                     OriginWarehouseId = transfer.OriginWarehouseId,
+                    OriginWarehouseName = originWarehouseName,
                     DestinationWarehouseId = transfer.DestinationWarehouseId,
+                    DestinationWarehouseName = destinationWarehouseName,
                     TransportId = transfer.TransportId,
                     NumberOfPackages = transfer.NumberOfPackages,
                     DeclaredValue = transfer.DeclaredValue,
@@ -149,5 +164,8 @@ namespace StockService.Business.Services
 
             return result;
         }
+
+        
+
     }
 }

@@ -27,7 +27,22 @@ namespace StockService.Infrastructure.Repositories
         public async Task<IEnumerable<StockTransfer>> GetAllAsync() => await _context.StockTransfers
                 .Include(st => st.Articles)
                 .OrderByDescending(st => st.Date)
-                .ThenBy(st => st.Id)
+                .ThenByDescending(st => st.Id)
                 .ToListAsync();
+
+        public async Task<string> GenerateNextCodeAsync()
+        {
+            var lastCode = await _context.StockTransfers
+                .OrderByDescending(t => t.Id)
+                .Select(t => t.Code)
+                .FirstOrDefaultAsync();
+
+            if (int.TryParse(lastCode, out int lastNumber))
+            {
+                return (lastNumber + 1).ToString("D8");
+            }
+
+            return "00000001";
+        }
     }
 }

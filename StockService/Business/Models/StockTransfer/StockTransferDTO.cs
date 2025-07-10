@@ -7,8 +7,11 @@
         public DateTime Date { get; set; }
 
         public int OriginWarehouseId { get; set; }
+        public string OriginWarehouseName { get; set; }
         public int DestinationWarehouseId { get; set; }
+        public string DestinationWarehouseName { get; set; }
         public int? TransportId { get; set; }
+        public string? TransportName { get; set; }
 
         public int NumberOfPackages { get; set; }
         public decimal DeclaredValue { get; set; }

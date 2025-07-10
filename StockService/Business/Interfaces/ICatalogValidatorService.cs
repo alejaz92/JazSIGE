@@ -5,6 +5,7 @@ namespace StockService.Business.Interfaces
     {
         Task<bool> ArticleExistsAsync(int articleId);
         Task<string?> GetArticleNameAsync(int articleId);
+        Task<string?> GetTransportNameAsync(int transportId);
         Task<string?> GetWarehouseNameAsync(int warehouseId);
         Task<bool> WarehouseExistsAsync(int warehouseId);
     }
