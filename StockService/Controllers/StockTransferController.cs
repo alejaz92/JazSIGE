@@ -57,5 +57,27 @@ namespace StockService.Controllers
             var result = await _stockTransferService.GetAllAsync();
             return Ok(result);
         }
+
+        [HttpGet("{id}/note")]
+        public async Task<ActionResult<TransferNoteDTO>> GetTransferNote(int id)
+        {
+            try
+            {
+                var result = await _stockTransferService.GetTransferNoteAsync(id);
+                return Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
+            }
+        }
     }
 }

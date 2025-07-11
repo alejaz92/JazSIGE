@@ -1,5 +1,5 @@
 ﻿using StockService.Business.Interfaces;
-using StockService.Business.Models;
+using StockService.Business.Models.Clients;
 
 namespace StockService.Business.Services
 {

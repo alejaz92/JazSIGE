@@ -39,7 +39,8 @@ builder.Services.AddScoped<IStockTransferRepository, StockTransferRepository>();
 
 // Services
 builder.Services.AddScoped<IStockService, StockService.Business.Services.StockService>();
-builder.Services.AddScoped<ICatalogValidatorService, CatalogValidatorService>();
+builder.Services.AddScoped<ICatalogServiceClient, CatalogServiceClient>();
+builder.Services.AddScoped<ICompanyServiceClient, CompanyServiceClient>();
 builder.Services.AddScoped<IUserServiceClient, UserServiceClient>();
 builder.Services.AddScoped<IEnumService, EnumService>();
 builder.Services.AddScoped<IPendingStockService, PendingStockService>();

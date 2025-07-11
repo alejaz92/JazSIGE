@@ -11,35 +11,35 @@ namespace StockService.Business.Services
         private readonly IStockRepository _stockRepository;
         private readonly IStockMovementRepository _stockMovementRepository;
         private readonly IStockByDispatchRepository _stockByDispatchRepository;
-        private readonly ICatalogValidatorService _catalogValidatorService;
+        private readonly ICatalogServiceClient _catalogServiceClient;
         private readonly IUserServiceClient _userServiceClient;
 
         public StockService(
             IStockRepository stockRepository,
             IStockMovementRepository stockMovementRepository,
             IStockByDispatchRepository stockByDispatchRepository,
-            ICatalogValidatorService catalogValidatorService,
+            ICatalogServiceClient catalogServiceClient,
             IUserServiceClient userServiceClient)
         {
             _stockRepository = stockRepository;
             _stockMovementRepository = stockMovementRepository;
             _stockByDispatchRepository = stockByDispatchRepository;
-            _catalogValidatorService = catalogValidatorService;
+            _catalogServiceClient = catalogServiceClient;
             _userServiceClient = userServiceClient;
         }
 
         public async Task<List<DispatchStockDetailDTO>> RegisterMovementAsync(StockMovementCreateDTO dto, int userId)
         {
-            if (!await _catalogValidatorService.ArticleExistsAsync(dto.ArticleId))
+            if (!await _catalogServiceClient.ArticleExistsAsync(dto.ArticleId))
             {
                 throw new ArgumentException($"Article with ID {dto.ArticleId} does not exist.");
             }
             // validate involved warehouses
-            if (dto.FromWarehouseId != null && !await _catalogValidatorService.WarehouseExistsAsync(dto.FromWarehouseId.Value))
+            if (dto.FromWarehouseId != null && !await _catalogServiceClient.WarehouseExistsAsync(dto.FromWarehouseId.Value))
             {
                 throw new ArgumentException($"From Warehouse with ID {dto.FromWarehouseId} does not exist.");
             }
-            if (dto.ToWarehouseId != null && !await _catalogValidatorService.WarehouseExistsAsync(dto.ToWarehouseId.Value))
+            if (dto.ToWarehouseId != null && !await _catalogServiceClient.WarehouseExistsAsync(dto.ToWarehouseId.Value))
             {
                 throw new ArgumentException($"To Warehouse with ID {dto.ToWarehouseId} does not exist.");
             }
@@ -185,7 +185,7 @@ namespace StockService.Business.Services
             var stockList = await _stockRepository.GetAllByArticleAsync(articleId);
             var tasks = stockList.Select(async s =>
             {
-                var warehouseName = await _catalogValidatorService.GetWarehouseNameAsync(s.WarehouseId);
+                var warehouseName = await _catalogServiceClient.GetWarehouseNameAsync(s.WarehouseId);
                 return new StockDTO
                 {
                     WarehouseId = s.WarehouseId,
@@ -205,16 +205,16 @@ namespace StockService.Business.Services
         public async Task<PaginatedResultDTO<StockMovementDTO>> GetMovementsByArticleAsync(int articleId, int page, int pageSize)
         {
             var (movements, totalCount) = await _stockMovementRepository.GetPagedWithTotalAsync(articleId, page, pageSize);
-            var articleName = await _catalogValidatorService.GetArticleNameAsync(articleId);
+            var articleName = await _catalogServiceClient.GetArticleNameAsync(articleId);
 
             var tasks = movements.Select(async m =>
             {
                 var fromName = m.FromWarehouseId.HasValue
-                    ? await _catalogValidatorService.GetWarehouseNameAsync(m.FromWarehouseId.Value)
+                    ? await _catalogServiceClient.GetWarehouseNameAsync(m.FromWarehouseId.Value)
                     : null;
 
                 var toName = m.ToWarehouseId.HasValue
-                    ? await _catalogValidatorService.GetWarehouseNameAsync(m.ToWarehouseId.Value)
+                    ? await _catalogServiceClient.GetWarehouseNameAsync(m.ToWarehouseId.Value)
                     : null;
 
                 var userName = await _userServiceClient.GetUserNameAsync(m.UserId);

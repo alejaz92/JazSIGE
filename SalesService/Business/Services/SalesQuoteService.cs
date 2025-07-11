@@ -255,7 +255,6 @@ namespace SalesService.Business.Services
                 Articles = articleDTOs
             };
         }
-
         public async Task<IEnumerable<SalesQuoteListDTO>> GetAllAsync()
         {
             var quotes = await _unitOfWork.SalesQuoteRepository.GetAllIncludingAsync(q => q.Articles);

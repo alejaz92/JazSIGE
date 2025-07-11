@@ -1,15 +1,15 @@
-﻿using StockService.Business.Models;
-using StockService.Business.Interfaces;
+﻿using StockService.Business.Interfaces;
+using StockService.Business.Models.Clients;
 
 namespace StockService.Business.Services
 {
-    public class CatalogValidatorService : ICatalogValidatorService
+    public class CatalogServiceClient : ICatalogServiceClient
     {
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly string _catalogBaseUrl;
 
-        public CatalogValidatorService(
+        public CatalogServiceClient(
             IConfiguration configuration,
             IHttpClientFactory httpClientFactory,
             IHttpContextAccessor httpContextAccessor)
@@ -85,6 +85,12 @@ namespace StockService.Business.Services
 
         public async Task<string?> GetTransportNameAsync(int transportId)
         {
+            TransportDTO response = await GetTransportAsync(transportId);
+            return response?.Name;
+        }
+
+        public async Task<TransportDTO> GetTransportAsync(int transportId)
+        {
             var client = _httpClientFactory.CreateClient();
             // Extraer el token JWT del contexto HTTP
             var token = _httpContextAccessor.HttpContext?.Request.Headers["Authorization"].ToString();
@@ -96,7 +102,7 @@ namespace StockService.Business.Services
 
 
             var response = await client.GetFromJsonAsync<TransportDTO>($"{_catalogBaseUrl}Transport/{transportId}");
-            return response?.Name;
+            return response;
         }
     }
 }

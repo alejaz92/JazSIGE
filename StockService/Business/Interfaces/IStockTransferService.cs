@@ -7,5 +7,6 @@ namespace StockService.Business.Interfaces
         Task<int> CreateAsync(StockTransferCreateDTO dto, int userId);
         Task<IEnumerable<StockTransferDTO>> GetAllAsync();
         Task<StockTransferDTO?> GetByIdAsync(int id);
+        Task<TransferNoteDTO> GetTransferNoteAsync(int id);
     }
 }

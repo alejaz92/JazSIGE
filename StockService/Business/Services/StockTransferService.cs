@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using StockService.Business.Interfaces;
 using StockService.Business.Models;
+using StockService.Business.Models.Clients;
 using StockService.Business.Models.StockTransfer;
 using StockService.Infrastructure.Interfaces;
 using StockService.Infrastructure.Models;
@@ -11,16 +12,19 @@ namespace StockService.Business.Services
     {
         private readonly IStockTransferRepository _stockTransferRepository;
         private readonly IStockService _stockService;
-        private readonly ICatalogValidatorService _catalogValidatorService;
+        private readonly ICatalogServiceClient _catalogServiceClient;
+        private readonly ICompanyServiceClient _companyServiceClient;
 
         public StockTransferService(
             IStockTransferRepository stockTransferRepository,
             IStockService stockService,
-            ICatalogValidatorService catalogValidatorService)
+            ICatalogServiceClient catalogServiceClient,
+            ICompanyServiceClient companyServiceClient)
         {
             _stockTransferRepository = stockTransferRepository;
             _stockService = stockService;
-            _catalogValidatorService = catalogValidatorService;
+            _catalogServiceClient = catalogServiceClient;
+            _companyServiceClient = companyServiceClient;
         }
 
         public async Task<int> CreateAsync(StockTransferCreateDTO dto, int userId)
@@ -80,20 +84,20 @@ namespace StockService.Business.Services
             // Obtener nombres de artículos uno por uno (llamadas individuales)
             var articles = new List<StockTransferArticleDTO>();
 
-            var originWarehouseName = await _catalogValidatorService.GetWarehouseNameAsync(transfer.OriginWarehouseId);
-            var destinationWarehouseName = await _catalogValidatorService.GetWarehouseNameAsync(transfer.DestinationWarehouseId);
+            var originWarehouseName = await _catalogServiceClient.GetWarehouseNameAsync(transfer.OriginWarehouseId);
+            var destinationWarehouseName = await _catalogServiceClient.GetWarehouseNameAsync(transfer.DestinationWarehouseId);
 
             string transportName = "";
 
             if (transfer.TransportId != null)
             {
-                transportName = await _catalogValidatorService.GetTransportNameAsync(transfer.TransportId.Value);
+                transportName = await _catalogServiceClient.GetTransportNameAsync(transfer.TransportId.Value);
             }
 
 
             foreach (var a in transfer.Articles)
             {
-                var name = await _catalogValidatorService.GetArticleNameAsync(a.ArticleId);
+                var name = await _catalogServiceClient.GetArticleNameAsync(a.ArticleId);
                 articles.Add(new StockTransferArticleDTO
                 {
                     ArticleId = a.ArticleId,
@@ -131,7 +135,7 @@ namespace StockService.Business.Services
 
                 foreach (var a in transfer.Articles)
                 {
-                    var name = await _catalogValidatorService.GetArticleNameAsync(a.ArticleId);
+                    var name = await _catalogServiceClient.GetArticleNameAsync(a.ArticleId);
                     articles.Add(new StockTransferArticleDTO
                     {
                         ArticleId = a.ArticleId,
@@ -141,8 +145,8 @@ namespace StockService.Business.Services
                 }
 
                 // get warehouses name
-                var originWarehouseName = await _catalogValidatorService.GetWarehouseNameAsync(transfer.OriginWarehouseId);
-                var destinationWarehouseName = await _catalogValidatorService.GetWarehouseNameAsync(transfer.DestinationWarehouseId);
+                var originWarehouseName = await _catalogServiceClient.GetWarehouseNameAsync(transfer.OriginWarehouseId);
+                var destinationWarehouseName = await _catalogServiceClient.GetWarehouseNameAsync(transfer.DestinationWarehouseId);
 
                 result.Add(new StockTransferDTO
                 {
@@ -164,8 +168,64 @@ namespace StockService.Business.Services
 
             return result;
         }
+        public async Task<TransferNoteDTO> GetTransferNoteAsync(int id)
+        {
+            var stockTransfer = await GetByIdAsync(id)
+                ?? throw new Exception("Stock Transfer info not found");
 
-        
+            var company = await _companyServiceClient.GetCompanyInfoAsync()
+                ?? throw new Exception("Company info not found");
 
+            TransportDTO transport = null;
+            if (stockTransfer.TransportId != null)
+            {
+               transport  = await _catalogServiceClient.GetTransportAsync(stockTransfer.TransportId.Value)
+                    ?? throw new Exception($"Transport {stockTransfer.TransportId} not found");
+            }
+
+            var transferNote = new TransferNoteDTO
+            {
+                Id = stockTransfer.Id,
+                Code = stockTransfer.Code,
+                Date = stockTransfer.Date,
+                OriginWarehouseId = stockTransfer.OriginWarehouseId,
+                OriginWarehouseName = stockTransfer.OriginWarehouseName,
+                DestinationWarehouseId = stockTransfer.DestinationWarehouseId,
+                DestinationWarehouseName = stockTransfer.DestinationWarehouseName,
+                NumberOfPackages = stockTransfer.NumberOfPackages,
+                DeclaredValue = stockTransfer.DeclaredValue,
+                Observations = stockTransfer.Observations ?? null,
+                UserId = stockTransfer.UserId,
+                Articles = stockTransfer.Articles,
+
+                // transport
+                TransportId = stockTransfer.TransportId,
+                TransportName = transport.Name,
+                TransportAddress = transport.Address,
+                TransportPostalCode = transport.PostalCode,
+                TransportCity = transport.City,
+                TransportProvince = transport.Province,
+                TransportCountry = transport.Country,
+                TransportTaxId = transport.TaxId,
+
+                // Company Info
+                CompanyName = company.Name,
+                CompanyShortName = company.ShortName,
+                CompanyTaxId = company.TaxId,
+                CompanyAddress = company.Address,
+                CompanyPostalCode = company.PostalCode,
+                CompanyCity = company.City,
+                CompanyProvince = company.Province,
+                CompanyCountry = company.Country,
+                CompanyPhone = company.Phone,
+                CompanyEmail = company.Email,
+                CompanyLogoUrl = company.LogoUrl,
+                CompanyIVAType = company.IVAType,
+                CompanyGrossIncome = company.GrossIncome,
+                CompanyDateOfIncorporation = company.DateOfIncorporation
+            };
+
+            return transferNote;
+        }
     }
 }
