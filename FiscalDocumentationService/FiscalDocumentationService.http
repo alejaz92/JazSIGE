@@ -1,0 +1,6 @@
+@FiscalDocumentationService_HostAddress = http://localhost:5126
+
+GET {{FiscalDocumentationService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

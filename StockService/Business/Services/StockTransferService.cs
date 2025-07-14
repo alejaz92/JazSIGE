@@ -199,14 +199,14 @@ namespace StockService.Business.Services
                 Articles = stockTransfer.Articles,
 
                 // transport
-                TransportId = stockTransfer.TransportId,
-                TransportName = transport.Name,
-                TransportAddress = transport.Address,
-                TransportPostalCode = transport.PostalCode,
-                TransportCity = transport.City,
-                TransportProvince = transport.Province,
-                TransportCountry = transport.Country,
-                TransportTaxId = transport.TaxId,
+                TransportId = stockTransfer.TransportId ?? null,
+                TransportName = transport?.Name,
+                TransportAddress = transport?.Address,
+                TransportPostalCode = transport?.PostalCode,
+                TransportCity = transport?.City,
+                TransportProvince = transport?.Province,
+                TransportCountry = transport?.Country,
+                TransportTaxId = transport?.TaxId,
 
                 // Company Info
                 CompanyName = company.Name,
