@@ -145,7 +145,6 @@ namespace StockService.Business.Services
 
 
         }
-
         private async Task UpdateStockAsync(int articleId, int warehouseId, decimal quantityChange)
         {
             var stock = await _stockRepository.GetByArticleAndwarehouseAsync(articleId, warehouseId);
@@ -173,13 +172,11 @@ namespace StockService.Business.Services
                 await _stockRepository.UpdateAsync(stock);
             }
         }
-
         public async Task<decimal> GetStockSummaryAsync(int articleId)
         {
             var stockList = await _stockRepository.GetAllByArticleAsync(articleId);
             return stockList.Sum(s => s.Quantity);
         }
-
         public async Task<IEnumerable<StockDTO>> GetStockByArticleAsync(int articleId)
         {
             var stockList = await _stockRepository.GetAllByArticleAsync(articleId);
@@ -195,13 +192,33 @@ namespace StockService.Business.Services
             });
             return await Task.WhenAll(tasks);
         }
-
+        public async Task<IEnumerable<StockByWarehouseDTO>> GetStockByWarehouseAsync(int warehouseId)
+        {
+            var stockList = await _stockRepository.GetAllByWarehouseAsync(warehouseId);
+            var tasks = stockList.Select(async s =>
+            {
+                var article = await _catalogServiceClient.GetArticleAsync(s.ArticleId);
+                return new StockByWarehouseDTO
+                {
+                    ArticleID = s.ArticleId,
+                    ArticleName = article.Description,
+                    ArticleSKU = article.SKU,
+                    ArticleLineId = article.LineId,
+                    ArticleLine = article.Line,
+                    ArticleLineGroupId = article.LineGroupId,
+                    ArticleLineGroup = article.LineGroup,
+                    ArticleBrandId = article.BrandId,
+                    ArticleBrand = article.Brand,
+                    Quantity = s.Quantity
+                };
+            });
+            return await Task.WhenAll(tasks);
+        }
         public async Task<decimal> GetStockAsync(int articleId, int warehouseId)
         {
             var stock = await _stockRepository.GetByArticleAndwarehouseAsync(articleId, warehouseId);
             return stock?.Quantity ?? 0m;
         }
-
         public async Task<PaginatedResultDTO<StockMovementDTO>> GetMovementsByArticleAsync(int articleId, int page, int pageSize)
         {
             var (movements, totalCount) = await _stockMovementRepository.GetPagedWithTotalAsync(articleId, page, pageSize);
@@ -249,11 +266,11 @@ namespace StockService.Business.Services
             };
         }
 
-        public async Task<decimal> GetStockSummaryByWarehouseAsync(int warehouseId)
-        {
-            var stockList = await _stockRepository.GetAllByWarehouseAsync(warehouseId);
-            return stockList.Sum(s => s.Quantity);
-        }
+        //public async Task<decimal> GetStockSummaryByWarehouseAsync(int warehouseId)
+        //{
+        //    var stockList = await _stockRepository.GetAllByWarehouseAsync(warehouseId);
+        //    return stockList.Sum(s => s.Quantity);
+        //}
 
         private async Task UpdateStockByDispatchAsync(int articleId, int? dispatchId, decimal quantity)
         {
@@ -275,7 +292,6 @@ namespace StockService.Business.Services
                 await _stockByDispatchRepository.AddAsync(newEntry);
             }
         }
-
         private async Task<List<DispatchStockDetailDTO>> DiscountStockByDispatchAsync(int articleId, decimal quantityToSubtract)
         {
             var dispatchEntries = await _stockByDispatchRepository.GetAvailableByArticleOrderedAsync(articleId);
@@ -306,7 +322,6 @@ namespace StockService.Business.Services
 
             return result;
         }
-
     }
 
 }

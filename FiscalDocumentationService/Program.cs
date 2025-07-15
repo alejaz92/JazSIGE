@@ -1,9 +1,12 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using System.Security.Claims;
 using FiscalDocumentationService.Infrastructure.Data;
+using FiscalDocumentationService.Infrastructure.Interfaces;
+using FiscalDocumentationService.Infrastructure.Models;
+using FiscalDocumentationService.Infrastructure.Repositories;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
+using System.Text;
 
 
 
@@ -43,6 +46,11 @@ builder.Services.AddCors(options => {
 });
 
 // Repositories
+builder.Services.AddScoped<IFiscalDocumentRepository, FiscalDocumentRepository>();
+builder.Services.AddScoped<IGenericRepository<FiscalDocument>, GenericRepository<FiscalDocument>>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+
 
 
 //Services

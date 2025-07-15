@@ -67,6 +67,22 @@ namespace StockService.Business.Services
             var response = await client.GetFromJsonAsync<ArticleDTO>($"{_catalogBaseUrl}Article/{articleId}");
             return response?.Description;
         }
+
+        public async Task<ArticleDTO> GetArticleAsync(int articleId)
+        {
+            var client = _httpClientFactory.CreateClient();
+            // Extraer el token JWT del contexto HTTP
+            var token = _httpContextAccessor.HttpContext?.Request.Headers["Authorization"].ToString();
+            // Agregar el token al encabezado de la solicitud
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Add("Authorization", token);
+            }
+
+
+            var response = await client.GetFromJsonAsync<ArticleDTO>($"{_catalogBaseUrl}Article/{articleId}");
+            return response;
+        }
         public async Task<string?> GetWarehouseNameAsync(int warehouseId)
         {
             var client = _httpClientFactory.CreateClient();

@@ -15,23 +15,19 @@ namespace StockService.Infrastructure.Repositories
 
         public async Task<Stock?> GetByArticleAndwarehouseAsync(int articleId, int warehouseId) => await _context.Stocks
                 .FirstOrDefaultAsync(s => s.ArticleId == articleId && s.WarehouseId == warehouseId);
-
         public async Task AddAsync(Stock stock)
         {
             await _context.Stocks.AddAsync(stock);
             await _context.SaveChangesAsync();
         }
-
         public async Task UpdateAsync(Stock stock)
         {
             _context.Stocks.Update(stock);
             await _context.SaveChangesAsync();
         }
-
         public async Task<IEnumerable<Stock>> GetAllByArticleAsync(int articleId) => await _context.Stocks
                 .Where(s => s.ArticleId == articleId)
                 .ToListAsync();
-
         public async Task<IEnumerable<Stock>> GetAllByWarehouseAsync(int warehouseId) => await _context.Stocks
             .Where(s => s.WarehouseId == warehouseId)
             .ToListAsync();

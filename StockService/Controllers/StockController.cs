@@ -82,19 +82,19 @@ public class StockController : ControllerBase
         }
     }
 
-    [HttpGet("{warehouseId}/warehouse/summary")]
-    public async Task<ActionResult<decimal>> GetStockSummaryByWarehouse(int warehouseId)
-    {
-        try
-        {
-            var total = await _stockService.GetStockSummaryByWarehouseAsync(warehouseId);
-            return Ok(total);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
-        }
-    }
+    //[HttpGet("{warehouseId}/warehouse/summary")]
+    //public async Task<ActionResult<decimal>> GetStockSummaryByWarehouse(int warehouseId)
+    //{
+    //    try
+    //    {
+    //        var total = await _stockService.GetStockSummaryByWarehouseAsync(warehouseId);
+    //        return Ok(total);
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
+    //    }
+    //}
 
 
     [HttpGet("{articleId}/movements")]
@@ -133,6 +133,20 @@ public class StockController : ControllerBase
         try
         {
             var stockList = await _stockService.GetStockByArticleAsync(articleId);
+            return Ok(stockList);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
+        }
+    }
+
+    [HttpGet("warehouse/{warehouseId}")]
+    public async Task<ActionResult<IEnumerable<StockByWarehouseDTO>>> GetStockByWarehouse(int warehouseId)
+    {
+        try
+        {
+            var stockList = await _stockService.GetStockByWarehouseAsync(warehouseId);
             return Ok(stockList);
         }
         catch (Exception ex)
