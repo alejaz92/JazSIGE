@@ -6,7 +6,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 7042
+          "Port": 7042 
         }
       ],
       "UpstreamPathTemplate": "/auth/{everything}",
@@ -206,3 +206,5 @@
     "BaseUrl": "https://localhost:7273"
   }
 }
+
+
