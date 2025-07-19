@@ -6,6 +6,12 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configura logging detallado
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+builder.Logging.AddAzureWebAppDiagnostics(); 
+
 // Configuración
 builder.Configuration
     .AddJsonFile("ocelot.json", optional: false, reloadOnChange: true)
@@ -87,6 +93,7 @@ app.UseSwaggerForOcelotUI(opt =>
 try
 {
     await app.UseOcelot();
+    Console.WriteLine("Ocelot iniciado correctamente.");
 }
 catch (Exception ex)
 {
