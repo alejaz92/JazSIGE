@@ -11,23 +11,46 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+// DB
+builder.Services.AddDbContext<StockDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+
+// CORS Configuration
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("FrontendPolicy", policy =>
+    {
+        policy
+            .WithOrigins("https://gateway-api-dev-hjasdzc6dggka6ah.brazilsouth-01.azurewebsites.net", "https://localhost:7273")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
+// Autenticación JWT (si este microservicio va a estar expuesto)
+var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]);
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(key),
+            RoleClaimType = ClaimTypes.Role
+        };
+    });
+
+// Swagger Configuration
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 
-// Agregar contexto y repositorios
-builder.Services.AddDbContext<StockDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-//// Swagger Configuration
-//builder.Services.AddEndpointsApiExplorer();
-//builder.Services.AddSwaggerGen();
-
-
-// Contexto HTTP para extraer token
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddHttpClient();
 
 // Repositories
 builder.Services.AddScoped<IStockRepository, StockRepository>();
@@ -48,51 +71,31 @@ builder.Services.AddScoped<ICommitedStockService, CommitedStockService>();
 builder.Services.AddScoped<IStockTransferService, StockTransferService>();
 
 
+//inyect configuration
+builder.Services.AddHttpClient();
+//builder.Services.Configure<AuthServiceSettings>(builder.Configuration.GetSection("AuthService"));
+builder.Services.AddHttpContextAccessor();
 
-// Autenticación JWT (si este microservicio va a estar expuesto)
-var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]);
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuerSigningKey = true,
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(key),
-            RoleClaimType = ClaimTypes.Role
-        };
-    });
-
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowFrontend", policy =>
-    {
-        policy.WithOrigins("http://localhost:4200")
-              .AllowAnyHeader()
-              .AllowAnyMethod();
-    });
-});
+// Controllers
+builder.Services.AddControllers();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "StockService API v1");
-        c.RoutePrefix = "swagger";  // Podés cambiar el prefijo o dejarlo vacío
-    });
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "StockService v1");
+    c.RoutePrefix = string.Empty;  // Podés cambiar el prefijo o dejarlo vacío
+});
 
+app.UseCors("AllowAll");
 app.UseHttpsRedirection();
-app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
 app.Run();
+
+
+

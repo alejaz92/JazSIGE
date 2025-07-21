@@ -56,32 +56,21 @@
         "AllowedScopes": []
       }
     },
-
-
-
-    // Los siguientes servicios aún no fueron desplegados:
-    /*
     {
-      "DownstreamPathTemplate": "/api/catalog/{everything}",
+      "DownstreamPathTemplate": "/api/{everything}",
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
-        { "Host": "catalog-api-dev-xxxx.brazilsouth.azurewebsites.net", "Port": 443 }
+        {
+          "Host": "purchase-api-dev-hffpakhtaecbcff4.brazilsouth-01.azurewebsites.net",
+          "Port": 443
+        }
       ],
-      "UpstreamPathTemplate": "/api/catalog/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
-      "AuthenticationOptions": {
-        "AuthenticationProviderKey": "Bearer",
-        "AllowedScopes": []
-      }
-    },
-    {
-      "DownstreamPathTemplate": "/api/purchase/{everything}",
-      "DownstreamScheme": "https",
-      "DownstreamHostAndPorts": [
-        { "Host": "purchase-api-dev-xxxx.brazilsouth.azurewebsites.net", "Port": 443 }
-      ],
-      "UpstreamPathTemplate": "/api/purchase/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "UpstreamPathTemplate": "/purchase/{everything}",
+      "UpstreamHttpMethod": [ "POST", "GET", "PUT", "DELETE" ],
+      "AddHeadersToRequest": {
+        "Authorization": "{Headers.Authorization}"
+      },
+      "SwaggerKey": "purchase",
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
@@ -91,16 +80,64 @@
       "DownstreamPathTemplate": "/api/stock/{everything}",
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
-        { "Host": "stock-api-dev-xxxx.brazilsouth.azurewebsites.net", "Port": 443 }
+        {
+          "Host": "stock-api-dev-esbre0dae0b0gkd8.centralus-01.azurewebsites.net",
+          "Port": 443
+        }
       ],
-      "UpstreamPathTemplate": "/api/stock/{everything}",
-      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "UpstreamPathTemplate": "/stock/{everything}",
+      "UpstreamHttpMethod": [ "POST", "GET", "PUT", "DELETE" ],
+      "AddHeadersToRequest": {
+        "Authorization": "{Headers.Authorization}"
+      },
+      "SwaggerKey": "stock",
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      }
+    },
+    {
+      "DownstreamPathTemplate": "/{everything}",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "sales-api-dev-e2bqduakc2ehhuaa.centralus-01.azurewebsites.net",
+          "Port": 443
+        }
+      ],
+      "UpstreamPathTemplate": "/{everything}",
+      "UpstreamHttpMethod": [ "POST", "GET", "PUT", "DELETE" ],
+      "AddHeadersToRequest": {
+        "Authorization": "{Headers.Authorization}"
+      },
+      "SwaggerKey": "sale",
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      }
+    },
+
+    {
+      "DownstreamPathTemplate": "/api/companyinfo/{everything}",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "companyinfo-api-dev-amccbga3hbemapa5.centralus-01.azurewebsites.net",
+          "Port": 443
+        }
+      ],
+      "UpstreamPathTemplate": "/companyinfo/{everything}",
+      "UpstreamHttpMethod": [ "GET", "PUT" ],
+      "AddHeadersToRequest": {
+        "Authorization": "{Headers.Authorization}"
+      },
+      "SwaggerKey": "company",
       "AuthenticationOptions": {
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
       }
     }
-    */
+
   ],
   "SwaggerEndPoints": [
     {
@@ -120,6 +157,47 @@
           "Name": "CatalogService API",
           "Version": "v1",
           "Url": "https://catalog-api-dev-g9b4g8gtfyambhd6.brazilsouth-01.azurewebsites.net/swagger/v1/swagger.json"
+        }
+      ]
+    },
+    {
+      "Key": "purchase",
+      "Config": [
+        {
+          "Name": "PurchaseService API",
+          "Version": "v1",
+          "Url": "https://purchase-api-dev-hffpakhtaecbcff4.brazilsouth-01.azurewebsites.net/swagger/v1/swagger.json"
+        }
+      ]
+    },
+
+    {
+      "Key": "stock",
+      "Config": [
+        {
+          "Name": "StockService API",
+          "Version": "v1",
+          "Url": "https://stock-api-dev-esbre0dae0b0gkd8.centralus-01.azurewebsites.net/swagger/v1/swagger.json"
+        }
+      ]
+    },
+    {
+      "Key": "sale",
+      "Config": [
+        {
+          "Name": "SalesService API",
+          "Version": "v1",
+          "Url": "https://sales-api-dev-e2bqduakc2ehhuaa.centralus-01.azurewebsites.net/swagger/v1/swagger.json"
+        }
+      ]
+    },
+    {
+      "Key": "company",
+      "Config": [
+        {
+          "Name": "CompanyService API",
+          "Version": "v1",
+          "Url": "https://companyinfo-api-dev-amccbga3hbemapa5.centralus-01.azurewebsites.net/swagger/v1/swagger.json"
         }
       ]
     }
