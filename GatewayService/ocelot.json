@@ -55,7 +55,9 @@
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
       }
-    }
+    },
+
+
 
     // Los siguientes servicios aún no fueron desplegados:
     /*

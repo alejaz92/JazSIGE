@@ -12,14 +12,21 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Logging.AddConsole();
+
+// Database Configuration
+builder.Services.AddDbContext<CatalogDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("CatalogDB")));
+
 // CORS Configuration
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendPolicy", policy =>
     {
-        policy.WithOrigins("http://localhost:4200")
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+        policy
+            .WithOrigins("https://gateway-api-dev-hjasdzc6dggka6ah.brazilsouth-01.azurewebsites.net", "https://localhost:7273")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
     });
 });
 
@@ -41,9 +48,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// Database Configuration
-builder.Services.AddDbContext<CatalogDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("CatalogDB")));
+
 
 // Swagger Configuration
 builder.Services.AddEndpointsApiExplorer();
@@ -105,17 +110,20 @@ builder.Services.AddControllers();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "CatalogService API v1");
-        c.RoutePrefix = "swagger";  // Podés cambiar el prefijo o dejarlo vacío
-    });
-}
+var logger = app.Services.GetRequiredService<ILogger<Program>>();
+logger.LogInformation(" CatalogService iniciado correctamente en entorno: {env}", app.Environment.EnvironmentName);
 
-app.UseCors("FrontendPolicy");
+
+
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "CatalogService v1");
+    c.RoutePrefix = string.Empty;  // Podés cambiar el prefijo o dejarlo vacío
+});
+
+
+app.UseCors("AllowAll");
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
