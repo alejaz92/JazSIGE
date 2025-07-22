@@ -43,3 +43,4 @@ jobs:
         slot-name: Production
         publish-profile: ${{ secrets.AZURE_PURCHASE_PUBLISH_PROFILE }}
         package: ./publish
+        resource-group-name: jazsige-dev

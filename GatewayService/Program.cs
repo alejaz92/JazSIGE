@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+// test
 
 // Configura logging detallado
 builder.Logging.ClearProviders();

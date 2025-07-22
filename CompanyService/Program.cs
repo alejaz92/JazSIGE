@@ -29,6 +29,8 @@ builder.Services.AddCors(options =>
     });
 });
 
+// test
+
 // JWT
 var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]);
 

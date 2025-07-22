@@ -30,6 +30,8 @@ builder.Services.AddCors(options =>
     });
 });
 
+// test
+
 // JWT Configuration
 var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]);
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
