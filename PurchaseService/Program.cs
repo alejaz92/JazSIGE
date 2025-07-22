@@ -11,7 +11,7 @@ using System.Security.Claims;
 
 
 var builder = WebApplication.CreateBuilder(args);
-// test
+// test2
 
 // DB
 builder.Services.AddDbContext<PurchaseDbContext>(options =>

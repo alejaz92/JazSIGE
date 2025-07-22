@@ -29,7 +29,7 @@ builder.Services.AddIdentityCore<User>(options =>
 .AddEntityFrameworkStores<AuthDbContext>()
 .AddDefaultTokenProviders();
 
-// test
+// test2
 
 // Configuración JWT
 var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "default-key");
