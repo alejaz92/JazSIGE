@@ -31,7 +31,8 @@ jobs:
           dotnet-version: '9.0.x'
 
       - name: Publish
-        run: dotnet publish -c Release -o ./publish
+        run: dotnet publish -c Release -o ${{ env.AZURE_WEBAPP_PACKAGE_PATH }} -v diag
+
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
