@@ -11,8 +11,6 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 builder.Logging.AddAzureWebAppDiagnostics();
-// Este comentario es para disparar el workflow
-
 
 // Configuración
 builder.Configuration
