@@ -31,7 +31,7 @@ jobs:
           dotnet-version: '9.0.x'
 
       - name: Publish
-        run: dotnet publish -c Release -o ./publish
+        run: dotnet publish ./CompanyService/CompanyService.csproj -c Release -o ./publish -v minimal
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
