@@ -11,13 +11,13 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// test33
+// test433
 
 // DB
 builder.Services.AddDbContext<StockDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// test33 deploy
+// test433 deploy
 // CORS Configuration
 builder.Services.AddCors(options =>
 {

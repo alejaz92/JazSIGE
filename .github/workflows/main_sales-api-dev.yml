@@ -9,6 +9,10 @@ on:
     paths:
       - 'SalesService/**'
 
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
 jobs:
   build-and-deploy:
     runs-on: windows-latest
