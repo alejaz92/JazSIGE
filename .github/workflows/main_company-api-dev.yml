@@ -39,7 +39,7 @@ jobs:
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
       with:
-        app-name: company-api-dev
+        app-name: companyinfo-api-dev
         slot-name: Production
         publish-profile: ${{ secrets.AZURE_COMPANY_PUBLISH_PROFILE }}
         package: ./publish
