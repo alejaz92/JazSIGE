@@ -17,7 +17,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<StockDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// test2 deploy
+// test3 deploy
 // CORS Configuration
 builder.Services.AddCors(options =>
 {
