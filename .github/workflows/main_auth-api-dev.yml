@@ -31,7 +31,7 @@ jobs:
           dotnet-version: '9.0.x'
 
       - name: Publish
-        run: dotnet publish ./src/AuthService/AuthService.csproj -c Release -o ./publish -v diag
+        run: dotnet publish ./AuthService/AuthService.csproj -c Release -o ./publish -v diag
 
 
       - name: Deploy to Azure Web App
