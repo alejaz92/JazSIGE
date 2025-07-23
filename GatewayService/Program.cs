@@ -50,7 +50,8 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(
             "http://localhost:4200",
-            "https://gateway-api-dev-hjasdzc6dggka6ah.brazilsouth-01.azurewebsites.net"
+            "https://gateway-api-dev-hjasdzc6dggka6ah.brazilsouth-01.azurewebsites.net",
+            "https://lively-field-0aee53010.2.azurestaticapps.net"
         )
         .AllowAnyHeader()
         .AllowAnyMethod();
