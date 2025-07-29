@@ -63,7 +63,9 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "purchase-api-dev-hffpakhtaecbcff4.brazilsouth-01.azurewebsites.net",
-          "Port": 443
+          "Port": 443,
+          //"Host": "localhost",
+          //"Port": 7079
         }
       ],
       "UpstreamPathTemplate": "/purchase/{everything}",
@@ -167,7 +169,8 @@
         {
           "Name": "PurchaseService API",
           "Version": "v1",
-          "Url": "https://purchase-api-dev-hffpakhtaecbcff4.brazilsouth-01.azurewebsites.net/swagger/v1/swagger.json"
+          "Url": "https://purchase-api-dev-hffpakhtaecbcff4.brazilsouth-01.azurewebsites.net/swagger/v1/swagger.json",
+          //"Url": "https://localhost:7079/swagger/v1/swagger.json"
         }
       ]
     },
