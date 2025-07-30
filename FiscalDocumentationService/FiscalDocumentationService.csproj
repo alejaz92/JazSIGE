@@ -20,9 +20,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Business\Interfaces\" />
-    <Folder Include="Business\Services\" />
-    <Folder Include="Controllers\" />
     <Folder Include="Integration\" />
   </ItemGroup>
 

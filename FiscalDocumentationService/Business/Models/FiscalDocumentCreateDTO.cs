@@ -2,9 +2,26 @@
 {
     public class FiscalDocumentCreateDTO
     {
-        public int SaleId { get; set; }
-        public string DocumentType { get; set; } = "Invoice"; // Podría ser "Invoice", "CreditNote", etc.
-        public string DocumentLetter { get; set; } = "B";     // A, B, C
-        public string PointOfSale { get; set; } = "0001";
+        public string CustomerName { get; set; } = string.Empty;
+        public string CustomerCUIT { get; set; } = string.Empty;
+        public string CustomerIVAType { get; set; } = string.Empty;
+
+        public decimal NetAmount { get; set; }
+        public decimal VATAmount { get; set; }
+        public decimal TotalAmount { get; set; }
+
+        public int? SalesOrderId { get; set; }
+
+        public string Type { get; set; } = "Invoice"; // "Invoice", "CreditNote", "DebitNote"
+
+        public List<FiscalDocumentItemDTO> Items { get; set; } = new();
+    }
+
+    public class FiscalDocumentItemDTO
+    {
+        public string Description { get; set; } = string.Empty;
+        public decimal UnitPrice { get; set; }
+        public int Quantity { get; set; }
+        public decimal VAT { get; set; }
     }
 }

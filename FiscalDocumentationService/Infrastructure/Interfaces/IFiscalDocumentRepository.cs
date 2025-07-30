@@ -2,9 +2,10 @@
 
 namespace FiscalDocumentationService.Infrastructure.Interfaces
 {
-    public interface IFiscalDocumentRepository : IGenericRepository<FiscalDocument>
+    public interface IFiscalDocumentRepository
     {
-        Task<FiscalDocument?> GetBySaleIdAsync(int saleId);
-        Task<string?> GetLastDocumentNumberAsync(string documentType, string pointOfSale, string documentLetter);
+        Task<FiscalDocument> CreateAsync(FiscalDocument document);
+        Task<FiscalDocument?> GetByIdAsync(int id);
+        Task<FiscalDocument?> GetBySalesOrderIdAsync(int salesOrderId);
     }
 }

@@ -15,6 +15,6 @@ namespace FiscalDocumentationService.Infrastructure.Repositories
             FiscalDocumentRepository = fiscalDocumentRepository;
         }
 
-        public async Task SaveAsync() => await _context.SaveChangesAsync();
+        public async Task<int> SaveChangesAsync() => await _context.SaveChangesAsync();
     }
 }

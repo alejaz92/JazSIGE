@@ -3,7 +3,6 @@
     public interface IUnitOfWork
     {
         IFiscalDocumentRepository FiscalDocumentRepository { get; }
-
-        Task SaveAsync();
+        Task<int> SaveChangesAsync();
     }
 }

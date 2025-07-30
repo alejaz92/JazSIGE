@@ -139,7 +139,28 @@
         "AuthenticationProviderKey": "Bearer",
         "AllowedScopes": []
       }
+    },
+    {
+      "DownstreamPathTemplate": "/api/fiscaldocument/{everything}",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "fiscal-api-dev-f6a2aaeyeta5hsen.centralus-01.azurewebsites.net",
+          "Port": 443
+        }
+      ],
+      "UpstreamPathTemplate": "/fiscaldocument/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST" ],
+      "AddHeadersToRequest": {
+        "Authorization": "{Headers.Authorization}"
+      },
+      "SwaggerKey": "fiscal",
+      "AuthenticationOptions": {
+        "AuthenticationProviderKey": "Bearer",
+        "AllowedScopes": []
+      }
     }
+
 
   ],
   "SwaggerEndPoints": [
@@ -204,7 +225,18 @@
           "Url": "https://companyinfo-api-dev-amccbga3hbemapa5.centralus-01.azurewebsites.net/swagger/v1/swagger.json"
         }
       ]
+    },
+    {
+      "Key": "fiscal",
+      "Config": [
+        {
+          "Name": "FiscalDocumentationService API",
+          "Version": "v1",
+          "Url": "https://fiscal-api-dev-f6a2aaeyeta5hsen.centralus-01.azurewebsites.net/swagger/v1/swagger.json"
+        }
+      ]
     }
+
     // futuros endpoints de swagger se agregan aquí
   ],
   "GlobalConfiguration": {

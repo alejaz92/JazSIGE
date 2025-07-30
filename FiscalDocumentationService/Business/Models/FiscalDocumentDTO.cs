@@ -1,12 +1,12 @@
-﻿namespace FiscalDocumentationService.Infrastructure.Models
+﻿namespace FiscalDocumentationService.Business.Models
 {
-    public enum FiscalDocumentType { Invoice, CreditNote, DebitNote }
-    public class FiscalDocument
+    public class FiscalDocumentDTO
     {
         public int Id { get; set; }
-        public string DocumentNumber { get; set; } = string.Empty; // Ej: A0001-00000045
-        public FiscalDocumentType Type { get; set; }
+        public string DocumentNumber { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
         public DateTime Date { get; set; }
+
         public string CAE { get; set; } = string.Empty;
         public DateTime CAEExpiration { get; set; }
 
@@ -20,6 +20,6 @@
 
         public int? SalesOrderId { get; set; }
 
-        public ICollection<FiscalDocumentItem> Items { get; set; } = new List<FiscalDocumentItem>();
+        public List<FiscalDocumentItemDTO> Items { get; set; } = new();
     }
 }

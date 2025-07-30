@@ -5,31 +5,25 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FiscalDocumentationService.Infrastructure.Repositories
 {
-    public class FiscalDocumentRepository : GenericRepository<FiscalDocument>, IFiscalDocumentRepository
+    public class FiscalDocumentRepository : IFiscalDocumentRepository
     {
         private readonly FiscalDocumentationDbContext _context;
-
-        public FiscalDocumentRepository(FiscalDocumentationDbContext context) : base(context)
+        public FiscalDocumentRepository(FiscalDocumentationDbContext context)
         {
-            _context = context;
+            _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
-        public async Task<FiscalDocument?> GetBySaleIdAsync(int saleId)
+        public async Task<FiscalDocument> CreateAsync(FiscalDocument document)
         {
-            return await _context.FiscalDocuments
-                .Include(d => d.Articles)
-                .FirstOrDefaultAsync(d => d.SaleId == saleId);
+            _context.FiscalDocuments.Add(document);
+            await _context.SaveChangesAsync();
+            return document;
         }
-
-        public async Task<string?> GetLastDocumentNumberAsync(string documentType, string pointOfSale, string documentLetter)
-        {
-            return await _context.FiscalDocuments
-                .Where(d => d.DocumentType == documentType &&
-                            d.PointOfSale == pointOfSale &&
-                            d.DocumentLetter == documentLetter)
-                .OrderByDescending(d => d.DocumentNumber)
-                .Select(d => d.DocumentNumber)
-                .FirstOrDefaultAsync();
-        }
+        public async Task<FiscalDocument?> GetByIdAsync(int id) => await _context.FiscalDocuments
+                .Include(d => d.Items)
+                .FirstOrDefaultAsync(d => d.Id == id);
+        public async Task<FiscalDocument?> GetBySalesOrderIdAsync(int salesOrderId) => await _context.FiscalDocuments
+                .Include(d => d.Items)
+                .FirstOrDefaultAsync(d => d.SalesOrderId == salesOrderId);
     }
 }
