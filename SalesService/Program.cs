@@ -76,6 +76,7 @@ builder.Services.AddScoped<IPurchaseServiceClient, PurchaseServiceClient>();
 builder.Services.AddScoped<ISalesQuoteService, SalesQuoteService>();
 builder.Services.AddScoped<ISaleService, SaleService>();
 builder.Services.AddScoped<IDeliveryNoteService, DeliveryNoteService>();
+builder.Services.AddScoped<IFiscalServiceClient, FiscalServiceClient>();
 
 
 

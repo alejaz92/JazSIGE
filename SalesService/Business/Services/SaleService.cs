@@ -3,6 +3,7 @@ using SalesService.Business.Interfaces.Clients;
 using SalesService.Business.Models.Clients;
 using SalesService.Business.Models.DeliveryNote;
 using SalesService.Business.Models.Sale;
+using SalesService.Business.Services.Clients;
 using SalesService.Infrastructure.Interfaces;
 using SalesService.Infrastructure.Models.Sale;
 
@@ -14,17 +15,20 @@ namespace SalesService.Business.Services
         private readonly ICatalogServiceClient _catalogService;
         private readonly IStockServiceClient _stockService;
         private readonly IUserServiceClient _userService;
+        private readonly IFiscalServiceClient _fiscalServiceClient;
 
         public SaleService(
             IUnitOfWork unitOfWork,
             ICatalogServiceClient catalogService,
             IStockServiceClient stockService,
-            IUserServiceClient userService)
+            IUserServiceClient userService,
+            IFiscalServiceClient fiscalServiceClient)
         {
             _unitOfWork = unitOfWork;
             _catalogService = catalogService;
             _stockService = stockService;
             _userService = userService;
+            _fiscalServiceClient = fiscalServiceClient;
         }
 
         public async Task<IEnumerable<SaleDTO>> GetAllAsync()
@@ -224,5 +228,69 @@ namespace SalesService.Business.Services
                 await _stockService.RegisterCommitedStockAsync(commitedEntry);
             }
         }
+
+        public async Task<FiscalDocumentResponseDTO> CreateInvoiceAsync(int saleId)
+        {
+            var sale = await _unitOfWork.SaleRepository.GetIncludingAsync(saleId, s => s.Articles);
+            if (sale == null)
+                throw new InvalidOperationException("Sale not found.");
+
+            if (sale.HasInvoice)
+                throw new InvalidOperationException("Invoice already generated for this sale.");
+
+            var customer = await _catalogService.GetCustomerByIdAsync(sale.CustomerId);
+            if (customer == null)
+                throw new InvalidOperationException("Customer not found.");
+
+            var items = new List<FiscalDocumentItemDTO>();
+            decimal netAmount = 0;
+            decimal vatAmount = 0;
+
+            foreach (var article in sale.Articles)
+            {
+                var articleInfo = await _catalogService.GetArticleByIdAsync(article.ArticleId);
+                if (articleInfo == null)
+                    throw new InvalidOperationException($"Article {article.ArticleId} not found.");
+
+                var priceWithDiscount = article.UnitPrice * (1 - article.DiscountPercent / 100);
+                var baseAmount = priceWithDiscount * article.Quantity;
+                var iva = baseAmount * (article.IVAPercent / 100);
+
+                items.Add(new FiscalDocumentItemDTO
+                {
+                    Description = articleInfo.Description,
+                    UnitPrice = article.UnitPrice,
+                    Quantity = (int)article.Quantity,
+                    VatBase = baseAmount,
+                    VatAmount = iva,
+                    VatId = (int)(article.IVAPercent == 21 ? 5 : 4) // Dummy ejemplo
+                });
+
+                netAmount += baseAmount;
+                vatAmount += iva;
+            }
+
+            var fiscalRequest = new FiscalDocumentCreateDTO
+            {
+                PointOfSale = 1,
+                InvoiceType = 1, // Factura A por ejemplo, se puede parametrizar luego
+                BuyerDocumentType = 80, // CUIT (AFIP code fijo por ahora)
+                BuyerDocumentNumber = long.Parse(customer.TaxId),
+                NetAmount = Math.Round(netAmount, 2),
+                VatAmount = Math.Round(vatAmount, 2),
+                TotalAmount = Math.Round(netAmount + vatAmount, 2),
+                SalesOrderId = saleId,
+                Items = items
+            };
+
+            var result = await _fiscalServiceClient.CreateInvoiceAsync(fiscalRequest);
+
+            sale.HasInvoice = true;
+            _unitOfWork.SaleRepository.Update(sale);
+            await _unitOfWork.SaveAsync();
+
+            return result;
+        }
+
     }
 }

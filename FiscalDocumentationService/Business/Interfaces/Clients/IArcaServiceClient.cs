@@ -1,9 +1,10 @@
-﻿using FiscalDocumentationService.Infrastructure.Models;
+﻿using FiscalDocumentationService.Business.Models.Arca;
+using FiscalDocumentationService.Infrastructure.Models;
 
 namespace FiscalDocumentationService.Business.Interfaces.Clients
 {
     public interface IArcaServiceClient
     {
-        Task<(string cae, DateTime caeExpiration)> AuthorizeAsync(FiscalDocument document);
+        Task<ArcaResponseDTO> AuthorizeAsync(ArcaRequestDTO request);
     }
 }

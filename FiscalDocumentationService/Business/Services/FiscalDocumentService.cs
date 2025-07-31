@@ -1,6 +1,7 @@
 ﻿using FiscalDocumentationService.Business.Interfaces;
 using FiscalDocumentationService.Business.Interfaces.Clients;
 using FiscalDocumentationService.Business.Models;
+using FiscalDocumentationService.Business.Models.Arca;
 using FiscalDocumentationService.Infrastructure.Interfaces;
 using FiscalDocumentationService.Infrastructure.Models;
 
@@ -17,38 +18,50 @@ namespace FiscalDocumentationService.Business.Services
             _arcaClient = arcaClient;
         }
 
+
         public async Task<FiscalDocumentDTO> CreateAsync(FiscalDocumentCreateDTO dto)
         {
-            // Map string type to enum
-            Enum.TryParse<FiscalDocumentType>(dto.Type, ignoreCase: true, out var docType);
+            var invoiceNumber = GenerateInvoiceNumber();
 
             var document = new FiscalDocument
             {
-                Type = docType,
+                PointOfSale = dto.PointOfSale,
+                InvoiceType = dto.InvoiceType,
+                BuyerDocumentType = dto.BuyerDocumentType,
+                BuyerDocumentNumber = dto.BuyerDocumentNumber,
+                InvoiceFrom = invoiceNumber,
+                InvoiceTo = invoiceNumber,
                 Date = DateTime.Now,
-                CustomerName = dto.CustomerName,
-                CustomerCUIT = dto.CustomerCUIT,
-                CustomerIVAType = dto.CustomerIVAType,
+
                 NetAmount = dto.NetAmount,
-                VATAmount = dto.VATAmount,
+                VATAmount = dto.VatAmount,
+                ExemptAmount = dto.ExemptAmount,
+                NonTaxableAmount = dto.NonTaxableAmount,
+                OtherTaxesAmount = dto.OtherTaxesAmount,
                 TotalAmount = dto.TotalAmount,
                 SalesOrderId = dto.SalesOrderId,
+
                 Items = dto.Items.Select(i => new FiscalDocumentItem
                 {
                     Description = i.Description,
                     UnitPrice = i.UnitPrice,
                     Quantity = i.Quantity,
-                    VAT = i.VAT
+                    VATId = i.VatId,
+                    VATBase = i.VatBase,
+                    VATAmount = i.VatAmount
                 }).ToList()
             };
 
-            // Obtener CAE simulado desde ARCA
-            var (cae, caeExpiration) = await _arcaClient.AuthorizeAsync(document);
-            document.CAE = cae;
-            document.CAEExpiration = caeExpiration;
+            // Armar solicitud ARCA
+            var arcaRequest = BuildArcaRequest(document);
 
-            // Simular numeración: ejemplo "A0001-00000023"
-            document.DocumentNumber = $"A0001-{DateTime.Now.Ticks % 1_000_000:00000000}";
+            // Llamar cliente dummy ARCA
+            var arcaResponse = await _arcaClient.AuthorizeAsync(arcaRequest);
+
+            // Aplicar CAE
+            document.CAE = arcaResponse.cae;
+            document.CAEExpiration = DateTime.ParseExact(arcaResponse.caeExpirationDate, "yyyyMMdd", null);
+            document.DocumentNumber = $"A{document.PointOfSale:0000}-{document.InvoiceFrom:00000000}";
 
             await _unitOfWork.FiscalDocumentRepository.CreateAsync(document);
             await _unitOfWork.SaveChangesAsync();
@@ -56,17 +69,60 @@ namespace FiscalDocumentationService.Business.Services
             return MapToDTO(document);
         }
 
+        private ArcaRequestDTO BuildArcaRequest(FiscalDocument doc)
+        {
+            return new ArcaRequestDTO
+            {
+                header = new ArcaHeader
+                {
+                    recordCount = 1,
+                    pointOfSale = doc.PointOfSale,
+                    documentType = doc.InvoiceType
+                },
+                detail = new List<ArcaDetail>
+                {
+                    new ArcaDetail
+                    {
+                        concept = 1,
+                        buyerDocumentType = doc.BuyerDocumentType,
+                        buyerDocumentNumber = doc.BuyerDocumentNumber,
+                        invoiceFrom = doc.InvoiceFrom,
+                        invoiceTo = doc.InvoiceTo,
+                        invoiceDate = doc.Date.ToString("yyyyMMdd"),
+                        totalAmount = doc.TotalAmount,
+                        netAmount = doc.NetAmount,
+                        vatAmount = doc.VATAmount,
+                        nonTaxableAmount = doc.NonTaxableAmount,
+                        exemptAmount = doc.ExemptAmount,
+                        otherTaxesAmount = doc.OtherTaxesAmount,
+                        vat = doc.Items.Select(i => new ArcaVAT
+                        {
+                            id = i.VATId,
+                            baseAmount = i.VATBase,
+                            amount = i.VATAmount
+                        }).ToList()
+                    }
+                }
+            };
+        }
+
+        private long GenerateInvoiceNumber()
+        {
+            return DateTime.UtcNow.Ticks % 100_000_000;
+        }
+
         public async Task<FiscalDocumentDTO?> GetByIdAsync(int id)
         {
-            var document = await _unitOfWork.FiscalDocumentRepository.GetByIdAsync(id);
-            return document == null ? null : MapToDTO(document);
+            var doc = await _unitOfWork.FiscalDocumentRepository.GetByIdAsync(id);
+            return doc == null ? null : MapToDTO(doc);
         }
 
         public async Task<FiscalDocumentDTO?> GetBySalesOrderIdAsync(int salesOrderId)
         {
-            var document = await _unitOfWork.FiscalDocumentRepository.GetBySalesOrderIdAsync(salesOrderId);
-            return document == null ? null : MapToDTO(document);
+            var doc = await _unitOfWork.FiscalDocumentRepository.GetBySalesOrderIdAsync(salesOrderId);
+            return doc == null ? null : MapToDTO(doc);
         }
+
 
         private FiscalDocumentDTO MapToDTO(FiscalDocument doc)
         {
@@ -74,15 +130,18 @@ namespace FiscalDocumentationService.Business.Services
             {
                 Id = doc.Id,
                 DocumentNumber = doc.DocumentNumber,
-                Type = doc.Type.ToString(),
+                InvoiceType = doc.InvoiceType,
+                PointOfSale = doc.PointOfSale,
                 Date = doc.Date,
-                CAE = doc.CAE,
-                CAEExpiration = doc.CAEExpiration,
-                CustomerName = doc.CustomerName,
-                CustomerCUIT = doc.CustomerCUIT,
-                CustomerIVAType = doc.CustomerIVAType,
+                Cae = doc.CAE,
+                CaeExpiration = doc.CAEExpiration,
+                BuyerDocumentType = doc.BuyerDocumentType,
+                BuyerDocumentNumber = doc.BuyerDocumentNumber,
                 NetAmount = doc.NetAmount,
-                VATAmount = doc.VATAmount,
+                VatAmount = doc.VATAmount,
+                ExemptAmount = doc.ExemptAmount,
+                NonTaxableAmount = doc.NonTaxableAmount,
+                OtherTaxesAmount = doc.OtherTaxesAmount,
                 TotalAmount = doc.TotalAmount,
                 SalesOrderId = doc.SalesOrderId,
                 Items = doc.Items.Select(i => new FiscalDocumentItemDTO
@@ -90,7 +149,9 @@ namespace FiscalDocumentationService.Business.Services
                     Description = i.Description,
                     UnitPrice = i.UnitPrice,
                     Quantity = i.Quantity,
-                    VAT = i.VAT
+                    VatId = i.VATId,
+                    VatBase = i.VATBase,
+                    VatAmount = i.VATAmount
                 }).ToList()
             };
         }

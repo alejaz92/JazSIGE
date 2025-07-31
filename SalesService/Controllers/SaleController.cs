@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SalesService.Business.Interfaces;
+using SalesService.Business.Models.Clients;
 using SalesService.Business.Models.DeliveryNote;
 using SalesService.Business.Models.Sale;
 
@@ -114,6 +115,28 @@ namespace SalesService.Controllers
             }
         }
 
-        
+        [HttpPost("{saleId}/invoice")]
+        public async Task<ActionResult<FiscalDocumentResponseDTO>> CreateInvoice(int saleId)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+                if (userIdClaim == null)
+                    return Unauthorized();
+
+                // opcional: podrías usar userId más adelante si querés registrar quién generó la factura
+                var result = await _saleService.CreateInvoiceAsync(saleId);
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+
     }
 }
