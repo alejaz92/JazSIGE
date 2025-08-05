@@ -228,8 +228,7 @@ namespace SalesService.Business.Services
                 await _stockService.RegisterCommitedStockAsync(commitedEntry);
             }
         }
-
-        public async Task<FiscalDocumentResponseDTO> CreateInvoiceAsync(int saleId)
+        public async Task<InvoiceBasicDTO> CreateInvoiceAsync(int saleId)
         {
             var sale = await _unitOfWork.SaleRepository.GetIncludingAsync(saleId, s => s.Articles);
             if (sale == null)
@@ -289,8 +288,33 @@ namespace SalesService.Business.Services
             _unitOfWork.SaleRepository.Update(sale);
             await _unitOfWork.SaveAsync();
 
-            return result;
+            return MapToBasic(result);
         }
+        public async Task<InvoiceBasicDTO> GetInvoiceAsync(int saleId)
+        {
+            var sale = await _unitOfWork.SaleRepository.GetIncludingAsync(saleId, s => s.Articles);
+            if (sale == null)
+                throw new InvalidOperationException("Sale not found.");
+            if (!sale.HasInvoice)
+                throw new InvalidOperationException("No invoice generated for this sale.");
+            var invoice = await _fiscalServiceClient.GetBySaleIdAsync(saleId);
+            if (invoice == null)
+                throw new InvalidOperationException("Invoice not found.");
+            return MapToBasic(invoice);
+        }
+        private static InvoiceBasicDTO MapToBasic(FiscalDocumentResponseDTO f) => new()
+        {
+            Id = f.Id,
+            DocumentNumber = f.DocumentNumber,
+            InvoiceType = f.InvoiceType,
+            PointOfSale = f.PointOfSale,
+            Date = f.Date,
+            Cae = f.Cae,
+            CaeExpiration = f.CaeExpiration,
+            NetAmount = f.NetAmount,
+            VatAmount = f.VatAmount,
+            TotalAmount = f.TotalAmount
+        };
 
     }
 }

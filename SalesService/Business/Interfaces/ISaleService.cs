@@ -6,7 +6,7 @@ namespace SalesService.Business.Interfaces
     public interface ISaleService
     {
         Task<SaleDetailDTO> CreateAsync(SaleCreateDTO dto);
-        Task<FiscalDocumentResponseDTO> CreateInvoiceAsync(int saleId);
+        Task<InvoiceBasicDTO> CreateInvoiceAsync(int saleId);
         Task DeleteAsync(int id);
         Task<IEnumerable<SaleDTO>> GetAllAsync();
         Task<SaleDetailDTO?> GetByIdAsync(int id);
