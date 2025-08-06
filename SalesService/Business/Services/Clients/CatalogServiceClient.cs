@@ -72,5 +72,13 @@ namespace SalesService.Business.Services.Clients
             if (!response.IsSuccessStatusCode) return null;
             return await response.Content.ReadFromJsonAsync<WarehouseDTO>();
         }
+
+        public async Task<PostalCodeDTO?> GetPostalCodeByIdAsync(int postalCodeId)
+        {
+            var client = CreateAuthorizedClient();
+            var response = await client.GetAsync($"{_catalogBaseUrl}PostalCode/{postalCodeId}");
+            if (!response.IsSuccessStatusCode) return null;
+            return await response.Content.ReadFromJsonAsync<PostalCodeDTO>();
+        }
     }
 }

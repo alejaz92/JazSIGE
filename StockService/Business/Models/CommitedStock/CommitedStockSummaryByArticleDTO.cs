@@ -8,7 +8,7 @@
 
     public class CommitedStockSummaryByArticleCustomerDTO
     {
-        public int CustomerId { get; set; }
+        public int? CustomerId { get; set; }
         public string CustomerName { get; set; }
         public decimal Quantity { get; set; }
     }

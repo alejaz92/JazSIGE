@@ -157,7 +157,25 @@ namespace SalesService.Business.Services
         }
         private async Task<DeliveryNoteDTO> MapToDTO(DeliveryNote dn)
         {
-            CustomerDTO customerDTO = (await _catalogServiceClient.GetCustomerByIdAsync(dn.Sale.CustomerId));
+            CustomerDTO customerDTO = new CustomerDTO();
+
+            if (!dn.Sale.IsFinalConsumer)
+            {
+                customerDTO = await _catalogServiceClient.GetCustomerByIdAsync(dn.Sale.CustomerId.Value);
+            } else
+            {
+                var postalCode = await _catalogServiceClient.GetPostalCodeByIdAsync(dn.Sale.CustomerPostalCodeId.Value);
+
+                customerDTO.CompanyName = dn.Sale.CustomerName ?? "Consumidor Final";
+                customerDTO.Address =  "";
+                customerDTO.PostalCode = postalCode?.Code ?? "";
+                customerDTO.City = postalCode.City ?? "Sin ciudad";
+                customerDTO.TaxId = dn.Sale.CustomerTaxId ?? "Sin CUIT";
+                customerDTO.SellCondition = "Contado";
+                customerDTO.DeliveryAddress = "";
+                customerDTO.IVAType = "Consumidor Final";
+            }
+
             var warehouseName = (await _catalogServiceClient.GetWarehouseByIdAsync(dn.WarehouseId)).Description;
             TransportDTO transportDTO = (await _catalogServiceClient.GetTransportByIdAsync(dn.TransportId));
 

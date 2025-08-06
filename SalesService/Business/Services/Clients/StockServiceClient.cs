@@ -58,7 +58,7 @@ namespace SalesService.Business.Services.Clients
             return await response.Content.ReadFromJsonAsync<CommitedStockEntryOutputDTO>();
         }
         // get available stock by article
-        public async Task<decimal> GetAvailableStockAsync(int articleId, int warehouseId)
+        public async Task<decimal> GetAvailableStockAsync(int articleId)
         {
             var client = _httpClientFactory.CreateClient();
             var token = _httpContextAccessor.HttpContext?.Request.Headers["Authorization"].ToString();

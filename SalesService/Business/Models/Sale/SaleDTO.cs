@@ -3,7 +3,8 @@
     public class SaleDTO
     {
         public int Id { get; set; }
-        public string CustomerName { get; set; }
+        public bool IsFinalConsumer { get; set; }
+        public string? CustomerName { get; set; }
         public string SellerName { get; set; }
         public DateTime Date {  get; set; }
         public decimal Total { get; set; }

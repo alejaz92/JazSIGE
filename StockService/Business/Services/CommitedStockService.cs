@@ -34,6 +34,7 @@ namespace StockService.Business.Services
             var entity = new CommitedStockEntry
             {
                 SaleId = dto.SaleId,
+                IsFinalConsumer = dto.IsFinalConsumer,
                 CustomerId = dto.CustomerId,
                 CustomerName = dto.CustomerName,
                 ArticleId = dto.ArticleId,
@@ -51,6 +52,7 @@ namespace StockService.Business.Services
             {
                 Id = e.Id,
                 SaleId = e.SaleId,
+                IsFinalConsumer = e.IsFinalConsumer,
                 CustomerId = e.CustomerId,
                 CustomerName = e.CustomerName,
                 ArticleId = e.ArticleId,

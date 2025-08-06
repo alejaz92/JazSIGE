@@ -9,10 +9,12 @@ namespace SalesService.Business.Models.Sale
         public DateTime Date {  get; set; }
         public decimal ExchangeRate { get; set; }
         public string? Observations { get; set; }
+        public bool IsFinalConsumer { get; set; }
 
 
 
         // customer
+        public string CustomerIdType { get; set; }
         public int CustomerId { get; set; }
         public string CustomerName { get; set; } = string.Empty;
         public string CustomerTaxID { get; set; } = string.Empty;

@@ -38,7 +38,16 @@ namespace SalesService.Business.Services
 
             foreach (var sale in sales)
             {
-                var customer = await _catalogService.GetCustomerByIdAsync(sale.CustomerId);
+                // if sale.customerId is not null
+
+
+
+
+                if (!sale.IsFinalConsumer && sale.CustomerId.HasValue)
+                {
+                    var customer = await _catalogService.GetCustomerByIdAsync(sale.CustomerId.Value);
+                }       
+                
                 var seller = await _userService.GetUserByIdAsync(sale.SellerId);
 
                 var subtotal = sale.Articles.Sum(a =>
@@ -53,7 +62,8 @@ namespace SalesService.Business.Services
                 result.Add(new SaleDTO
                 {
                     Id = sale.Id,
-                    CustomerName = customer.CompanyName,
+                    IsFinalConsumer = sale.IsFinalConsumer,
+                    CustomerName = sale.CustomerName,
                     SellerName = $"{seller.FirstName} {seller.LastName}",
                     Date = sale.Date,
                     Total = Math.Round(subtotal + ivaTotal, 2),
@@ -77,8 +87,39 @@ namespace SalesService.Business.Services
 
             var hasDeliveryNotes = deliveryNotes.Any();            
 
+            CustomerDTO customer = new CustomerDTO
+            {
+                Id = 0,
+                CompanyName = "Final Consumer",
+                TaxId = "N/A",
+                Address = "N/A",
+                PostalCode = "N/A",
+                City = "N/A",
+                Province = "N/A",
+                Country = "N/A",
+                SellCondition = "N/A",
+                IVAType = "N/A"
+            };
 
-            var customer = await _catalogService.GetCustomerByIdAsync(sale.CustomerId);
+            if (!sale.IsFinalConsumer && sale.CustomerId.HasValue)
+            {
+                customer = await _catalogService.GetCustomerByIdAsync(sale.CustomerId.Value);
+            }
+            else
+            {
+                var postalCode = await _catalogService.GetPostalCodeByIdAsync(sale.CustomerPostalCodeId.Value);
+
+                customer.PostalCode = postalCode?.Code ?? "N/A";
+                customer.Province = postalCode?.Province ?? "N/A";
+                customer.Country = postalCode?.Country ?? "N/A";
+                customer.City = postalCode?.City ?? "N/A";
+                customer.CompanyName = sale.CustomerName ?? "Final Consumer";
+                customer.IVAType = "Consumidor Final";
+                customer.TaxId = sale.CustomerTaxId ?? "N/A";
+                customer.SellCondition = "Contado";
+            }
+
+
             var seller = await _userService.GetUserByIdAsync(sale.SellerId);
 
             var articleDTOs = new List<SaleArticleDetailDTO>();
@@ -149,13 +190,44 @@ namespace SalesService.Business.Services
             if (user == null)
                 throw new ArgumentException("Invalid seller ID.");
 
-            // validate customer
-            var customer = await _catalogService.GetCustomerByIdAsync(dto.CustomerId);
-            if (customer == null)
-                throw new ArgumentException("Invalid customer ID.");
+            // validate customer if is not final consumer
+            if (!dto.IsFinalConsumer)
+            {
+                var customer = await _catalogService.GetCustomerByIdAsync(dto.CustomerId.Value);
+                if (customer == null)
+                    throw new ArgumentException("Invalid customer ID.");
+
+                dto.CustomerPostalCodeId = customer.PostalCodeId;
+                dto.CustomerIdType = "CUIT";
+                dto.CustomerTaxId = customer.TaxId;
+                dto.CustomerName = customer.CompanyName;
+            }          
+            
+            if (dto.IsFinalConsumer)
+            {
+                // validate postal code
+                if (dto.CustomerPostalCodeId == null)
+                    throw new ArgumentException("Postal code is required for final consumer sales.");
+                // validate postal code exists
+                var postalCode = await _catalogService.GetPostalCodeByIdAsync(dto.CustomerPostalCodeId.Value);
+                if (postalCode == null)
+                    throw new ArgumentException("Invalid postal code ID.");
+
+
+                // check customer id type is DNI, CUIT OR CUIL
+                if (dto.CustomerIdType != "DNI" && dto.CustomerIdType != "CUIT" && dto.CustomerIdType != "CUIL")
+                    throw new ArgumentException("Customer ID type must be DNI, CUIT or CUIL for final consumer sales.");
+
+
+                // validate customer tax id
+                if (string.IsNullOrWhiteSpace(dto.CustomerTaxId))
+                    throw new ArgumentException("Customer tax ID is required for final consumer sales.");
+
+                
+            }
 
             // validate articles
-            foreach( var article in dto.Articles)
+            foreach ( var article in dto.Articles)
             {
                 var articleInfo = await _catalogService.GetArticleByIdAsync(article.ArticleId);
                 if (articleInfo == null)
@@ -164,7 +236,7 @@ namespace SalesService.Business.Services
                     throw new ArgumentException($"Invalid quantity for article {article.ArticleId}.");
 
                 // validate stock
-                var availableStock = await _stockService.GetAvailableStockAsync(article.ArticleId, customer.WarehouseId);
+                var availableStock = await _stockService.GetAvailableStockAsync(article.ArticleId);
                 if (availableStock < article.Quantity)
                     throw new InvalidOperationException($"Insufficient stock for article {article.ArticleId}. Available: {availableStock}, Requested: {article.Quantity}.");
 
@@ -176,7 +248,12 @@ namespace SalesService.Business.Services
             {
                 var sale = new Sale
                 {
+                    IsFinalConsumer = dto.IsFinalConsumer,
+                    CustomerIdType = dto.CustomerIdType,
+                    CustomerTaxId = dto.CustomerTaxId,
+                    CustomerName = dto.CustomerName,
                     CustomerId = dto.CustomerId,
+                    CustomerPostalCodeId = dto.CustomerPostalCodeId,
                     SellerId = dto.SellerId,
                     Date = dto.Date,
                     ExchangeRate = dto.ExchangeRate,
@@ -196,7 +273,7 @@ namespace SalesService.Business.Services
 
                 await _unitOfWork.SaveAsync();
 
-                await UpdateStockCommited(sale.Id, dto.Articles, customer);
+                await UpdateStockCommited(sale.Id, dto.Articles, dto.CustomerId, dto.CustomerName);
 
                 await transaction.CommitAsync();
 
@@ -213,15 +290,15 @@ namespace SalesService.Business.Services
             await _unitOfWork.SaleRepository.DeleteAsync(id);
             await _unitOfWork.SaveAsync();
         }
-        private async Task UpdateStockCommited(int saleId, List<SaleArticleCreateDTO> articles, CustomerDTO customer)
+        private async Task UpdateStockCommited(int saleId, List<SaleArticleCreateDTO> articles, int? customerId, string customerName)
         {
             foreach (var article in articles)
             {
                 var commitedEntry = new CommitedStockEntryCreateDTO
                 {
                     SaleId = saleId,
-                    CustomerId =  customer.Id,
-                    CustomerName = customer.CompanyName,
+                    CustomerId =  customerId,
+                    CustomerName = customerName,
                     ArticleId = article.ArticleId,
                     Quantity = article.Quantity
                 };
@@ -237,9 +314,31 @@ namespace SalesService.Business.Services
             if (sale.HasInvoice)
                 throw new InvalidOperationException("Invoice already generated for this sale.");
 
-            var customer = await _catalogService.GetCustomerByIdAsync(sale.CustomerId);
-            if (customer == null)
-                throw new InvalidOperationException("Customer not found.");
+
+            if (!sale.IsFinalConsumer && !sale.CustomerId.HasValue)
+                throw new InvalidOperationException("Customer ID is required for non-final consumer sales.");
+
+            CustomerDTO customer = new CustomerDTO
+            {
+                Id = 0,
+                CompanyName = "Final Consumer",
+                TaxId = "N/A",
+                Address = "N/A",
+                PostalCode = "N/A",
+                City = "N/A",
+                Province = "N/A",
+                Country = "N/A",
+                SellCondition = "N/A",
+                IVAType = "N/A"
+            };
+
+            if (!sale.IsFinalConsumer)
+            {
+                customer = await _catalogService.GetCustomerByIdAsync(sale.CustomerId.Value);
+                if (customer == null)
+                    throw new InvalidOperationException("Customer not found.");
+
+            }
 
             var items = new List<FiscalDocumentItemDTO>();
             decimal netAmount = 0;
@@ -269,12 +368,35 @@ namespace SalesService.Business.Services
                 vatAmount += iva;
             }
 
+            int buyerDocumentType = 0;
+            switch (sale.CustomerIdType)
+            {
+                case "CUIT":
+                    buyerDocumentType = 80; // CUIT
+                    break;
+                case "DNI":
+                    buyerDocumentType = 96; // DNI
+                    break;
+                case "CUIL":
+                    buyerDocumentType = 86; // CUIL
+                    break;
+                default:
+                    throw new InvalidOperationException("Invalid customer ID type.");
+            }
+
+            var invoiceType = 0;
+
+            if (sale.IsFinalConsumer || customer.IVAType == "Exento" || customer.IVAType == "Monotributo")
+                invoiceType = 6; // Factura B
+            else 
+                invoiceType = 1; // Factura A
+
             var fiscalRequest = new FiscalDocumentCreateDTO
             {
                 PointOfSale = 1,
-                InvoiceType = 1, // Factura A por ejemplo, se puede parametrizar luego
-                BuyerDocumentType = 80, // CUIT (AFIP code fijo por ahora)
-                BuyerDocumentNumber = long.Parse(customer.TaxId),
+                InvoiceType = invoiceType,
+                BuyerDocumentType = buyerDocumentType,
+                BuyerDocumentNumber = long.Parse(sale.CustomerTaxId),
                 NetAmount = Math.Round(netAmount, 2),
                 VatAmount = Math.Round(vatAmount, 2),
                 TotalAmount = Math.Round(netAmount + vatAmount, 2),
