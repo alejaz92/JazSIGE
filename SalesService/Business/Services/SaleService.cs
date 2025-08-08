@@ -46,6 +46,8 @@ namespace SalesService.Business.Services
                 if (!sale.IsFinalConsumer && sale.CustomerId.HasValue)
                 {
                     var customer = await _catalogService.GetCustomerByIdAsync(sale.CustomerId.Value);
+                    sale.CustomerName = customer?.CompanyName ?? "N/A";
+
                 }       
                 
                 var seller = await _userService.GetUserByIdAsync(sale.SellerId);
@@ -350,7 +352,7 @@ namespace SalesService.Business.Services
                 if (articleInfo == null)
                     throw new InvalidOperationException($"Article {article.ArticleId} not found.");
 
-                var priceWithDiscount = article.UnitPrice * (1 - article.DiscountPercent / 100);
+                var priceWithDiscount = (article.UnitPrice * (1 - article.DiscountPercent / 100) ) * sale.ExchangeRate;
                 var baseAmount = priceWithDiscount * article.Quantity;
                 var iva = baseAmount * (article.IVAPercent / 100);
 
