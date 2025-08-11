@@ -26,7 +26,7 @@
         public string CustomerIVAType { get; set; } = string.Empty;
 
         // transport information
-        public int TransportId { get; set; }
+        public int? TransportId { get; set; }
         public string TransportName { get; set; } = string.Empty;
         public string TransportAddress { get; set; } = string.Empty;
         public string TransportCity { get; set; } = string.Empty;

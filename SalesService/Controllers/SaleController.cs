@@ -63,6 +63,32 @@ namespace SalesService.Controllers
             }
         }
 
+        [HttpPost("quick")]
+        public async Task<ActionResult<QuickSaleResultDTO>> CreateQuick([FromBody] QuickSaleCreateDTO dto)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+                if (userIdClaim == null) return Unauthorized();
+                int userId = int.Parse(userIdClaim.Value);
+
+                var result = await _saleService.CreateQuickAsync(dto, userId);
+                return Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+
         [HttpPost("{saleId}/delivery-note")]
         public async Task<ActionResult<DeliveryNoteDTO>> CreateDeliveryNote(int saleId, [FromBody] DeliveryNoteCreateDTO dto)
         {

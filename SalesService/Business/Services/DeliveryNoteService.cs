@@ -6,7 +6,6 @@ using SalesService.Infrastructure.Interfaces;
 using SalesService.Infrastructure.Models.Sale;
 using Microsoft.EntityFrameworkCore;
 
-
 namespace SalesService.Business.Services
 {
     public class DeliveryNoteService : IDeliveryNoteService
@@ -41,8 +40,10 @@ namespace SalesService.Business.Services
             if (sale == null)
                 throw new ArgumentException("Venta no encontrada.");
 
-
-            var existingWithSameCode = await _unitOfWork.DeliveryNoteRepository.FindAsync(dn => dn.Code == dto.Code);
+            // dentro de CreateAsync:
+            var existingWithSameCode = !string.IsNullOrWhiteSpace(dto.Code)
+                ? await _unitOfWork.DeliveryNoteRepository.FindAsync(dn => dn.Code == dto.Code)
+                : Enumerable.Empty<DeliveryNote>();
             if (existingWithSameCode.Any())
                 throw new InvalidOperationException("Ya existe un remito con el mismo número.");
 
@@ -51,6 +52,7 @@ namespace SalesService.Business.Services
             {
                 SaleId = saleId,
                 WarehouseId = dto.WarehouseId,
+                // ✅ Transport puede ser null
                 TransportId = dto.TransportId,
                 Date = dto.Date,
                 Observations = dto.Observations,
@@ -58,7 +60,6 @@ namespace SalesService.Business.Services
                 NumberOfPackages = dto.NumberOfPackages,
                 Code = dto.Code
             };
-
 
             var inputDTO = new CommitedStockInputDTO
             {
@@ -71,7 +72,8 @@ namespace SalesService.Business.Services
                 }).ToList()
             };
 
-            CommitedStockEntryOutputDTO outputDTO = await _stockServiceClient.RegisterCommitedStockConsolidatedAsync(inputDTO, userId);
+            CommitedStockEntryOutputDTO outputDTO =
+                await _stockServiceClient.RegisterCommitedStockConsolidatedAsync(inputDTO, userId);
 
             foreach (var articleDispatch in outputDTO.Dispatches)
             {
@@ -83,21 +85,24 @@ namespace SalesService.Business.Services
                     DispatchCode = articleDispatch.DispatchId.HasValue
                         ? await GetDispatchCode(articleDispatch.DispatchId.Value)
                         : null
-
                 });
             }
 
             await _unitOfWork.DeliveryNoteRepository.AddAsync(deliveryNote);
 
+            // Recalcula entregas (usa solo remitos previos; si querés contar el actual, sumalo explícitamente)
             var allArticlesDelivered = sale.Articles.All(sa =>
             {
-                var totalDelivered = sale.DeliveryNotes
+                var totalPrev = sale.DeliveryNotes
                     .SelectMany(dn => dn.Articles)
-                    //.Concat(deliveryNote.Articles)
                     .Where(dna => dna.ArticleId == sa.ArticleId)
                     .Sum(dna => dna.Quantity);
 
-                return totalDelivered >= sa.Quantity;
+                var totalWithCurrent = totalPrev + deliveryNote.Articles
+                    .Where(a => a.ArticleId == sa.ArticleId)
+                    .Sum(a => a.Quantity);
+
+                return totalWithCurrent >= sa.Quantity;
             });
 
             if (allArticlesDelivered)
@@ -105,17 +110,12 @@ namespace SalesService.Business.Services
                 sale.IsFullyDelivered = true;
                 _unitOfWork.SaleRepository.Update(sale);
             }
-            
 
-
-            await _unitOfWork.SaveAsync();
-
-            //deliveryNote.Code = $"RN-{deliveryNote.Id:D8}";
-            //_unitOfWork.DeliveryNoteRepository.Update(deliveryNote);
             await _unitOfWork.SaveAsync();
 
             return await MapToDTO(deliveryNote);
         }
+
         public async Task<IEnumerable<DeliveryNoteDTO>> GetAllBySaleIdAsync(int saleId)
         {
             var notes = await _unitOfWork.DeliveryNoteRepository.FindIncludingAsync(
@@ -132,6 +132,7 @@ namespace SalesService.Business.Services
 
             return result;
         }
+
         public async Task<DeliveryNoteDTO> GetByIdAsync(int id)
         {
             var dn = await _unitOfWork.DeliveryNoteRepository.GetIncludingAsync(
@@ -145,44 +146,54 @@ namespace SalesService.Business.Services
 
             return await MapToDTO(dn);
         }
+
+
+        // GetDispatchCode: devolver null si no hay
         private async Task<string?> GetDispatchCode(int dispatchId)
         {
             var dispatch = await _purchaseServiceClient.GetDispatchByIdAsync(dispatchId);
-            var response = "";
-            if (dispatch != null)
-            {
-                response = "Orig: " + dispatch.Origin + " Desp: " + dispatch.Code;
-            }
-            return response;
+            return dispatch == null ? null : "Orig: " + dispatch.Origin + " Desp: " + dispatch.Code;
         }
+
+        // MapToDTO (versión segura con Transport nullable)
         private async Task<DeliveryNoteDTO> MapToDTO(DeliveryNote dn)
         {
+            // ----- Cliente -----
             CustomerDTO customerDTO = new CustomerDTO();
-
             if (!dn.Sale.IsFinalConsumer)
             {
-                customerDTO = await _catalogServiceClient.GetCustomerByIdAsync(dn.Sale.CustomerId.Value);
-            } else
+                customerDTO = await _catalogServiceClient.GetCustomerByIdAsync(dn.Sale.CustomerId!.Value);
+            }
+            else
             {
-                var postalCode = await _catalogServiceClient.GetPostalCodeByIdAsync(dn.Sale.CustomerPostalCodeId.Value);
-
+                var postalCode = await _catalogServiceClient.GetPostalCodeByIdAsync(dn.Sale.CustomerPostalCodeId!.Value);
                 customerDTO.CompanyName = dn.Sale.CustomerName ?? "Consumidor Final";
-                customerDTO.Address =  "";
+                customerDTO.Address = "";
                 customerDTO.PostalCode = postalCode?.Code ?? "";
-                customerDTO.City = postalCode.City ?? "Sin ciudad";
+                customerDTO.City = postalCode?.City ?? "Sin ciudad";         // ✅ null-safe
                 customerDTO.TaxId = dn.Sale.CustomerTaxId ?? "Sin CUIT";
                 customerDTO.SellCondition = "Contado";
                 customerDTO.DeliveryAddress = "";
                 customerDTO.IVAType = "Consumidor Final";
             }
 
-            var warehouseName = (await _catalogServiceClient.GetWarehouseByIdAsync(dn.WarehouseId)).Description;
-            TransportDTO transportDTO = (await _catalogServiceClient.GetTransportByIdAsync(dn.TransportId));
+            // ----- Depósito -----
+            var warehouse = await _catalogServiceClient.GetWarehouseByIdAsync(dn.WarehouseId);
+            var warehouseName = warehouse?.Description ?? "";                // ✅ null-safe
 
+            // ----- Transporte (puede ser null) -----
+            TransportDTO? transportDTO = null;
+            if (dn.TransportId.HasValue)
+            {
+                transportDTO = await _catalogServiceClient.GetTransportByIdAsync(dn.TransportId.Value);
+            }
+
+            // ----- Artículos -----
             var articleDtos = new List<DeliveryNoteArticleDTO>();
             foreach (var a in dn.Articles)
             {
-                var articleName = (await _catalogServiceClient.GetArticleByIdAsync(a.ArticleId)).Description;
+                var articleInfo = await _catalogServiceClient.GetArticleByIdAsync(a.ArticleId);
+                var articleName = articleInfo?.Description ?? $"Artículo {a.ArticleId}";
                 articleDtos.Add(new DeliveryNoteArticleDTO
                 {
                     ArticleId = a.ArticleId,
@@ -192,6 +203,7 @@ namespace SalesService.Business.Services
                 });
             }
 
+            // ----- DTO -----
             return new DeliveryNoteDTO
             {
                 Id = dn.Id,
@@ -202,6 +214,7 @@ namespace SalesService.Business.Services
                 DeclaredValue = dn.DeclaredValue,
                 NumberOfPackages = dn.NumberOfPackages,
                 Articles = articleDtos,
+
                 CustomerId = customerDTO.Id,
                 CustomerName = customerDTO.CompanyName,
                 CustomerAddress = customerDTO.Address,
@@ -211,13 +224,16 @@ namespace SalesService.Business.Services
                 CustomerSellCondition = customerDTO.SellCondition,
                 CustomerDeliveryAddress = customerDTO.DeliveryAddress,
                 CustomerIVAType = customerDTO.IVAType,
-                TransportId = transportDTO.Id,
-                TransportName = transportDTO.Name,
-                TransportAddress = transportDTO.Address,
-                TransportCity = transportDTO.City,
-                TransportTaxId = transportDTO.TaxId,
-                TransportPhone = transportDTO.PhoneNumber
+
+                // ✅ si tu DTO ya es int? => TransportId = dn.TransportId,
+                TransportId = dn.TransportId ?? 0,
+                TransportName = transportDTO?.Name ?? "",
+                TransportAddress = transportDTO?.Address ?? "",
+                TransportCity = transportDTO?.City ?? "",
+                TransportTaxId = transportDTO?.TaxId ?? "",
+                TransportPhone = transportDTO?.PhoneNumber ?? ""
             };
         }
+
     }
 }

@@ -16,19 +16,22 @@ namespace SalesService.Business.Services
         private readonly IStockServiceClient _stockService;
         private readonly IUserServiceClient _userService;
         private readonly IFiscalServiceClient _fiscalServiceClient;
+        private readonly IDeliveryNoteService _deliveryNoteService;
 
         public SaleService(
             IUnitOfWork unitOfWork,
             ICatalogServiceClient catalogService,
             IStockServiceClient stockService,
             IUserServiceClient userService,
-            IFiscalServiceClient fiscalServiceClient)
+            IFiscalServiceClient fiscalServiceClient,
+            IDeliveryNoteService deliveryNoteService)
         {
             _unitOfWork = unitOfWork;
             _catalogService = catalogService;
             _stockService = stockService;
             _userService = userService;
             _fiscalServiceClient = fiscalServiceClient;
+            _deliveryNoteService = deliveryNoteService;
         }
 
         public async Task<IEnumerable<SaleDTO>> GetAllAsync()
@@ -187,62 +190,10 @@ namespace SalesService.Business.Services
         }
         public async Task<SaleDetailDTO> CreateAsync(SaleCreateDTO dto)
         {
-            // validate user
-            var user = await _userService.GetUserByIdAsync(dto.SellerId);
-            if (user == null)
-                throw new ArgumentException("Invalid seller ID.");
 
-            // validate customer if is not final consumer
-            if (!dto.IsFinalConsumer)
-            {
-                var customer = await _catalogService.GetCustomerByIdAsync(dto.CustomerId.Value);
-                if (customer == null)
-                    throw new ArgumentException("Invalid customer ID.");
-
-                dto.CustomerPostalCodeId = customer.PostalCodeId;
-                dto.CustomerIdType = "CUIT";
-                dto.CustomerTaxId = customer.TaxId;
-                dto.CustomerName = customer.CompanyName;
-            }          
-            
-            if (dto.IsFinalConsumer)
-            {
-                // validate postal code
-                if (dto.CustomerPostalCodeId == null)
-                    throw new ArgumentException("Postal code is required for final consumer sales.");
-                // validate postal code exists
-                var postalCode = await _catalogService.GetPostalCodeByIdAsync(dto.CustomerPostalCodeId.Value);
-                if (postalCode == null)
-                    throw new ArgumentException("Invalid postal code ID.");
-
-
-                // check customer id type is DNI, CUIT OR CUIL
-                if (dto.CustomerIdType != "DNI" && dto.CustomerIdType != "CUIT" && dto.CustomerIdType != "CUIL")
-                    throw new ArgumentException("Customer ID type must be DNI, CUIT or CUIL for final consumer sales.");
-
-
-                // validate customer tax id
-                if (string.IsNullOrWhiteSpace(dto.CustomerTaxId))
-                    throw new ArgumentException("Customer tax ID is required for final consumer sales.");
-
-                
-            }
-
-            // validate articles
-            foreach ( var article in dto.Articles)
-            {
-                var articleInfo = await _catalogService.GetArticleByIdAsync(article.ArticleId);
-                if (articleInfo == null)
-                    throw new ArgumentException($"Invalid article ID: {article.ArticleId}");
-                if (article.Quantity <= 0)
-                    throw new ArgumentException($"Invalid quantity for article {article.ArticleId}.");
-
-                // validate stock
-                var availableStock = await _stockService.GetAvailableStockAsync(article.ArticleId);
-                if (availableStock < article.Quantity)
-                    throw new InvalidOperationException($"Insufficient stock for article {article.ArticleId}. Available: {availableStock}, Requested: {article.Quantity}.");
-
-            }
+            await ValidateSellerAsync(dto.SellerId);
+            await ValidateCustomerBlockAsync(dto);
+            await ValidateArticlesAndStockAsync(dto);
 
 
             using var transaction = await _unitOfWork.SaleRepository.BeginTransactionAsync();
@@ -285,6 +236,88 @@ namespace SalesService.Business.Services
             {
                 await transaction.RollbackAsync();
                 throw new InvalidOperationException("Error creating sale.", ex);
+            }
+        }
+        public async Task<QuickSaleResultDTO> CreateQuickAsync(QuickSaleCreateDTO dto, int performedByUserId)
+        {
+            // 1) Validaciones iguales a CreateAsync (usuario, cliente / final consumer, artículos, stock, etc.)
+            // Reuso la lógica existente para que no diverja.
+            await ValidateSellerAsync(dto.SellerId);
+            await ValidateCustomerBlockAsync(dto);     // (ver helpers abajo)
+            await ValidateArticlesAndStockAsync(dto);  // (ver helpers abajo)
+
+            using var tx = await _unitOfWork.SaleRepository.BeginTransactionAsync();
+            try
+            {
+                // 2) Crear la venta (igual a CreateAsync pero SIN registrar committed stock)
+                var sale = new Sale
+                {
+                    IsFinalConsumer = dto.IsFinalConsumer,
+                    CustomerIdType = dto.CustomerIdType,
+                    CustomerTaxId = dto.CustomerTaxId,
+                    CustomerName = dto.CustomerName,        // puede venir null en rápida; ok
+                    CustomerId = dto.CustomerId,
+                    CustomerPostalCodeId = dto.CustomerPostalCodeId,
+                    SellerId = dto.SellerId,
+                    Date = dto.Date,
+                    ExchangeRate = dto.ExchangeRate,
+                    Observations = dto.Observations,
+                    Articles = dto.Articles.Select(a => new Sale_Article
+                    {
+                        ArticleId = a.ArticleId,
+                        Quantity = a.Quantity,
+                        UnitPrice = a.UnitPrice,
+                        DiscountPercent = a.DiscountPercent,
+                        IVAPercent = a.IVAPercent
+                    }).ToList()
+                };
+
+                await _unitOfWork.SaleRepository.AddAsync(sale);
+                await _unitOfWork.SaveAsync();
+
+                // 3) Crear Remito por la totalidad (descarga stock)
+                // 3.1) Armado del DTO de remito
+                var dnCreate = new DeliveryNoteCreateDTO
+                {
+                    Date = dto.Date,
+                    Observations = string.IsNullOrWhiteSpace(dto.DeliveryNoteObservation)
+                        ? "Auto-generated from Quick Sale"
+                        : dto.DeliveryNoteObservation,
+
+                    WarehouseId = dto.WarehouseId,
+                    Articles = dto.Articles.Select(a => new DeliveryNoteArticleCreateDTO
+                    {
+                        ArticleId = a.ArticleId,
+                        Quantity = a.Quantity,
+                    }).ToList()
+                };
+
+                var deliveryNote = await _deliveryNoteService.CreateAsync(sale.Id, dnCreate, performedByUserId);
+
+                // 4) Emitir Factura
+                var invoice = await CreateInvoiceAsync(sale.Id);
+
+                // 5) Marcar flags (por si tu lógica interna no lo hizo ya)
+                sale.HasInvoice = true;
+                sale.IsFullyDelivered = true;
+                _unitOfWork.SaleRepository.Update(sale);
+                await _unitOfWork.SaveAsync();
+
+                await tx.CommitAsync();
+
+                // 6) Devolver todo junto
+                var saleDetail = await GetByIdAsync(sale.Id);
+                return new QuickSaleResultDTO
+                {
+                    Sale = saleDetail!,
+                    DeliveryNote = deliveryNote,
+                    Invoice = invoice
+                };
+            }
+            catch
+            {
+                await tx.RollbackAsync();
+                throw; // deja que el controller maneje el error
             }
         }
         public async Task DeleteAsync(int id)
@@ -439,6 +472,54 @@ namespace SalesService.Business.Services
             VatAmount = f.VatAmount,
             TotalAmount = f.TotalAmount
         };
+        private async Task ValidateSellerAsync(int sellerId)
+        {
+            var user = await _userService.GetUserByIdAsync(sellerId);
+            if (user == null) throw new ArgumentException("Invalid seller ID.");
+        }
+        private async Task ValidateCustomerBlockAsync(SaleCreateDTO dto)
+        {
+            if (!dto.IsFinalConsumer)
+            {
+                var customer = await _catalogService.GetCustomerByIdAsync(dto.CustomerId!.Value);
+                if (customer == null) throw new ArgumentException("Invalid customer ID.");
+
+                dto.CustomerPostalCodeId = customer.PostalCodeId;
+                dto.CustomerIdType = "CUIT";
+                dto.CustomerTaxId = customer.TaxId;
+                dto.CustomerName = customer.CompanyName;
+                return;
+            }
+
+            // Final consumer:
+            if (dto.CustomerPostalCodeId == null)
+                throw new ArgumentException("Postal code is required for final consumer sales.");
+
+            var postal = await _catalogService.GetPostalCodeByIdAsync(dto.CustomerPostalCodeId.Value);
+            if (postal == null) throw new ArgumentException("Invalid postal code ID.");
+
+            if (dto.CustomerIdType != "DNI" && dto.CustomerIdType != "CUIT" && dto.CustomerIdType != "CUIL")
+                throw new ArgumentException("Customer ID type must be DNI, CUIT or CUIL for final consumer sales.");
+
+            if (string.IsNullOrWhiteSpace(dto.CustomerTaxId))
+                throw new ArgumentException("Customer tax ID is required for final consumer sales.");
+        }
+        private async Task ValidateArticlesAndStockAsync(SaleCreateDTO dto)
+        {
+            foreach (var a in dto.Articles)
+            {
+                var art = await _catalogService.GetArticleByIdAsync(a.ArticleId);
+                if (art == null) throw new ArgumentException($"Invalid article ID: {a.ArticleId}");
+                if (a.Quantity <= 0) throw new ArgumentException($"Invalid quantity for article {a.ArticleId}.");
+
+                // Si tu StockService soporta chequeo por depósito, usá esa sobrecarga.
+                var available = await _stockService.GetAvailableStockAsync(a.ArticleId);
+                if (available < a.Quantity)
+                    throw new InvalidOperationException(
+                        $"Insufficient stock for article {a.ArticleId}. Available: {available}, Requested: {a.Quantity}.");
+            }
+        }
+
 
     }
 }

@@ -5,7 +5,7 @@
         public int Id { get; set; }
         public int SaleId { get; set; }
         public int WarehouseId { get; set; }
-        public int TransportId { get; set; }
+        public int? TransportId { get; set; }
         public DateTime Date { get; set; }
         public string? Code { get; set; }
         public string? Observations { get; set; }

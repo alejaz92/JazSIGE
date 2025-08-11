@@ -7,6 +7,7 @@ namespace SalesService.Business.Interfaces
     {
         Task<SaleDetailDTO> CreateAsync(SaleCreateDTO dto);
         Task<InvoiceBasicDTO> CreateInvoiceAsync(int saleId);
+        Task<QuickSaleResultDTO> CreateQuickAsync(QuickSaleCreateDTO dto, int performedByUserId);
         Task DeleteAsync(int id);
         Task<IEnumerable<SaleDTO>> GetAllAsync();
         Task<SaleDetailDTO?> GetByIdAsync(int id);
