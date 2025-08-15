@@ -243,10 +243,23 @@ public class StockController : ControllerBase
     {
         try
         {
-            var currentStock = await _stockService.GetStockSummaryAsync(articleId);
-            var pendingStock = await _pendingStockService.GetPendingStockByArticleAsync(articleId);
-            var commitedStock = await _commitedStockService.GetTotalCommitedStockByArticleIdAsync(articleId);
-            return Ok(currentStock + pendingStock - commitedStock.Total);
+            var total = await _stockService.GetAvailableStockByArticleAsync(articleId);
+            return Ok(total);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
+        }
+    }
+
+    // get available stock for sale by article id and warehouse id
+    [HttpGet("available/{articleId}/warehouse/{warehouseId}")]
+    public async Task<ActionResult<decimal>> GetAvailableStockForSaleByWarehouse(int articleId, int warehouseId)
+    {
+        try
+        {
+            var total = await _stockService.GetAvailableStockByArticleAndWarehouseAsync(articleId, warehouseId);
+            return Ok(total);
         }
         catch (Exception ex)
         {
