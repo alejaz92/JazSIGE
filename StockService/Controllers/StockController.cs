@@ -13,18 +13,21 @@ public class StockController : ControllerBase
     private readonly IStockService _stockService;
     private readonly IPendingStockService _pendingStockService;
     private readonly ICommitedStockService _commitedStockService;
+    private readonly IStockAvailabilityService _stockAvailabilityService;
     private readonly IEnumService _enumService;
 
     public StockController(
         IStockService stockService, 
         IPendingStockService pendingStockService,
         ICommitedStockService commitedStockService,
-        IEnumService enumService)
+        IEnumService enumService,
+        IStockAvailabilityService stockAvailabilityService)
     {
         _stockService = stockService;
         _pendingStockService = pendingStockService;
         _commitedStockService = commitedStockService;
         _enumService = enumService;
+        _stockAvailabilityService = stockAvailabilityService;
     }
 
     [HttpPost("movement")]
@@ -243,7 +246,7 @@ public class StockController : ControllerBase
     {
         try
         {
-            var total = await _stockService.GetAvailableStockByArticleAsync(articleId);
+            var total = await _stockAvailabilityService.GetAvailableStockByArticleAsync(articleId);
             return Ok(total);
         }
         catch (Exception ex)
@@ -258,7 +261,7 @@ public class StockController : ControllerBase
     {
         try
         {
-            var total = await _stockService.GetAvailableStockByArticleAndWarehouseAsync(articleId, warehouseId);
+            var total = await _stockAvailabilityService.GetAvailableStockByArticleAndWarehouseAsync(articleId, warehouseId);
             return Ok(total);
         }
         catch (Exception ex)

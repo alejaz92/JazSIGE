@@ -62,6 +62,7 @@ builder.Services.AddScoped<IPendingStockEntryRepository, PendingStockEntryReposi
 builder.Services.AddScoped<ICommitedStockEntryRepository, CommitedStockEntryRepository>();
 builder.Services.AddScoped<IStockTransferRepository, StockTransferRepository>();
 
+
 // Services
 builder.Services.AddScoped<IStockService, StockService.Business.Services.StockService>();
 builder.Services.AddScoped<ICatalogServiceClient, CatalogServiceClient>();
@@ -71,6 +72,7 @@ builder.Services.AddScoped<IEnumService, EnumService>();
 builder.Services.AddScoped<IPendingStockService, PendingStockService>();
 builder.Services.AddScoped<ICommitedStockService, CommitedStockService>();
 builder.Services.AddScoped<IStockTransferService, StockTransferService>();
+builder.Services.AddScoped<IStockAvailabilityService, StockAvailabilityService>();
 
 
 //inyect configuration
