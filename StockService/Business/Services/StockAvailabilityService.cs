@@ -24,7 +24,7 @@ namespace StockService.Business.Services
             var pendingStock = await _pendingStockService.GetPendingStockByArticleAsync(articleId);
             var commitedStock = await _commitedStockService.GetTotalCommitedStockByArticleIdAsync(articleId);
 
-            return currentStock - pendingStock - commitedStock.Total;
+            return currentStock + pendingStock - commitedStock.Total;
         }
 
         public async Task<decimal> GetAvailableStockByArticleAndWarehouseAsync(int articleId, int warehouseId)
