@@ -6,6 +6,8 @@ using SalesService.Business.Models.Sale;
 using SalesService.Business.Services.Clients;
 using SalesService.Infrastructure.Interfaces;
 using SalesService.Infrastructure.Models.Sale;
+using System.Collections.Generic;
+using System.Security.Cryptography.Xml;
 
 namespace SalesService.Business.Services
 {
@@ -13,7 +15,7 @@ namespace SalesService.Business.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly ICatalogServiceClient _catalogService;
-        private readonly IStockServiceClient _stockService;
+        private readonly IStockServiceClient _stockServiceClient;
         private readonly IUserServiceClient _userService;
         private readonly IFiscalServiceClient _fiscalServiceClient;
         private readonly IDeliveryNoteService _deliveryNoteService;
@@ -21,14 +23,14 @@ namespace SalesService.Business.Services
         public SaleService(
             IUnitOfWork unitOfWork,
             ICatalogServiceClient catalogService,
-            IStockServiceClient stockService,
+            IStockServiceClient stockServiceClient,
             IUserServiceClient userService,
             IFiscalServiceClient fiscalServiceClient,
             IDeliveryNoteService deliveryNoteService)
         {
             _unitOfWork = unitOfWork;
             _catalogService = catalogService;
-            _stockService = stockService;
+            _stockServiceClient = stockServiceClient;
             _userService = userService;
             _fiscalServiceClient = fiscalServiceClient;
             _deliveryNoteService = deliveryNoteService;
@@ -226,7 +228,7 @@ namespace SalesService.Business.Services
 
                 await _unitOfWork.SaveAsync();
 
-                await UpdateStockCommited(sale.Id, dto.Articles, dto.CustomerId, dto.CustomerName);
+                await UpdateStockToCommited(sale.Id, dto.Articles, dto.CustomerId, dto.CustomerName);
 
                 await transaction.CommitAsync();
 
@@ -277,22 +279,39 @@ namespace SalesService.Business.Services
 
                 // 3) Crear Remito por la totalidad (descarga stock)
                 // 3.1) Armado del DTO de remito
-                var dnCreate = new DeliveryNoteCreateDTO
-                {
-                    Date = dto.Date,
-                    Observations = string.IsNullOrWhiteSpace(dto.DeliveryNoteObservation)
-                        ? "Auto-generated from Quick Sale"
-                        : dto.DeliveryNoteObservation,
+                //var dnCreate = new DeliveryNoteCreateDTO
+                //{
+                //    Date = dto.Date,
+                //    Observations = string.IsNullOrWhiteSpace(dto.DeliveryNoteObservation)
+                //        ? "Auto-generated from Quick Sale"
+                //        : dto.DeliveryNoteObservation,
 
+                //    WarehouseId = dto.WarehouseId,
+                //    Articles = dto.Articles.Select(a => new DeliveryNoteArticleCreateDTO
+                //    {
+                //        ArticleId = a.ArticleId,
+                //        Quantity = a.Quantity,
+                //    }).ToList()
+                //};
+
+                //var deliveryNote = await _deliveryNoteService.CreateAsync(sale.Id, dnCreate, performedByUserId);
+
+                var inputDTO = new CommitedStockInputDTO
+                {
+                    SaleId = sale.Id,
                     WarehouseId = dto.WarehouseId,
-                    Articles = dto.Articles.Select(a => new DeliveryNoteArticleCreateDTO
+                    Articles = dto.Articles.Select(a => new CommitedStockArticleInputDTO
                     {
                         ArticleId = a.ArticleId,
-                        Quantity = a.Quantity,
-                    }).ToList()
+                        Quantity = a.Quantity
+                    }).ToList(),
+                    IsQuick = true,
                 };
 
-                var deliveryNote = await _deliveryNoteService.CreateAsync(sale.Id, dnCreate, performedByUserId);
+                CommitedStockEntryOutputDTO outputDTO =
+                    await _stockServiceClient.RegisterCommitedStockConsolidatedAsync(inputDTO, performedByUserId);
+
+
 
                 // 4) Emitir Factura
                 var invoice = await CreateInvoiceAsync(sale.Id);
@@ -310,7 +329,7 @@ namespace SalesService.Business.Services
                 return new QuickSaleResultDTO
                 {
                     Sale = saleDetail!,
-                    DeliveryNote = deliveryNote,
+                    //DeliveryNote = deliveryNote,
                     Invoice = invoice
                 };
             }
@@ -325,7 +344,7 @@ namespace SalesService.Business.Services
             await _unitOfWork.SaleRepository.DeleteAsync(id);
             await _unitOfWork.SaveAsync();
         }
-        private async Task UpdateStockCommited(int saleId, List<SaleArticleCreateDTO> articles, int? customerId, string customerName)
+        private async Task UpdateStockToCommited(int saleId, List<SaleArticleCreateDTO> articles, int? customerId, string customerName)
         {
             foreach (var article in articles)
             {
@@ -337,11 +356,9 @@ namespace SalesService.Business.Services
                     ArticleId = article.ArticleId,
                     Quantity = article.Quantity
                 };
-                await _stockService.RegisterCommitedStockAsync(commitedEntry);
+                await _stockServiceClient.RegisterCommitedStockAsync(commitedEntry);
             }
         }              
-
-
         public async Task<InvoiceBasicDTO> CreateInvoiceAsync(int saleId)
         {
             var sale = await _unitOfWork.SaleRepository.GetIncludingAsync(saleId, s => s.Articles);
@@ -354,6 +371,13 @@ namespace SalesService.Business.Services
 
             if (!sale.IsFinalConsumer && !sale.CustomerId.HasValue)
                 throw new InvalidOperationException("Customer ID is required for non-final consumer sales.");
+
+            if (!sale.IsFullyDelivered)
+                throw new InvalidOperationException("Sale must be fully delivered before generating an invoice.");
+
+            // get delivery notes using _deliveryNoteService.GetAllBySaleIdAsync
+            var deliveryNotes = await _deliveryNoteService.GetAllBySaleIdAsync(sale.Id);
+
 
             CustomerDTO customer = new CustomerDTO
             {
@@ -381,29 +405,59 @@ namespace SalesService.Business.Services
             decimal netAmount = 0;
             decimal vatAmount = 0;
 
+            // recorrer articles de sales. luego recorrer articles de deliveryNotes y generar FiscalDocumentItemDTO
             foreach (var article in sale.Articles)
             {
+
                 var articleInfo = await _catalogService.GetArticleByIdAsync(article.ArticleId);
                 if (articleInfo == null)
                     throw new InvalidOperationException($"Article {article.ArticleId} not found.");
 
-                var priceWithDiscount = (article.UnitPrice * (1 - article.DiscountPercent / 100) ) * sale.ExchangeRate;
-                var baseAmount = priceWithDiscount * article.Quantity;
-                var iva = baseAmount * (article.IVAPercent / 100);
+    
 
-                items.Add(new FiscalDocumentItemDTO
+                // Replace with this corrected code:
+                var deliveryNoteArticles = deliveryNotes
+                    .SelectMany(dn => dn.Articles)
+                    .Where(a => a.ArticleId == article.ArticleId)
+                    .ToList();
+
+                if (deliveryNoteArticles.Count == 0)
                 {
-                    Description = articleInfo.Description,
-                    UnitPrice = article.UnitPrice,
-                    Quantity = (int)article.Quantity,
-                    VatBase = baseAmount,
-                    VatAmount = iva,
-                    VatId = (int)(article.IVAPercent == 21 ? 5 : 4) // Dummy ejemplo
-                });
+                    throw new InvalidOperationException($"No delivery note articles found for article {article.ArticleId}.");
+                }
 
-                netAmount += baseAmount;
-                vatAmount += iva;
+                var totalDeliveredQuantity = deliveryNoteArticles.Sum(a => a.Quantity);
+                if (totalDeliveredQuantity < article.Quantity)
+                {
+                    throw new InvalidOperationException($"Delivery note article {article.ArticleId} has insufficient quantity.");
+                }
+
+                foreach(var i in deliveryNoteArticles)
+                {
+                    var priceWithDiscount = article.UnitPrice * (1 - article.DiscountPercent / 100) * sale.ExchangeRate;
+                    var baseAmount = priceWithDiscount * i.Quantity;
+                    var iva = baseAmount * (article.IVAPercent / 100);
+
+                    items.Add(new FiscalDocumentItemDTO
+                    {
+                        Description = articleInfo.Description,
+                        UnitPrice = article.UnitPrice,
+                        Quantity = (int)article.Quantity,
+                        VatBase = baseAmount,
+                        VatAmount = iva,
+                        VatId = (int)(article.IVAPercent == 21 ? 5 : 4), // Dummy ejemplo
+                        DispatchCode = i.DispatchCode
+
+                    });
+
+                    netAmount += baseAmount;
+                    vatAmount += iva;
+                }
+
+
+
             }
+            
 
             int buyerDocumentType = 0;
             switch (sale.CustomerIdType)
@@ -515,13 +569,12 @@ namespace SalesService.Business.Services
                 if (a.Quantity <= 0) throw new ArgumentException($"Invalid quantity for article {a.ArticleId}.");
 
                 // Si tu StockService soporta chequeo por depósito, usá esa sobrecarga.
-                var available = await _stockService.GetAvailableStockAsync(a.ArticleId);
+                var available = await _stockServiceClient.GetAvailableStockAsync(a.ArticleId);
                 if (available < a.Quantity)
                     throw new InvalidOperationException(
                         $"Insufficient stock for article {a.ArticleId}. Available: {available}, Requested: {a.Quantity}.");
             }
         }
-
 
     }
 }

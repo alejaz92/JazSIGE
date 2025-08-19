@@ -7,6 +7,8 @@
         public string Reference { get; set; } = string.Empty;
 
         public List<CommitedStockArticleInputDTO> Articles { get; set; } = new List<CommitedStockArticleInputDTO>();
+
+        public bool IsQuick { get; set; } = false;
     }
 
     public class CommitedStockArticleInputDTO

@@ -10,23 +10,14 @@ namespace StockService.Business.Services
     public class CommitedStockService : ICommitedStockService
     {
         private readonly ICommitedStockEntryRepository _commitedStockEntryRepository;
-        private readonly IStockMovementRepository _movementRepository;
-        private readonly IStockRepository _stockRepository;
         private readonly IStockService _stockService;
-        private readonly IStockByDispatchRepository _dispatchRepository;
 
         public CommitedStockService(
             ICommitedStockEntryRepository commitedStockEntryRepository,
-            IStockMovementRepository movementRepository,
-            IStockRepository stockRepository,
-            IStockService stockService,
-            IStockByDispatchRepository dispatchRepository)
+            IStockService stockService)
         {
             _commitedStockEntryRepository = commitedStockEntryRepository;
-            _movementRepository = movementRepository;
-            _stockRepository = stockRepository;
             _stockService = stockService;
-            _dispatchRepository = dispatchRepository;
         }
 
         public async Task AddAsync(CommitedStockEntryCreateDTO dto)
@@ -64,7 +55,8 @@ namespace StockService.Business.Services
 
         public async Task<RegisterCommitedStockOutputDTO> RegisterCommitedStockAsync(RegisterCommitedStockInputDTO dto, int userId)
         {
-            var commitedEntries = await _commitedStockEntryRepository.GetBySaleIdAsync(dto.SaleId);
+
+            
 
             //create  RegisterCommitedStockOutputDTO
             var outputDto = new RegisterCommitedStockOutputDTO
@@ -75,11 +67,64 @@ namespace StockService.Business.Services
                 Dispatches = new List<RegisterCommitedStockDispatchOutputDTO>()
             };
 
-            foreach (var entry in dto.Articles)
+            if(!dto.IsQuick)
             {
-                var existingEntry = commitedEntries.FirstOrDefault(e => e.ArticleId == entry.ArticleId);
-                if (existingEntry != null)
+                var commitedEntries = await _commitedStockEntryRepository.GetBySaleIdAsync(dto.SaleId);
+
+                foreach (var entry in dto.Articles)
                 {
+
+                    var existingEntry = commitedEntries.FirstOrDefault(e => e.ArticleId == entry.ArticleId);
+                    if (existingEntry != null)
+                    {
+                        // create StockMovementCreateDTO and call _stockService.RegisterMovementAsync
+                        var movementDto = new StockMovementCreateDTO
+                        {
+                            ArticleId = entry.ArticleId,
+                            Quantity = entry.Quantity,
+                            MovementType = StockMovementType.Sale, // Assuming 4 is for Sale
+                            FromWarehouseId = dto.WarehouseId,
+                            ToWarehouseId = null, // Assuming no specific warehouse for commited stock
+                            Reference = $"Stock comprometido por venta #{dto.SaleId}"
+                        };
+
+                        var breakdown = await _stockService.RegisterMovementAsync(movementDto, userId);
+
+
+                        await _commitedStockEntryRepository.MarkCompletedDeliveryAsync(existingEntry.Id, entry.Quantity);
+
+                        foreach (var b in breakdown)
+                        {
+                            //if(b.DispatchId == null)
+                            //    continue; // Skip if no dispatch ID
+
+                            //si el dispatchId es null, se agrega igualmente
+
+
+
+                            outputDto.Dispatches.Add(new RegisterCommitedStockDispatchOutputDTO
+                            {
+                                DispatchId = b.DispatchId,
+                                ArticleId = entry.ArticleId,
+                                Quantity = b.Quantity
+                            });
+                        }
+                    }
+
+
+                }
+            }
+            else
+            {
+                foreach (var entry in dto.Articles)
+                {
+
+                    // check stock availability
+                    var stockAvailable = await _stockService.GetStockAsync(entry.ArticleId, dto.WarehouseId);
+                    if (stockAvailable < entry.Quantity)                    
+                        throw new InvalidOperationException($"Insufficient stock for article {entry.ArticleId} in warehouse {dto.WarehouseId}. Available: {stockAvailable}, Required: {entry.Quantity}");
+                    
+
                     // create StockMovementCreateDTO and call _stockService.RegisterMovementAsync
                     var movementDto = new StockMovementCreateDTO
                     {
@@ -88,21 +133,14 @@ namespace StockService.Business.Services
                         MovementType = StockMovementType.Sale, // Assuming 4 is for Sale
                         FromWarehouseId = dto.WarehouseId,
                         ToWarehouseId = null, // Assuming no specific warehouse for commited stock
-                        Reference = $"Commited stock for sale #{dto.SaleId}"
+                        Reference = $"Movimiento de Stock para venta rapida #{dto.SaleId}"
                     };
 
                     var breakdown = await _stockService.RegisterMovementAsync(movementDto, userId);
 
 
-                    await _commitedStockEntryRepository.MarkCompletedDeliveryAsync(existingEntry.Id, entry.Quantity);
-
-                    foreach(var b in breakdown)
+                    foreach (var b in breakdown)
                     {
-                        //if(b.DispatchId == null)
-                        //    continue; // Skip if no dispatch ID
-
-                        //si el dispatchId es null, se agrega igualmente
-
 
 
                         outputDto.Dispatches.Add(new RegisterCommitedStockDispatchOutputDTO
@@ -111,11 +149,12 @@ namespace StockService.Business.Services
                             ArticleId = entry.ArticleId,
                             Quantity = b.Quantity
                         });
-                    }
-                }
+                    }                
 
-                
+
+                }
             }
+
 
             return outputDto;
 

@@ -1,6 +1,7 @@
 ﻿using AuthService.Infrastructure.Models;
 using StockService.Business.Interfaces;
 using StockService.Business.Models;
+using StockService.Business.Models.CommitedStock;
 using StockService.Infrastructure.Interfaces;
 using StockService.Infrastructure.Models;
 
@@ -269,13 +270,6 @@ namespace StockService.Business.Services
                 PageSize = pageSize
             };
         }
-
-        //public async Task<decimal> GetStockSummaryByWarehouseAsync(int warehouseId)
-        //{
-        //    var stockList = await _stockRepository.GetAllByWarehouseAsync(warehouseId);
-        //    return stockList.Sum(s => s.Quantity);
-        //}
-
         private async Task UpdateStockByDispatchAsync(int articleId, int? dispatchId, decimal quantity)
         {
             var entry = await _stockByDispatchRepository.GetByArticleAndDispatchAsync(articleId, dispatchId);
@@ -325,48 +319,9 @@ namespace StockService.Business.Services
             }
 
             return result;
-        }
+        }        
 
-        //public async Task<decimal> GetAvailableStockByArticleAsync(int articleId)
-        //{
-
-        //    var currentStock = await GetStockSummaryAsync(articleId);
-        //    var pendingStock = await _pendingStockService.GetPendingStockByArticleAsync(articleId);
-        //    var commitedStock = await _commitedStockService.GetTotalCommitedStockByArticleIdAsync(articleId);
-
-        //    return currentStock - pendingStock - commitedStock.Total;
-
-        //}
-
-        //// get available stock by article and warehouse
-        //public async Task<decimal> GetAvailableStockByArticleAndWarehouseAsync(int articleId, int warehouseId)
-        //{
-        //    // Physical stock total (excluding pending)
-        //    var totalStock = await GetStockSummaryAsync(articleId);
-
-        //    // Physical stock in the selected warehouse
-        //    var warehouseStock = await GetStockAsync(articleId, warehouseId);
-
-        //    // Pending incoming stock (global)
-        //    var pendingStock = await _pendingStockService.GetPendingStockByArticleAsync(articleId);
-
-        //    // Total committed stock (global, without warehouse assignment)
-        //    var committedStock = await _commitedStockService.GetTotalCommitedStockByArticleIdAsync(articleId);
-
-        //    // Stock from other warehouses
-        //    var otherWarehousesStock = Math.Max(0m, totalStock - warehouseStock);
-
-        //    // Capacity to cover commitments without touching the selected warehouse
-        //    var coverFromOthers = otherWarehousesStock + pendingStock;
-
-        //    // Remaining committed stock that must be covered by the selected warehouse
-        //    var committedRemaining = Math.Max(0m, committedStock.Total - coverFromOthers);
-
-        //    // Available stock in the selected warehouse
-        //    var availableStock = Math.Max(0m, warehouseStock - committedRemaining);
-
-        //    return availableStock;
-        //}
+        
 
     }
 

@@ -15,7 +15,7 @@ namespace SalesService.Business.Models.Sale
     public class QuickSaleResultDTO
     {
         public SaleDetailDTO Sale { get; set; } = default!;
-        public DeliveryNoteDTO DeliveryNote { get; set; } = default!;
+       // public DeliveryNoteDTO DeliveryNote { get; set; } = default!;
         public InvoiceBasicDTO Invoice { get; set; } = default!;
     }
 }

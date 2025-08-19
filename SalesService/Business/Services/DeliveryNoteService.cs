@@ -27,7 +27,7 @@ namespace SalesService.Business.Services
             _catalogServiceClient = catalogServiceClient;
         }
 
-        public async Task<DeliveryNoteDTO> CreateAsync(int saleId, DeliveryNoteCreateDTO dto, int userId, bool isQuick)
+        public async Task<DeliveryNoteDTO> CreateAsync(int saleId, DeliveryNoteCreateDTO dto, int userId)
         {
             var sale = await _unitOfWork.SaleRepository.GetIncludingAsync(
                 saleId,
@@ -69,7 +69,8 @@ namespace SalesService.Business.Services
                 {
                     ArticleId = a.ArticleId,
                     Quantity = a.Quantity
-                }).ToList()
+                }).ToList(),
+                IsQuick = false,
             };
 
             CommitedStockEntryOutputDTO outputDTO =
@@ -115,8 +116,6 @@ namespace SalesService.Business.Services
 
             return await MapToDTO(deliveryNote);
         }
-
-
 
         public async Task<IEnumerable<DeliveryNoteDTO>> GetAllBySaleIdAsync(int saleId)
         {

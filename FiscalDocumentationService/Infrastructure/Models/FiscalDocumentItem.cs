@@ -13,4 +13,6 @@ public class FiscalDocumentItem
 
     public int FiscalDocumentId { get; set; }
     public FiscalDocument FiscalDocument { get; set; } = null!;
+
+    public string? DispatchCode { get; set; } // Código de despacho opcional
 }

@@ -48,7 +48,8 @@ namespace FiscalDocumentationService.Business.Services
                     Quantity = i.Quantity,
                     VATId = i.VatId,
                     VATBase = i.VatBase,
-                    VATAmount = i.VatAmount
+                    VATAmount = i.VatAmount,
+                    DispatchCode = i.DispatchCode // Optional dispatch code
                 }).ToList()
             };
 
@@ -151,7 +152,8 @@ namespace FiscalDocumentationService.Business.Services
                     Quantity = i.Quantity,
                     VatId = i.VATId,
                     VatBase = i.VATBase,
-                    VatAmount = i.VATAmount
+                    VatAmount = i.VATAmount,
+                    DispatchCode = i.DispatchCode // Optional dispatch code
                 }).ToList()
             };
         }

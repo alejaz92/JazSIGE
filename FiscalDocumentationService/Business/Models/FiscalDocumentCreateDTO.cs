@@ -28,5 +28,6 @@
         public int VatId { get; set; } = 5;
         public decimal VatBase { get; set; }
         public decimal VatAmount { get; set; }
+        public string? DispatchCode { get; set; } // Optional dispatch code
     }
 }
