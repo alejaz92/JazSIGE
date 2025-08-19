@@ -27,7 +27,7 @@ namespace SalesService.Business.Services
             _catalogServiceClient = catalogServiceClient;
         }
 
-        public async Task<DeliveryNoteDTO> CreateAsync(int saleId, DeliveryNoteCreateDTO dto, int userId)
+        public async Task<DeliveryNoteDTO> CreateAsync(int saleId, DeliveryNoteCreateDTO dto, int userId, bool isQuick)
         {
             var sale = await _unitOfWork.SaleRepository.GetIncludingAsync(
                 saleId,
@@ -115,6 +115,8 @@ namespace SalesService.Business.Services
 
             return await MapToDTO(deliveryNote);
         }
+
+
 
         public async Task<IEnumerable<DeliveryNoteDTO>> GetAllBySaleIdAsync(int saleId)
         {

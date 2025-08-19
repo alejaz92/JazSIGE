@@ -339,7 +339,9 @@ namespace SalesService.Business.Services
                 };
                 await _stockService.RegisterCommitedStockAsync(commitedEntry);
             }
-        }
+        }              
+
+
         public async Task<InvoiceBasicDTO> CreateInvoiceAsync(int saleId)
         {
             var sale = await _unitOfWork.SaleRepository.GetIncludingAsync(saleId, s => s.Articles);

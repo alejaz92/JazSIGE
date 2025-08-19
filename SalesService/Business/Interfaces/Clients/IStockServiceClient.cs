@@ -7,5 +7,6 @@ namespace SalesService.Business.Interfaces.Clients
         Task<decimal> GetAvailableStockAsync(int articleId);
         Task RegisterCommitedStockAsync(CommitedStockEntryCreateDTO dto);
         Task<CommitedStockEntryOutputDTO> RegisterCommitedStockConsolidatedAsync(CommitedStockInputDTO dto, int userId);
+        Task RegisterQuickStockMovementAsync(StockMovementCreateDTO dto);
     }
 }
