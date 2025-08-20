@@ -117,6 +117,36 @@ namespace SalesService.Business.Services
             return await MapToDTO(deliveryNote);
         }
 
+        // Create Quick Delivery Note
+        public async Task CreateQuickAsync(int saleId, int userId, int warehouseId, DateTime date)
+        {
+            var sale = await _unitOfWork.SaleRepository.GetIncludingAsync(
+                saleId,
+                query => query
+                    .Include(s => s.Articles)
+                    .Include(s => s.DeliveryNotes)
+                        .ThenInclude(dn => dn.Articles)
+            );
+
+            if (sale == null)
+                throw new ArgumentException("Venta no encontrada.");
+
+            
+            var deliveryNote = new DeliveryNote
+            {
+                SaleId = saleId,
+                WarehouseId = warehouseId,
+                // ✅ Transport puede ser null
+                TransportId = null,
+                Date = date,
+                Observations = "Venta rapida " + saleId.ToString() + date.ToString() + "-Q",
+                DeclaredValue = 0,
+                NumberOfPackages = 1,
+                Code = saleId.ToString() + date.ToString() + "-Q"
+            };
+        }
+
+
         public async Task<IEnumerable<DeliveryNoteDTO>> GetAllBySaleIdAsync(int saleId)
         {
             var notes = await _unitOfWork.DeliveryNoteRepository.FindIncludingAsync(

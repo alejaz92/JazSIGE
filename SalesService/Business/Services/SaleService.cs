@@ -311,14 +311,16 @@ namespace SalesService.Business.Services
                 CommitedStockEntryOutputDTO outputDTO =
                     await _stockServiceClient.RegisterCommitedStockConsolidatedAsync(inputDTO, performedByUserId);
 
+                sale.IsFullyDelivered = true;
 
 
                 // 4) Emitir Factura
                 var invoice = await CreateInvoiceAsync(sale.Id);
 
+
                 // 5) Marcar flags (por si tu lógica interna no lo hizo ya)
                 sale.HasInvoice = true;
-                sale.IsFullyDelivered = true;
+                
                 _unitOfWork.SaleRepository.Update(sale);
                 await _unitOfWork.SaveAsync();
 
