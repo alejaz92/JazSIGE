@@ -118,10 +118,10 @@ namespace SalesService.Business.Services
         }
 
         // Create Quick Delivery Note
-        public async Task CreateQuickAsync(int saleId, int userId, int warehouseId, DateTime date)
+        public async Task<DeliveryNoteDTO> CreateQuickAsync(int userId, DeliveryNoteCreateDTO dto)
         {
             var sale = await _unitOfWork.SaleRepository.GetIncludingAsync(
-                saleId,
+                dto.SaleId,
                 query => query
                     .Include(s => s.Articles)
                     .Include(s => s.DeliveryNotes)
@@ -134,16 +134,55 @@ namespace SalesService.Business.Services
             
             var deliveryNote = new DeliveryNote
             {
-                SaleId = saleId,
-                WarehouseId = warehouseId,
+                SaleId = dto.SaleId,
+                WarehouseId = dto.WarehouseId,
                 // ✅ Transport puede ser null
                 TransportId = null,
-                Date = date,
-                Observations = "Venta rapida " + saleId.ToString() + date.ToString() + "-Q",
-                DeclaredValue = 0,
-                NumberOfPackages = 1,
-                Code = saleId.ToString() + date.ToString() + "-Q"
+                Date = dto.Date,
+                Observations = dto.Observations,
+                DeclaredValue = dto.DeclaredValue,
+                NumberOfPackages = dto.NumberOfPackages,
+                Code = dto.Code
             };
+
+            var inputDTO = new CommitedStockInputDTO
+            {
+                SaleId = sale.Id,
+                WarehouseId = dto.WarehouseId,
+                Articles = dto.Articles.Select(a => new CommitedStockArticleInputDTO
+                {
+                    ArticleId = a.ArticleId,
+                    Quantity = a.Quantity
+                }).ToList(),
+                IsQuick = true,
+            };
+
+            CommitedStockEntryOutputDTO outputDTO =
+                await _stockServiceClient.RegisterCommitedStockConsolidatedAsync(inputDTO, userId);
+
+            foreach (var articleDispatch in outputDTO.Dispatches)
+            {
+                deliveryNote.Articles.Add(new DeliveryNote_Article
+                {
+                    ArticleId = articleDispatch.ArticleId,
+                    Quantity = articleDispatch.Quantity,
+                    DispatchId = articleDispatch.DispatchId,
+                    DispatchCode = articleDispatch.DispatchId.HasValue
+                        ? await GetDispatchCode(articleDispatch.DispatchId.Value)
+                        : null
+                });
+            }
+
+            await _unitOfWork.DeliveryNoteRepository.AddAsync(deliveryNote);
+
+  
+            sale.IsFullyDelivered = true;
+            _unitOfWork.SaleRepository.Update(sale);
+            
+
+            await _unitOfWork.SaveAsync();
+
+            return await MapToDTO(deliveryNote);
         }
 
 

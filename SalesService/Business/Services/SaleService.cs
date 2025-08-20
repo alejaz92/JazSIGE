@@ -279,37 +279,27 @@ namespace SalesService.Business.Services
 
                 // 3) Crear Remito por la totalidad (descarga stock)
                 // 3.1) Armado del DTO de remito
-                //var dnCreate = new DeliveryNoteCreateDTO
-                //{
-                //    Date = dto.Date,
-                //    Observations = string.IsNullOrWhiteSpace(dto.DeliveryNoteObservation)
-                //        ? "Auto-generated from Quick Sale"
-                //        : dto.DeliveryNoteObservation,
-
-                //    WarehouseId = dto.WarehouseId,
-                //    Articles = dto.Articles.Select(a => new DeliveryNoteArticleCreateDTO
-                //    {
-                //        ArticleId = a.ArticleId,
-                //        Quantity = a.Quantity,
-                //    }).ToList()
-                //};
-
-                //var deliveryNote = await _deliveryNoteService.CreateAsync(sale.Id, dnCreate, performedByUserId);
-
-                var inputDTO = new CommitedStockInputDTO
+    
+                var deliveryNoteCreateDTO = new DeliveryNoteCreateDTO
                 {
                     SaleId = sale.Id,
-                    WarehouseId = dto.WarehouseId,
-                    Articles = dto.Articles.Select(a => new CommitedStockArticleInputDTO
+                    Date = dto.Date,
+                    Observations = dto.Observations,
+                    Articles = dto.Articles.Select(a => new DeliveryNoteArticleCreateDTO
                     {
                         ArticleId = a.ArticleId,
                         Quantity = a.Quantity
                     }).ToList(),
-                    IsQuick = true,
+                    Code = $"QSDN-{sale.Id}-{DateTime.UtcNow:yyyyMMddHHmmss}",
+                    WarehouseId = dto.WarehouseId,
+                    TransportId = null,
+                    DeclaredValue = 0,
+                    NumberOfPackages = 0
                 };
+                // 3.2) Crear el remito
+                var deliveryNote = await _deliveryNoteService.CreateQuickAsync(performedByUserId, deliveryNoteCreateDTO);
 
-                CommitedStockEntryOutputDTO outputDTO =
-                    await _stockServiceClient.RegisterCommitedStockConsolidatedAsync(inputDTO, performedByUserId);
+
 
                 sale.IsFullyDelivered = true;
 
