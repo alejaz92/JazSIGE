@@ -90,6 +90,8 @@
         {
           "Host": "stock-api-dev-esbre0dae0b0gkd8.centralus-01.azurewebsites.net",
           "Port": 443
+          //"Host": "localhost",
+          //"Port": 7215
         }
       ],
       "UpstreamPathTemplate": "/stock/{everything}",
@@ -208,7 +210,8 @@
         {
           "Name": "StockService API",
           "Version": "v1",
-          "Url": "https://stock-api-dev-esbre0dae0b0gkd8.centralus-01.azurewebsites.net/swagger/v1/swagger.json"
+          "Url": "https://stock-api-dev-esbre0dae0b0gkd8.centralus-01.azurewebsites.net/swagger/v1/swagger.json",
+          //"Url": "https://localhost:7215/swagger/v1/swagger.json"
         }
       ]
     },

@@ -106,7 +106,7 @@ namespace SalesService.Business.Services
                 });
             }
 
-            await _unitOfWork.DeliveryNoteRepository.AddAsync(deliveryNote);
+            
 
             // Recalcula entregas (usa solo remitos previos; si querés contar el actual, sumalo explícitamente)
             var allArticlesDelivered = sale.Articles.All(sa =>
@@ -128,6 +128,8 @@ namespace SalesService.Business.Services
                 sale.IsFullyDelivered = true;
                 _unitOfWork.SaleRepository.Update(sale);
             }
+
+            await _unitOfWork.DeliveryNoteRepository.AddAsync(deliveryNote);
 
             await _unitOfWork.SaveAsync();
 
