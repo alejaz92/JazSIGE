@@ -62,7 +62,7 @@ namespace FiscalDocumentationService.Business.Services
             // Aplicar CAE
             document.CAE = arcaResponse.cae;
             document.CAEExpiration = DateTime.ParseExact(arcaResponse.caeExpirationDate, "yyyyMMdd", null);
-            document.DocumentNumber = $"A{document.PointOfSale:0000}-{document.InvoiceFrom:00000000}";
+            document.DocumentNumber = $"{document.PointOfSale:0000}-{document.InvoiceFrom:00000000}";
 
             await _unitOfWork.FiscalDocumentRepository.CreateAsync(document);
             await _unitOfWork.SaveChangesAsync();
