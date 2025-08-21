@@ -27,11 +27,11 @@
 
         // transport information
         public int? TransportId { get; set; }
-        public string TransportName { get; set; } = string.Empty;
-        public string TransportAddress { get; set; } = string.Empty;
-        public string TransportCity { get; set; } = string.Empty;
-        public string TransportTaxId { get; set; } = string.Empty;
-        public string TransportPhone { get; set; } = string.Empty;
+        public string? TransportName { get; set; } = string.Empty;
+        public string? TransportAddress { get; set; } = string.Empty;
+        public string? TransportCity { get; set; } = string.Empty;
+        public string? TransportTaxId { get; set; } = string.Empty;
+        public string? TransportPhone { get; set; } = string.Empty;
     }
 
     public class DeliveryNoteArticleDTO
