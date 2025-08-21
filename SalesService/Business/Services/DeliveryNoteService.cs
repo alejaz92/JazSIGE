@@ -47,6 +47,23 @@ namespace SalesService.Business.Services
             if (existingWithSameCode.Any())
                 throw new InvalidOperationException("Ya existe un remito con el mismo número.");
 
+            // check warehouse
+            var warehouse = await _catalogServiceClient.GetWarehouseByIdAsync(dto.WarehouseId);
+            if (warehouse == null)
+                throw new ArgumentException("Depósito no encontrado.");
+
+            // check transport
+            if (dto.TransportId.HasValue)
+            {
+                if (dto.TransportId == 0)
+                {
+                    dto.TransportId = null; // si es 0, lo dejamos como null
+                }
+                var transport = await _catalogServiceClient.GetTransportByIdAsync(dto.TransportId.Value);
+                if (transport == null)
+                    throw new ArgumentException("Transporte no encontrado.");
+            }
+
 
             var deliveryNote = new DeliveryNote
             {
