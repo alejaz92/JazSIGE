@@ -153,6 +153,7 @@ namespace SalesService.Business.Services
                 Date = sale.Date,
                 ExchangeRate = sale.ExchangeRate,
                 Observations = sale.Observations,
+                IsFinalConsumer = sale.IsFinalConsumer,
 
                 CustomerId = customer.Id,
                 CustomerName = customer.CompanyName,

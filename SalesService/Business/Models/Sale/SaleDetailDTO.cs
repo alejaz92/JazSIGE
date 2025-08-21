@@ -35,6 +35,7 @@ namespace SalesService.Business.Models.Sale
         public bool HasInvoice { get; set; }
         public bool HasDeliveryNotes { get; set; }
         public bool IsFullyDelivered { get; set; }
+        
 
         //lists
         public List<SaleArticleDetailDTO> Articles { get; set; } = new();   
