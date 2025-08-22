@@ -42,6 +42,10 @@ namespace FiscalDocumentationService.Business.Services
                 TotalAmount = dto.TotalAmount,
                 SalesOrderId = dto.SalesOrderId,
 
+                Currency = dto.Currency,
+                ExchangeRate = dto.ExchangeRate,
+                IssuerTaxId = dto.IssuerTaxId.Replace("-", ""),
+
                 Items = dto.Items.Select(i => new FiscalDocumentItem
                 {
                     Sku = i.Sku,
