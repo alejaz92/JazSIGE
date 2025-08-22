@@ -42,6 +42,7 @@ namespace FiscalDocumentationService.Business.Services
 
                 Items = dto.Items.Select(i => new FiscalDocumentItem
                 {
+                    Sku = i.Sku,
                     Description = i.Description,
                     UnitPrice = i.UnitPrice,
                     Quantity = i.Quantity,
@@ -141,6 +142,7 @@ namespace FiscalDocumentationService.Business.Services
                 SalesOrderId = doc.SalesOrderId,
                 Items = doc.Items.Select(i => new FiscalDocumentItemDTO
                 {
+                    Sku = i.Sku,
                     Description = i.Description,
                     UnitPrice = i.UnitPrice,
                     Quantity = i.Quantity,

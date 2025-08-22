@@ -56,6 +56,7 @@
 
     public class InvoiceDetailItemDTO
     {
+        public string Sku { get; set; } = string.Empty; // Product or service code
         public string Description { get; set; } = string.Empty;
         public decimal UnitPrice { get; set; }
         public int Quantity { get; set; }

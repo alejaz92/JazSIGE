@@ -434,7 +434,8 @@ namespace SalesService.Business.Services
 
                     items.Add(new FiscalDocumentItemDTO
                     {
-                        Description = articleInfo.Description,
+                        Sku = articleInfo.SKU,
+                        Description = articleInfo.Description + "- Marca: " + articleInfo.Brand ,
                         UnitPrice = article.UnitPrice,
                         Quantity = (int)article.Quantity,
                         VatBase = baseAmount,
@@ -562,6 +563,7 @@ namespace SalesService.Business.Services
             // generate invoice detail
             var items = invoice.Items.Select(i => new InvoiceDetailItemDTO
             {
+                Sku = i.Sku,    
                 Description = i.Description,
                 UnitPrice = i.UnitPrice,
                 Quantity = i.Quantity,

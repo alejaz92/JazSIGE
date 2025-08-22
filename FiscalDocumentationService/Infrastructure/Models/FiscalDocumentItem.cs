@@ -3,6 +3,7 @@
 public class FiscalDocumentItem
 {
     public int Id { get; set; }
+    public string Sku { get; set; } = string.Empty; // Código del producto o servicio
     public string Description { get; set; } = string.Empty;
     public decimal UnitPrice { get; set; }
     public int Quantity { get; set; }
