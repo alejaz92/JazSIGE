@@ -180,5 +180,21 @@ namespace SalesService.Controllers
             }
         }
 
+        [HttpGet("{saleId}/invoice/detail")]
+        public async Task<ActionResult<InvoiceDetailDTO>> GetInvoiceDetail(int saleId)
+        {
+            try
+            {
+                var result = await _saleService.GetInvoiceDetailAsync(saleId);
+                if (result == null)
+                    return NotFound();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+
     }
 }

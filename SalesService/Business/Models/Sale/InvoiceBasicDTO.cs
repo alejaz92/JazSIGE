@@ -14,5 +14,7 @@
         public decimal NetAmount { get; set; }
         public decimal VatAmount { get; set; }
         public decimal TotalAmount { get; set; }
+
+        
     }
 }

@@ -3,11 +3,9 @@ using SalesService.Business.Interfaces.Clients;
 using SalesService.Business.Models.Clients;
 using SalesService.Business.Models.DeliveryNote;
 using SalesService.Business.Models.Sale;
-using SalesService.Business.Services.Clients;
 using SalesService.Infrastructure.Interfaces;
 using SalesService.Infrastructure.Models.Sale;
-using System.Collections.Generic;
-using System.Security.Cryptography.Xml;
+
 
 namespace SalesService.Business.Services
 {
@@ -19,6 +17,7 @@ namespace SalesService.Business.Services
         private readonly IUserServiceClient _userService;
         private readonly IFiscalServiceClient _fiscalServiceClient;
         private readonly IDeliveryNoteService _deliveryNoteService;
+        private readonly ICompanyServiceClient _companyServiceClient;
 
         public SaleService(
             IUnitOfWork unitOfWork,
@@ -26,7 +25,8 @@ namespace SalesService.Business.Services
             IStockServiceClient stockServiceClient,
             IUserServiceClient userService,
             IFiscalServiceClient fiscalServiceClient,
-            IDeliveryNoteService deliveryNoteService)
+            IDeliveryNoteService deliveryNoteService,
+            ICompanyServiceClient companyServiceClient)
         {
             _unitOfWork = unitOfWork;
             _catalogService = catalogService;
@@ -34,6 +34,7 @@ namespace SalesService.Business.Services
             _userService = userService;
             _fiscalServiceClient = fiscalServiceClient;
             _deliveryNoteService = deliveryNoteService;
+            _companyServiceClient = companyServiceClient;
         }
 
         public async Task<IEnumerable<SaleDTO>> GetAllAsync()
@@ -508,6 +509,109 @@ namespace SalesService.Business.Services
                 throw new InvalidOperationException("Invoice not found.");
             return MapToBasic(invoice);
         }
+        public async Task<InvoiceDetailDTO> GetInvoiceDetailAsync(int saleId)
+        {
+            var sale = await _unitOfWork.SaleRepository.GetIncludingAsync(saleId, s => s.Articles);
+            if (sale == null)
+                throw new InvalidOperationException("Sale not found.");
+            if (!sale.HasInvoice)
+                throw new InvalidOperationException("No invoice generated for this sale.");
+            var invoice = await _fiscalServiceClient.GetBySaleIdAsync(saleId);
+            if (invoice == null)
+                throw new InvalidOperationException("Invoice not found.");
+
+            // get company info from CompanyInfo Service
+            var company = await _companyServiceClient.GetCompanyInfoAsync();
+
+            // get customer info from catalog if not final consumer
+            CustomerDTO customer = new CustomerDTO
+            {
+                Id = 0,
+                CompanyName = "Final Consumer",
+                TaxId = "N/A",
+                Address = "N/A",
+                PostalCode = "N/A",
+                City = "N/A",
+                Province = "N/A",
+                Country = "N/A",
+                SellCondition = "N/A",
+                IVAType = "N/A"
+            };
+            if (!sale.IsFinalConsumer && sale.CustomerId.HasValue)
+            {
+                customer = await _catalogService.GetCustomerByIdAsync(sale.CustomerId.Value);
+            }
+            else
+            {
+                var postalCode = await _catalogService.GetPostalCodeByIdAsync(sale.CustomerPostalCodeId.Value);
+
+                customer.PostalCode = postalCode?.Code ?? "N/A";
+                customer.Province = postalCode?.Province ?? "N/A";
+                customer.Country = postalCode?.Country ?? "N/A";
+                customer.City = postalCode?.City ?? "N/A";
+                customer.CompanyName = sale.CustomerName ?? "Final Consumer";
+                customer.IVAType = "Consumidor Final";
+                customer.TaxId = sale.CustomerTaxId ?? "N/A";
+                customer.SellCondition = "Contado";
+            }
+
+            // get seller info from user service
+            var seller = await _userService.GetUserByIdAsync(sale.SellerId);
+
+            // generate invoice detail
+            var items = invoice.Items.Select(i => new InvoiceDetailItemDTO
+            {
+                Description = i.Description,
+                UnitPrice = i.UnitPrice,
+                Quantity = i.Quantity,
+                VatBase = i.VatBase,
+                VatAmount = i.VatAmount,
+                VatId = i.VatId,
+                DispatchCode = i.DispatchCode
+            }).ToList();
+
+            return new InvoiceDetailDTO
+            {
+                Id = invoice.Id,
+                DocumentNumber = invoice.DocumentNumber,
+                InvoiceType = invoice.InvoiceType,
+                PointOfSale = invoice.PointOfSale,
+                Date = invoice.Date,
+                Cae = invoice.Cae,
+                CaeExpiration = invoice.CaeExpiration,
+                NetAmount = invoice.NetAmount,
+                VatAmount = invoice.VatAmount,
+                TotalAmount = invoice.TotalAmount,
+                CompanyName = company.Name,
+                CompanyShortName = company.ShortName,
+                CompanyTaxId = company.TaxId,
+                CompanyAddress = company.Address,
+                CompanyPostalCode = company.PostalCode,
+                CompanyCity = company.City,
+                CompanyProvince = company.Province,
+                CompanyCountry = company.Country,
+                CompanyPhone = company.Phone,
+                CompanyEmail = company.Email ?? string.Empty,
+                CompanyLogoUrl = company.LogoUrl ?? string.Empty,
+                CompanyIVAType = company.IVAType ?? "N/A",
+                CompanyGrossIncome = company.GrossIncome ?? string.Empty,
+                CompanyDateOfIncorporation = company.DateOfIncorporation,
+                CustomerId = customer.Id,
+                CustomerName = customer.CompanyName,
+                CustomerTaxID = customer.TaxId,
+                CustomerAddress = customer.Address,
+                CustomerPostalCode = customer.PostalCode,
+                CustomerCity = customer.City,
+                CustomerProvince = customer.Province,
+                CustomerCountry = customer.Country,
+                CustomerSellCondition = customer.SellCondition ?? "N/A",
+                CustomerIVAType = customer.IVAType ?? "N/A",
+                SellerId = sale.SellerId,
+                SellerName = $"{seller.FirstName} {seller.LastName}",
+                Items = items
+            };
+
+        }
         private static InvoiceBasicDTO MapToBasic(FiscalDocumentResponseDTO f) => new()
         {
             Id = f.Id,
@@ -520,7 +624,7 @@ namespace SalesService.Business.Services
             NetAmount = f.NetAmount,
             VatAmount = f.VatAmount,
             TotalAmount = f.TotalAmount
-        };
+        };     
         private async Task ValidateSellerAsync(int sellerId)
         {
             var user = await _userService.GetUserByIdAsync(sellerId);

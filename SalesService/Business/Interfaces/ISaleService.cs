@@ -12,5 +12,6 @@ namespace SalesService.Business.Interfaces
         Task<IEnumerable<SaleDTO>> GetAllAsync();
         Task<SaleDetailDTO?> GetByIdAsync(int id);
         Task<InvoiceBasicDTO> GetInvoiceAsync(int saleId);
+        Task<InvoiceDetailDTO> GetInvoiceDetailAsync(int saleId);
     }
 }
