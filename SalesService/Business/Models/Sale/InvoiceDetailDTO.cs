@@ -60,8 +60,10 @@
         public decimal UnitPrice { get; set; }
         public int Quantity { get; set; }
         public int VatId { get; set; } = 5;
+        public decimal VatPercentage { get; set; }
         public decimal VatBase { get; set; }
         public decimal VatAmount { get; set; }
         public string? DispatchCode { get; set; } // Optional dispatch code
+        public int Warranty { get; set; } = 0; // Default warranty period in months
     }
 }

@@ -28,6 +28,7 @@
         public decimal VatBase { get; set; }
         public decimal VatAmount { get; set; }
         public string? DispatchCode { get; set; } = null;
+        public int Warranty { get; set; } = 0; // Default warranty period in months
     }
 
     public class FiscalDocumentResponseDTO

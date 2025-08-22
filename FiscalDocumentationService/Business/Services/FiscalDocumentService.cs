@@ -18,7 +18,6 @@ namespace FiscalDocumentationService.Business.Services
             _arcaClient = arcaClient;
         }
 
-
         public async Task<FiscalDocumentDTO> CreateAsync(FiscalDocumentCreateDTO dto)
         {
             var invoiceNumber = GenerateInvoiceNumber();
@@ -49,7 +48,8 @@ namespace FiscalDocumentationService.Business.Services
                     VATId = i.VatId,
                     VATBase = i.VatBase,
                     VATAmount = i.VatAmount,
-                    DispatchCode = i.DispatchCode // Optional dispatch code
+                    DispatchCode = i.DispatchCode, // Optional dispatch code
+                    Warranty = i.Warranty
                 }).ToList()
             };
 
@@ -69,7 +69,6 @@ namespace FiscalDocumentationService.Business.Services
 
             return MapToDTO(document);
         }
-
         private ArcaRequestDTO BuildArcaRequest(FiscalDocument doc)
         {
             return new ArcaRequestDTO
@@ -106,25 +105,20 @@ namespace FiscalDocumentationService.Business.Services
                 }
             };
         }
-
         private long GenerateInvoiceNumber()
         {
             return DateTime.UtcNow.Ticks % 100_000_000;
         }
-
         public async Task<FiscalDocumentDTO?> GetByIdAsync(int id)
         {
             var doc = await _unitOfWork.FiscalDocumentRepository.GetByIdAsync(id);
             return doc == null ? null : MapToDTO(doc);
         }
-
         public async Task<FiscalDocumentDTO?> GetBySalesOrderIdAsync(int salesOrderId)
         {
             var doc = await _unitOfWork.FiscalDocumentRepository.GetBySalesOrderIdAsync(salesOrderId);
             return doc == null ? null : MapToDTO(doc);
         }
-
-
         private FiscalDocumentDTO MapToDTO(FiscalDocument doc)
         {
             return new FiscalDocumentDTO
@@ -153,7 +147,8 @@ namespace FiscalDocumentationService.Business.Services
                     VatId = i.VATId,
                     VatBase = i.VATBase,
                     VatAmount = i.VATAmount,
-                    DispatchCode = i.DispatchCode // Optional dispatch code
+                    DispatchCode = i.DispatchCode, // Optional dispatch code
+                    Warranty = i.Warranty
                 }).ToList()
             };
         }

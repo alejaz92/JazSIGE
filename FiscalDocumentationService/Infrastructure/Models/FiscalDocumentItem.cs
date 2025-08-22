@@ -15,4 +15,5 @@ public class FiscalDocumentItem
     public FiscalDocument FiscalDocument { get; set; } = null!;
 
     public string? DispatchCode { get; set; } // Código de despacho opcional
+    public int Warranty { get; set; } = 0; // Período de garantía en meses, por defecto 0
 }

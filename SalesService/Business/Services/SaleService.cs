@@ -440,7 +440,8 @@ namespace SalesService.Business.Services
                         VatBase = baseAmount,
                         VatAmount = iva,
                         VatId = (int)(article.IVAPercent == 21 ? 5 : 4), // Dummy ejemplo
-                        DispatchCode = i.DispatchCode
+                        DispatchCode = i.DispatchCode,
+                        Warranty = articleInfo.Warranty
 
                     });
 
@@ -567,7 +568,9 @@ namespace SalesService.Business.Services
                 VatBase = i.VatBase,
                 VatAmount = i.VatAmount,
                 VatId = i.VatId,
-                DispatchCode = i.DispatchCode
+                VatPercentage = (i.VatId == 5) ? 21 : 10.5m, // Dummy ejemplo
+                DispatchCode = i.DispatchCode,
+                Warranty = i.Warranty
             }).ToList();
 
             return new InvoiceDetailDTO
@@ -672,6 +675,5 @@ namespace SalesService.Business.Services
                         $"Insufficient stock for article {a.ArticleId}. Available: {available}, Requested: {a.Quantity}.");
             }
         }
-
     }
 }

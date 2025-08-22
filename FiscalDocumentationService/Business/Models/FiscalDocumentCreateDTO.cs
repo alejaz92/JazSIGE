@@ -19,7 +19,6 @@
 
         public List<FiscalDocumentItemDTO> Items { get; set; } = new();
     }
-
     public class FiscalDocumentItemDTO
     {
         public string Description { get; set; } = string.Empty;
@@ -29,5 +28,6 @@
         public decimal VatBase { get; set; }
         public decimal VatAmount { get; set; }
         public string? DispatchCode { get; set; } // Optional dispatch code
+        public int Warranty { get; set; } = 0; // Default warranty period in months 
     }
 }
