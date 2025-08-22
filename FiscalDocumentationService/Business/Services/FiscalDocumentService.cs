@@ -175,7 +175,7 @@ namespace FiscalDocumentationService.Business.Services
             var qrData = new AfipQrData
             {
                 fecha = doc.Date.ToString("yyyyMMdd"),
-                taxId = dto.IssuerTaxId,
+                cuit = dto.IssuerTaxId,
                 ptoVta = doc.PointOfSale,
                 tipoCmp = doc.InvoiceType,
                 nroCmp = doc.InvoiceFrom,
@@ -196,7 +196,7 @@ namespace FiscalDocumentationService.Business.Services
         {
             public int ver { get; set; } = 1;
             public string fecha { get; set; } = ""; // yyyyMMdd
-            public string taxId { get; set; }
+            public string cuit { get; set; }
             public int ptoVta { get; set; }
             public int tipoCmp { get; set; }
             public long nroCmp { get; set; }
