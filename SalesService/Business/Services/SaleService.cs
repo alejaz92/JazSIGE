@@ -478,6 +478,11 @@ namespace SalesService.Business.Services
             else 
                 invoiceType = 1; // Factura A
 
+            // get company info from CompanyInfo Service
+            var company = await _companyServiceClient.GetCompanyInfoAsync();
+            if (company == null)
+                throw new InvalidOperationException("Company information not found.");
+
             var fiscalRequest = new FiscalDocumentCreateDTO
             {
                 PointOfSale = 1,
@@ -488,7 +493,10 @@ namespace SalesService.Business.Services
                 VatAmount = Math.Round(vatAmount, 2),
                 TotalAmount = Math.Round(netAmount + vatAmount, 2),
                 SalesOrderId = saleId,
-                Items = items
+                Items = items,
+                Currency = "PES", // Default currency
+                ExchangeRate = 1,
+                IssuerTaxId = company.TaxId
             };
 
             var result = await _fiscalServiceClient.CreateInvoiceAsync(fiscalRequest);
@@ -587,6 +595,7 @@ namespace SalesService.Business.Services
                 NetAmount = invoice.NetAmount,
                 VatAmount = invoice.VatAmount,
                 TotalAmount = invoice.TotalAmount,
+                ArcaQrUrl = invoice.ArcaQrUrl ?? string.Empty,
                 CompanyName = company.Name,
                 CompanyShortName = company.ShortName,
                 CompanyTaxId = company.TaxId,

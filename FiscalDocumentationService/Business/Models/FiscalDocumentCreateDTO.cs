@@ -18,6 +18,10 @@
         public int? SalesOrderId { get; set; }
 
         public List<FiscalDocumentItemDTO> Items { get; set; } = new();
+
+        public string Currency { get; set; } = "PES"; // Default currency
+        public decimal ExchangeRate { get; set; } = 1; // Default exchange rate
+        public string IssuerTaxId { get; set; }
     }
     public class FiscalDocumentItemDTO
     {
@@ -30,5 +34,6 @@
         public decimal VatAmount { get; set; }
         public string? DispatchCode { get; set; } // Optional dispatch code
         public int Warranty { get; set; } = 0; // Default warranty period in months 
+
     }
 }

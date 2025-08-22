@@ -17,6 +17,10 @@
         public int? SalesOrderId { get; set; }
 
         public List<FiscalDocumentItemDTO> Items { get; set; } = new();
+
+        public string Currency { get; set; } = "PES"; // Default currency
+        public decimal ExchangeRate { get; set; } = 1; // Default exchange rate
+        public string IssuerTaxId { get; set; }
     }
 
     public class FiscalDocumentItemDTO
@@ -56,5 +60,11 @@
         public int? SalesOrderId { get; set; }
 
         public List<FiscalDocumentItemDTO> Items { get; set; } = new();
+
+
+        public string Currency { get; set; }
+        public decimal ExchangeRate { get; set; }
+        public string IssuerTaxId { get; set; }
+        public string ArcaQrUrl { get; set; } = string.Empty;
     }
 }

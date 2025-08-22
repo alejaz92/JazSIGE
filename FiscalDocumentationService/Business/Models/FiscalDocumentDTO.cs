@@ -24,5 +24,11 @@
         public int? SalesOrderId { get; set; }
 
         public List<FiscalDocumentItemDTO> Items { get; set; } = new();
+
+        public string Currency { get; set; } 
+        public decimal ExchangeRate { get; set; } 
+        public string IssuerTaxId { get; set; }
+
+        public string ArcaQrUrl { get; set; } = string.Empty;
     }
 }

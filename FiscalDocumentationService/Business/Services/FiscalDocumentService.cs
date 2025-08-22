@@ -4,6 +4,8 @@ using FiscalDocumentationService.Business.Models;
 using FiscalDocumentationService.Business.Models.Arca;
 using FiscalDocumentationService.Infrastructure.Interfaces;
 using FiscalDocumentationService.Infrastructure.Models;
+using System.Text;
+using System.Text.Json;
 
 namespace FiscalDocumentationService.Business.Services
 {
@@ -64,6 +66,10 @@ namespace FiscalDocumentationService.Business.Services
             document.CAE = arcaResponse.cae;
             document.CAEExpiration = DateTime.ParseExact(arcaResponse.caeExpirationDate, "yyyyMMdd", null);
             document.DocumentNumber = $"{document.PointOfSale:0000}-{document.InvoiceFrom:00000000}";
+
+            //var qrUrl = GenerateAfipQrUrl(document, dto);
+         
+
 
             await _unitOfWork.FiscalDocumentRepository.CreateAsync(document);
             await _unitOfWork.SaveChangesAsync();
@@ -140,6 +146,15 @@ namespace FiscalDocumentationService.Business.Services
                 OtherTaxesAmount = doc.OtherTaxesAmount,
                 TotalAmount = doc.TotalAmount,
                 SalesOrderId = doc.SalesOrderId,
+                Currency = doc.Currency,
+                ExchangeRate = doc.ExchangeRate,
+                IssuerTaxId = doc.IssuerTaxId,
+                ArcaQrUrl = GenerateAfipQrUrl(doc, new FiscalDocumentCreateDTO
+                {
+                    IssuerTaxId = doc.IssuerTaxId,
+                    Currency = doc.Currency,
+                    ExchangeRate = doc.ExchangeRate
+                }),
                 Items = doc.Items.Select(i => new FiscalDocumentItemDTO
                 {
                     Sku = i.Sku,
@@ -154,5 +169,45 @@ namespace FiscalDocumentationService.Business.Services
                 }).ToList()
             };
         }
+
+        private string GenerateAfipQrUrl(FiscalDocument doc, FiscalDocumentCreateDTO dto)
+        {
+            var qrData = new AfipQrData
+            {
+                fecha = doc.Date.ToString("yyyyMMdd"),
+                taxId = dto.IssuerTaxId,
+                ptoVta = doc.PointOfSale,
+                tipoCmp = doc.InvoiceType,
+                nroCmp = doc.InvoiceFrom,
+                importe = doc.TotalAmount,
+                moneda = dto.Currency,
+                ctz = dto.ExchangeRate,
+                tipoDocRec = doc.BuyerDocumentType,
+                nroDocRec = doc.BuyerDocumentNumber,
+                codAut = doc.CAE
+            };
+
+            string json = JsonSerializer.Serialize(qrData);
+            string base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
+            return $"https://www.afip.gob.ar/fe/qr/?p={base64}";
+        }
+
+        private class AfipQrData
+        {
+            public int ver { get; set; } = 1;
+            public string fecha { get; set; } = ""; // yyyyMMdd
+            public string taxId { get; set; }
+            public int ptoVta { get; set; }
+            public int tipoCmp { get; set; }
+            public long nroCmp { get; set; }
+            public decimal importe { get; set; }
+            public string moneda { get; set; } = "PES";
+            public decimal ctz { get; set; } = 1;
+            public int tipoDocRec { get; set; }
+            public long nroDocRec { get; set; }
+            public string tipoCodAut { get; set; } = "E";
+            public string codAut { get; set; } = "";
+        }
+
     }
 }

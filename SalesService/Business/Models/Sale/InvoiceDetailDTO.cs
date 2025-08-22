@@ -15,6 +15,12 @@
         public decimal VatAmount { get; set; }
         public decimal TotalAmount { get; set; }
 
+        //public string Currency { get; set; } 
+        //public decimal ExchangeRate { get; set; } 
+        //public string IssuerTaxId { get; set; }
+
+        public string ArcaQrUrl { get; set; } = string.Empty;
+
         // company
         public string CompanyName { get; set; } = string.Empty;
         public string CompanyShortName { get; set; } = string.Empty;
