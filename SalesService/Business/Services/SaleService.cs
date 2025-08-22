@@ -436,7 +436,7 @@ namespace SalesService.Business.Services
                     {
                         Sku = articleInfo.SKU,
                         Description = articleInfo.Description + "- Marca: " + articleInfo.Brand ,
-                        UnitPrice = article.UnitPrice,
+                        UnitPrice = article.UnitPrice * sale.ExchangeRate,
                         Quantity = (int)article.Quantity,
                         VatBase = baseAmount,
                         VatAmount = iva,
