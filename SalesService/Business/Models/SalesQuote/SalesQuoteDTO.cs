@@ -3,8 +3,10 @@
     public int Id { get; set; }
     public DateTime Date { get; set; }
     public DateTime ExpirationDate { get; set; }
+    public bool IsFinalConsumer { get; set; }
 
     // customer
+    public string CustomerIdType { get; set; }
     public int CustomerId { get; set; }
     public string CustomerName { get; set; } = string.Empty;
     public string CustomerTaxID { get; set; } = string.Empty;
