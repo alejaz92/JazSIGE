@@ -6,11 +6,12 @@
     public bool IsFinalConsumer { get; set; }
 
     // customer
-    public string CustomerIdType { get; set; }
+    public string? CustomerIdType { get; set; }
     public int CustomerId { get; set; }
     public string CustomerName { get; set; } = string.Empty;
     public string CustomerTaxID { get; set; } = string.Empty;
     public string CustomerAddress { get; set; } = string.Empty;
+    public int? CustomerPostalCodeId { get; set; }
     public string CustomerPostalCode { get; set; } = string.Empty;
     public string CustomerCity { get; set; } = string.Empty;
     public string CustomerProvince { get; set; } = string.Empty;

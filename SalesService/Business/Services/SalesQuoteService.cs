@@ -30,8 +30,6 @@ namespace SalesService.Business.Services
 
         public async Task<SalesQuoteDTO> CreateAsync(SalesQuoteCreateDTO dto)
         {
-            // Obtener datos externos
-
             await ValidateCustomerBlockAsync(dto);
             await ValidateSellerAsync(dto.SellerId);
 
@@ -41,85 +39,76 @@ namespace SalesService.Business.Services
             var company = await _companyClient.GetCompanyInfoAsync()
                 ?? throw new Exception("Company info not found");
 
+            int newId;
 
-            using var transaction = await _unitOfWork.SalesQuoteRepository.BeginTransactionAsync();
-
-            try
+            await using (var transaction = await _unitOfWork.SalesQuoteRepository.BeginTransactionAsync())
             {
-                // Crear entidad
-                var salesQuote = new SalesQuote
+                try
                 {
-                    IsFinalConsumer = dto.IsFinalConsumer,
-                    CustomerIdType = dto.CustomerIdType,
-                    CustomerTaxId = dto.CustomerTaxId,
-                    CustomerName = dto.CustomerName,
-                    CustomerPostalCodeId = dto.CustomerPostalCodeId,
-                    Date = dto.Date,
-                    ExpirationDate = dto.ExpirationDate,
-                    CustomerId = dto.CustomerId,
-                    SellerId = dto.SellerId,
-                    PriceListId = dto.PriceListId,
-                    ExchangeRate = dto.ExchangeRate,
-                    Observations = dto.Observations
-                };
-
-                decimal subtotal = 0m, ivaTotal = 0m;
-                var articleDTOs = new List<SalesQuoteArticleDTO>();
-
-                foreach (var item in dto.Articles)
-                {
-                    var article = await _catalogServiceClient.GetArticleByIdAsync(item.ArticleId)
-                        ?? throw new Exception($"Article {item.ArticleId} not found");
-
-                    var unitPrice = item.UnitPriceUSD;
-                    var discount = unitPrice * (item.DiscountPercent / 100m);
-                    var priceAfterDiscount = unitPrice - discount;
-                    var itemSubtotal = priceAfterDiscount * item.Quantity;
-                    var itemIVA = itemSubtotal * (item.IVA / 100m);
-                    var totalUSD = itemSubtotal + itemIVA;
-
-                    var quoteArticle = new SalesQuote_Article
+                    var salesQuote = new SalesQuote
                     {
-                        ArticleId = item.ArticleId,
-                        Quantity = item.Quantity,
-                        UnitPriceUSD = unitPrice,
-                        DiscountPercent = item.DiscountPercent,
-                        IVA = item.IVA,
-                        TotalUSD = totalUSD
+                        IsFinalConsumer = dto.IsFinalConsumer,
+                        CustomerIdType = dto.CustomerIdType,
+                        CustomerTaxId = dto.CustomerTaxId,
+                        CustomerName = dto.CustomerName,
+                        CustomerPostalCodeId = dto.CustomerPostalCodeId,
+                        Date = dto.Date,
+                        ExpirationDate = dto.ExpirationDate,
+                        CustomerId = dto.CustomerId,
+                        SellerId = dto.SellerId,
+                        PriceListId = dto.PriceListId,
+                        ExchangeRate = dto.ExchangeRate,
+                        Observations = dto.Observations
                     };
 
-                    salesQuote.Articles.Add(quoteArticle);
-                    subtotal += itemSubtotal;
-                    ivaTotal += itemIVA;
+                    decimal subtotal = 0m, ivaTotal = 0m;
 
-                    articleDTOs.Add(new SalesQuoteArticleDTO
+                    foreach (var item in dto.Articles)
                     {
-                        ArticleId = item.ArticleId,
-                        ArticleName = article.Description,
-                        ArticleSKU = article.SKU,
-                        Quantity = item.Quantity,
-                        UnitPriceUSD = unitPrice,
-                        DiscountPercent = item.DiscountPercent,
-                        IVA = item.IVA,
-                        TotalUSD = totalUSD
-                    });
+                        var article = await _catalogServiceClient.GetArticleByIdAsync(item.ArticleId)
+                            ?? throw new Exception($"Article {item.ArticleId} not found");
+
+                        var unitPrice = item.UnitPriceUSD;
+                        var discount = unitPrice * (item.DiscountPercent / 100m);
+                        var priceAfterDiscount = unitPrice - discount;
+                        var itemSubtotal = priceAfterDiscount * item.Quantity;
+                        var itemIVA = itemSubtotal * (item.IVA / 100m);
+                        var totalUSD = itemSubtotal + itemIVA;
+
+                        salesQuote.Articles.Add(new SalesQuote_Article
+                        {
+                            ArticleId = item.ArticleId,
+                            Quantity = item.Quantity,
+                            UnitPriceUSD = unitPrice,
+                            DiscountPercent = item.DiscountPercent,
+                            IVA = item.IVA,
+                            TotalUSD = totalUSD
+                        });
+
+                        subtotal += itemSubtotal;
+                        ivaTotal += itemIVA;
+                    }
+
+                    salesQuote.SubtotalUSD = subtotal;
+                    salesQuote.IVAAmountUSD = ivaTotal;
+                    salesQuote.TotalUSD = subtotal + ivaTotal;
+
+                    await _unitOfWork.SalesQuoteRepository.AddAsync(salesQuote);
+                    await _unitOfWork.SaveAsync();
+
+                    newId = salesQuote.Id;
+
+                    await transaction.CommitAsync();
                 }
-
-                salesQuote.SubtotalUSD = subtotal;
-                salesQuote.IVAAmountUSD = ivaTotal;
-                salesQuote.TotalUSD = subtotal + ivaTotal;
-
-                await _unitOfWork.SalesQuoteRepository.AddAsync(salesQuote);
-                await _unitOfWork.SaveAsync();
-
-                
-                return GetByIdAsync(salesQuote.Id).Result;
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    throw new InvalidOperationException("Error creating sales quote.", ex);
+                }
             }
-            catch(Exception ex)
-            {
-                await transaction.RollbackAsync();
-                throw new InvalidOperationException("Error creating sale.", ex);
-            }
+
+            // 👇 Ya fuera del alcance/using de la transacción
+            return await GetByIdAsync(newId);
         }
         public async Task<SalesQuoteDTO> GetByIdAsync(int id)
         {
@@ -127,9 +116,14 @@ namespace SalesService.Business.Services
                 ?? throw new Exception($"SalesQuote {id} not found");
 
             CustomerDTO? customer = null;
-            var postalCode = string.Empty;
+            string postalCode = string.Empty;
+
             if (!salesQuote.IsFinalConsumer)
             {
+                if (!salesQuote.CustomerId.HasValue)
+                    throw new InvalidOperationException(
+                        "Sales quote has IsFinalConsumer = false but no CustomerId.");
+
                 customer = await _catalogServiceClient.GetCustomerByIdAsync(salesQuote.CustomerId.Value)
                     ?? throw new Exception($"Customer {salesQuote.CustomerId} not found");
 
@@ -137,20 +131,30 @@ namespace SalesService.Business.Services
             }
             else
             {
-                PostalCodeDTO postalCodeDTO =  await _catalogServiceClient.GetPostalCodeByIdAsync(salesQuote.CustomerPostalCodeId!.Value);
-                postalCode = postalCodeDTO.Code;
+                if (!salesQuote.CustomerPostalCodeId.HasValue)
+                    throw new InvalidOperationException(
+                        "Sales quote for final consumer has no CustomerPostalCodeId.");
+
+                var postalDto = await _catalogServiceClient
+                    .GetPostalCodeByIdAsync(salesQuote.CustomerPostalCodeId.Value)
+                    ?? throw new Exception($"Postal code {salesQuote.CustomerPostalCodeId.Value} not found");
+
+                postalCode = postalDto.Code;
             }
 
-                await ValidateSellerAsync(salesQuote.SellerId);
+            await ValidateSellerAsync(salesQuote.SellerId);
 
             var priceList = await _catalogServiceClient.GetPriceListByIdAsync(salesQuote.PriceListId)
                 ?? throw new Exception($"PriceList {salesQuote.PriceListId} not found");
+
+            var seller = await _userServiceClient.GetUserByIdAsync(salesQuote.SellerId)
+                ?? throw new Exception($"Seller {salesQuote.SellerId} not found");
 
             var company = await _companyClient.GetCompanyInfoAsync()
                 ?? throw new Exception("Company info not found");
 
             var articleDTOs = new List<SalesQuoteArticleDTO>();
-            foreach (var item in salesQuote.Articles)
+            foreach (var item in salesQuote.Articles ?? Enumerable.Empty<SalesQuote_Article>())
             {
                 var article = await _catalogServiceClient.GetArticleByIdAsync(item.ArticleId)
                     ?? throw new Exception($"Article {item.ArticleId} not found");
@@ -174,19 +178,23 @@ namespace SalesService.Business.Services
                 Date = salesQuote.Date,
                 ExpirationDate = salesQuote.ExpirationDate,
                 IsFinalConsumer = salesQuote.IsFinalConsumer,
-                CustomerId = salesQuote.CustomerId.Value,
+
+                CustomerId = salesQuote.CustomerId ?? 0,
                 CustomerName = salesQuote.CustomerName,
                 CustomerTaxID = salesQuote.CustomerTaxId,
                 CustomerAddress = customer?.Address,
-                CustomerPostalCode = customer.PostalCode ?? postalCode ,
+                CustomerPostalCode = customer?.PostalCode ?? postalCode,
                 CustomerCity = customer?.City,
                 CustomerProvince = customer?.Province,
                 CustomerCountry = customer?.Country,
                 CustomerSellCondition = customer?.SellCondition,
                 CustomerIVAType = customer?.IVAType,
+                CustomerPostalCodeId = salesQuote.CustomerPostalCodeId, // <— pasa el ID directo
+                CustomerIdType = salesQuote.CustomerIdType,
+
 
                 SellerId = salesQuote.SellerId,
-                SellerName = $"{salesQuote.SellerId}",
+                SellerName = seller.FirstName + " " + seller.LastName,
 
                 PriceListId = priceList.Id,
                 PriceListName = priceList.Description,
@@ -240,9 +248,7 @@ namespace SalesService.Business.Services
             }
 
             return list.OrderByDescending(x => x.Date);
-        }
-    
-
+        }   
         private async Task ValidateCustomerBlockAsync(SalesQuoteCreateDTO dto)
         {
             if (!dto.IsFinalConsumer)
@@ -270,7 +276,6 @@ namespace SalesService.Business.Services
             if (string.IsNullOrWhiteSpace(dto.CustomerTaxId))
                 throw new ArgumentException("Customer tax ID is required for final consumer sales.");
         }
-
         private async Task ValidateSellerAsync(int sellerId)
         {
             var user = await _userServiceClient.GetUserByIdAsync(sellerId);
