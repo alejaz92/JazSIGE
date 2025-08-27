@@ -130,6 +130,140 @@ namespace FiscalDocumentationService.Business.Services
             var doc = await _unitOfWork.FiscalDocumentRepository.GetBySalesOrderIdAsync(salesOrderId);
             return doc == null ? null : MapToDTO(doc);
         }
+        public async Task<FiscalDocumentDTO> CreateCreditNoteAsync(CreditNoteCreateDTO dto)
+        {
+            var baseInvoice = await _unitOfWork.FiscalDocumentRepository.GetByIdAsync(dto.RelatedFiscalDocumentId)
+                ?? throw new ArgumentException("Related invoice not found");
+
+            // Validaciones mínimas: mismo receptor
+            if (baseInvoice.BuyerDocumentType != dto.BuyerDocumentType ||
+                baseInvoice.BuyerDocumentNumber != dto.BuyerDocumentNumber)
+                throw new InvalidOperationException("Buyer must match the original invoice.");
+
+            // (Opcional) Validar que no se exceda el total de la factura con las NC acumuladas
+            var creditAcc = await _unitOfWork.FiscalDocumentRepository.GetCreditNotesTotalForAsync(baseInvoice.Id);
+            if (creditAcc + dto.TotalAmount > baseInvoice.TotalAmount)
+                throw new InvalidOperationException("Credit amount exceeds original invoice total.");
+
+            var number = GenerateInvoiceNumber();
+            var document = new FiscalDocument
+            {
+                Type = FiscalDocumentType.CreditNote,
+                RelatedFiscalDocumentId = baseInvoice.Id,
+
+                PointOfSale = dto.PointOfSale,
+                InvoiceType = dto.InvoiceType,    // 03/08/13 según corresponda
+                BuyerDocumentType = dto.BuyerDocumentType,
+                BuyerDocumentNumber = dto.BuyerDocumentNumber,
+
+                InvoiceFrom = number,
+                InvoiceTo = number,
+                Date = DateTime.Now,
+
+                NetAmount = dto.NetAmount,
+                VATAmount = dto.VatAmount,
+                ExemptAmount = dto.ExemptAmount,
+                NonTaxableAmount = dto.NonTaxableAmount,
+                OtherTaxesAmount = dto.OtherTaxesAmount,
+                TotalAmount = dto.TotalAmount,
+
+                Currency = dto.Currency,
+                ExchangeRate = dto.ExchangeRate,
+                IssuerTaxId = dto.IssuerTaxId.Replace("-", ""),
+
+                Items = dto.Items.Select(i => new FiscalDocumentItem
+                {
+                    Sku = i.Sku,
+                    Description = i.Description,
+                    UnitPrice = i.UnitPrice,
+                    Quantity = i.Quantity,
+                    VATId = i.VatId,
+                    VATBase = i.VatBase,
+                    VATAmount = i.VatAmount,
+                    DispatchCode = i.DispatchCode,
+                    Warranty = i.Warranty
+                }).ToList()
+            };
+
+            var arcaRequest = BuildArcaRequest(document); // Reusa tu builder
+            var arcaResponse = await _arcaClient.AuthorizeAsync(arcaRequest);
+
+            document.CAE = arcaResponse.cae;
+            document.CAEExpiration = DateTime.ParseExact(arcaResponse.caeExpirationDate, "yyyyMMdd", null);
+            document.DocumentNumber = $"{document.PointOfSale:0000}-{document.InvoiceFrom:00000000}";
+
+            await _unitOfWork.FiscalDocumentRepository.CreateAsync(document);
+            await _unitOfWork.SaveChangesAsync();
+
+            return MapToDTO(document);
+        }
+        public async Task<FiscalDocumentDTO> CreateDebitNoteAsync(DebitNoteCreateDTO dto)
+        {
+            var baseInvoice = await _unitOfWork.FiscalDocumentRepository.GetByIdAsync(dto.RelatedFiscalDocumentId)
+                ?? throw new ArgumentException("Related invoice not found");
+
+            if (baseInvoice.BuyerDocumentType != dto.BuyerDocumentType ||
+                baseInvoice.BuyerDocumentNumber != dto.BuyerDocumentNumber)
+                throw new InvalidOperationException("Buyer must match the original invoice.");
+
+            var debitAcc = await _unitOfWork.FiscalDocumentRepository.GetDebitNotesTotalForAsync(baseInvoice.Id);
+            // (Opcional) Podés limitar el tope si tu negocio lo requiere. Por defecto, ND puede superar.
+            // if (debitAcc + dto.TotalAmount > someLimit) ...
+
+            var number = GenerateInvoiceNumber();
+            var document = new FiscalDocument
+            {
+                Type = FiscalDocumentType.DebitNote,
+                RelatedFiscalDocumentId = baseInvoice.Id,
+
+                PointOfSale = dto.PointOfSale,
+                InvoiceType = dto.InvoiceType,    // 02/07/12 según corresponda
+                BuyerDocumentType = dto.BuyerDocumentType,
+                BuyerDocumentNumber = dto.BuyerDocumentNumber,
+
+                InvoiceFrom = number,
+                InvoiceTo = number,
+                Date = DateTime.Now,
+
+                NetAmount = dto.NetAmount,
+                VATAmount = dto.VatAmount,
+                ExemptAmount = dto.ExemptAmount,
+                NonTaxableAmount = dto.NonTaxableAmount,
+                OtherTaxesAmount = dto.OtherTaxesAmount,
+                TotalAmount = dto.TotalAmount,
+
+                Currency = dto.Currency,
+                ExchangeRate = dto.ExchangeRate,
+                IssuerTaxId = dto.IssuerTaxId.Replace("-", ""),
+
+                Items = dto.Items.Select(i => new FiscalDocumentItem
+                {
+                    Sku = i.Sku,
+                    Description = i.Description,
+                    UnitPrice = i.UnitPrice,
+                    Quantity = i.Quantity,
+                    VATId = i.VatId,
+                    VATBase = i.VatBase,
+                    VATAmount = i.VatAmount,
+                    DispatchCode = i.DispatchCode,
+                    Warranty = i.Warranty
+                }).ToList()
+            };
+
+            var arcaRequest = BuildArcaRequest(document);
+            var arcaResponse = await _arcaClient.AuthorizeAsync(arcaRequest);
+
+            document.CAE = arcaResponse.cae;
+            document.CAEExpiration = DateTime.ParseExact(arcaResponse.caeExpirationDate, "yyyyMMdd", null);
+            document.DocumentNumber = $"{document.PointOfSale:0000}-{document.InvoiceFrom:00000000}";
+
+            await _unitOfWork.FiscalDocumentRepository.CreateAsync(document);
+            await _unitOfWork.SaveChangesAsync();
+
+            return MapToDTO(document);
+        }
+
+
         private FiscalDocumentDTO MapToDTO(FiscalDocument doc)
         {
             return new FiscalDocumentDTO
@@ -173,7 +307,6 @@ namespace FiscalDocumentationService.Business.Services
                 }).ToList()
             };
         }
-
         private string GenerateAfipQrUrl(FiscalDocument doc, FiscalDocumentCreateDTO dto)
         {
             var qrData = new AfipQrData
@@ -195,7 +328,6 @@ namespace FiscalDocumentationService.Business.Services
             string base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
             return $"https://www.afip.gob.ar/fe/qr/?p={base64}";
         }
-
         private class AfipQrData
         {
             public int ver { get; set; } = 1;
@@ -212,6 +344,5 @@ namespace FiscalDocumentationService.Business.Services
             public string tipoCodAut { get; set; } = "E";
             public string codAut { get; set; } = "";
         }
-
     }
 }

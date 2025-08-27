@@ -35,6 +35,7 @@
         public decimal ExchangeRate { get; set; } = 1; // Default exchange rate
         public string IssuerTaxId { get; set; }
 
+        public int? RelatedFiscalDocumentId { get; set; }
 
     }
 }

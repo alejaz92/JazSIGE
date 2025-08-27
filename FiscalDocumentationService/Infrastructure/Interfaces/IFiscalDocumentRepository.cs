@@ -7,5 +7,7 @@ namespace FiscalDocumentationService.Infrastructure.Interfaces
         Task<FiscalDocument> CreateAsync(FiscalDocument document);
         Task<FiscalDocument?> GetByIdAsync(int id);
         Task<FiscalDocument?> GetBySalesOrderIdAsync(int salesOrderId);
+        Task<decimal> GetCreditNotesTotalForAsync(int relatedId);
+        Task<decimal> GetDebitNotesTotalForAsync(int relatedId);
     }
 }

@@ -44,5 +44,20 @@ namespace FiscalDocumentationService.Controllers
 
             return Ok(document);
         }
+
+        [HttpPost("credit-notes")]
+        public async Task<ActionResult<FiscalDocumentDTO>> CreateCreditNote([FromBody] CreditNoteCreateDTO dto)
+        {
+            var result = await _fiscalDocumentService.CreateCreditNoteAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+        }
+
+        [HttpPost("debit-notes")]
+        public async Task<ActionResult<FiscalDocumentDTO>> CreateDebitNote([FromBody] DebitNoteCreateDTO dto)
+        {
+            var result = await _fiscalDocumentService.CreateDebitNoteAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+        }
+
     }
 }
