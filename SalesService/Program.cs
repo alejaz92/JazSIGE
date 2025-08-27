@@ -79,7 +79,7 @@ builder.Services.AddScoped<IDeliveryNoteService, DeliveryNoteService>();
 builder.Services.AddScoped<IFiscalServiceClient, FiscalServiceClient>();
 builder.Services.AddScoped<IRatesService, RatesService>();
 
-
+// prueba cambio
 
 //inyect configuration
 builder.Services.AddMemoryCache();
