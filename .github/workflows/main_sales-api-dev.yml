@@ -1,13 +1,14 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 
-name: Deploy SalesService
+name: Deploy SalesService (dev)
 
 on:
   push:
     branches: [ main ]
     paths:
       - 'SalesService/**'
+      - '.github/workflows/main_sales-api-dev.yml'
 
 concurrency:
   group: ${{ github.workflow }}
@@ -15,30 +16,37 @@ concurrency:
 
 jobs:
   build-and-deploy:
-    runs-on: windows-latest
-    permissions:
-      id-token: write
-      contents: read
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Log in to Azure
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - uses: actions/checkout@v4
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
 
-      - name: Publish
-        run: dotnet publish -c Release -o ./publish
+      - name: Restore
+        run: dotnet restore ./SalesService/SalesService.csproj
 
-      - name: Deploy to Azure Web App
+      - name: Publish (SalesService only)
+        run: dotnet publish ./SalesService/SalesService.csproj -c Release -o ${{ runner.temp }}/publish-sales
+
+      # Sanity checks para evitar mezclas
+      - name: List output
+        run: ls -la ${{ runner.temp }}/publish-sales
+      - name: Assert SalesService.dll exists
+        run: test -f ${{ runner.temp }}/publish-sales/SalesService.dll
+      - name: Assert web.config apunta a SalesService.dll
+        run: grep -q "SalesService.dll" ${{ runner.temp }}/publish-sales/web.config
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Azure Web App (sales-api-dev)
         uses: azure/webapps-deploy@v2
         with:
           app-name: sales-api-dev
-          package: ./publish
+          package: ${{ runner.temp }}/publish-sales
