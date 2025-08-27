@@ -152,7 +152,7 @@ namespace FiscalDocumentationService.Business.Services
                 RelatedFiscalDocumentId = baseInvoice.Id,
 
                 PointOfSale = dto.PointOfSale,
-                InvoiceType = dto.InvoiceType,    // 03/08/13 según corresponda
+                InvoiceType = MapNoteTypeFromInvoice(baseInvoice.InvoiceType, isCredit: true),
                 BuyerDocumentType = dto.BuyerDocumentType,
                 BuyerDocumentNumber = dto.BuyerDocumentNumber,
 
@@ -217,7 +217,7 @@ namespace FiscalDocumentationService.Business.Services
                 RelatedFiscalDocumentId = baseInvoice.Id,
 
                 PointOfSale = dto.PointOfSale,
-                InvoiceType = dto.InvoiceType,    // 02/07/12 según corresponda
+                InvoiceType = MapNoteTypeFromInvoice(baseInvoice.InvoiceType, isCredit: false),
                 BuyerDocumentType = dto.BuyerDocumentType,
                 BuyerDocumentNumber = dto.BuyerDocumentNumber,
 
@@ -344,5 +344,27 @@ namespace FiscalDocumentationService.Business.Services
             public string tipoCodAut { get; set; } = "E";
             public string codAut { get; set; } = "";
         }
+
+        // Mapea el tipo de NOTA (AFIP) a partir del tipo de FACTURA base.
+        // A: 01 -> ND 02, NC 03
+        // B: 06 -> ND 07, NC 08
+        // C: 11 -> ND 12, NC 13
+        // M: 51 -> ND 52, NC 53
+        private int MapNoteTypeFromInvoice(int baseInvoiceType, bool isCredit)
+        {
+            return (baseInvoiceType, isCredit) switch
+            {
+                (01, false) => 02,
+                (01, true) => 03,
+                (06, false) => 07,
+                (06, true) => 08,
+                (11, false) => 12,
+                (11, true) => 13,
+                (51, false) => 52,
+                (51, true) => 53,
+                _ => throw new InvalidOperationException($"Unsupported base invoice type for notes: {baseInvoiceType}")
+            };
+        }
+
     }
 }

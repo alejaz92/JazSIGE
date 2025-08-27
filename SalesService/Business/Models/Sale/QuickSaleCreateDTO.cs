@@ -1,4 +1,5 @@
 ﻿using SalesService.Business.Models.DeliveryNote;
+using SalesService.Business.Models.Sale.fiscalDocs;
 
 namespace SalesService.Business.Models.Sale
 {

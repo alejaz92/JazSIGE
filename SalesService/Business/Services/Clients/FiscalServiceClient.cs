@@ -39,7 +39,6 @@ namespace SalesService.Business.Services.Clients
             var result = await response.Content.ReadFromJsonAsync<FiscalDocumentResponseDTO>();
             return result!;
         }
-
         public async Task<FiscalDocumentResponseDTO?> GetBySaleIdAsync(int salesOrderId)
         {
             var client = CreateAuthorizedClient();
@@ -53,6 +52,30 @@ namespace SalesService.Business.Services.Clients
             }
             var result = await response.Content.ReadFromJsonAsync<FiscalDocumentResponseDTO>();
             return result;
+        }
+        public async Task<FiscalDocumentResponseDTO> CreateCreditNoteAsync(CreditNoteCreateClientDTO dto)
+        {
+            var client = CreateAuthorizedClient();
+            var response = await client.PostAsJsonAsync($"{_fiscalBaseUrl}/credit-notes", dto);
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new InvalidOperationException($"Error creating credit note: {errorContent}");
+            }
+            var result = await response.Content.ReadFromJsonAsync<FiscalDocumentResponseDTO>();
+            return result!;
+        }
+        public async Task<FiscalDocumentResponseDTO> CreateDebitNoteAsync(DebitNoteCreateClientDTO dto)
+        {
+            var client = CreateAuthorizedClient(); // igual que en CreateInvoiceAsync / CreateCreditNoteAsync
+            var response = await client.PostAsJsonAsync($"{_fiscalBaseUrl}/debit-notes", dto);
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                throw new InvalidOperationException($"Error creating debit note: {error}");
+            }
+            var result = await response.Content.ReadFromJsonAsync<FiscalDocumentResponseDTO>();
+            return result!;
         }
     }
 }

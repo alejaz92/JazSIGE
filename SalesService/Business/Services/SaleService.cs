@@ -3,6 +3,8 @@ using SalesService.Business.Interfaces.Clients;
 using SalesService.Business.Models.Clients;
 using SalesService.Business.Models.DeliveryNote;
 using SalesService.Business.Models.Sale;
+using SalesService.Business.Models.Sale.fiscalDocs;
+using SalesService.Business.Services.Clients;
 using SalesService.Infrastructure.Interfaces;
 using SalesService.Infrastructure.Models.Sale;
 
@@ -626,6 +628,235 @@ namespace SalesService.Business.Services
             };
 
         }
+        public async Task<InvoiceBasicDTO> CreateCreditNoteAsync(int saleId, CreditNoteCreateForSaleDTO dto)
+        {
+            var sale = await _unitOfWork.SaleRepository.GetIncludingAsync(saleId, s => s.Articles)
+                       ?? throw new InvalidOperationException("Sale not found.");
+
+            if (!sale.HasInvoice)
+                throw new InvalidOperationException("Cannot create a credit note without an invoice.");
+
+            // 1) Factura base de esta venta (para referenciar)
+            var baseInvoice = await _fiscalServiceClient.GetBySaleIdAsync(sale.Id)
+                             ?? throw new InvalidOperationException("Base invoice not found.");
+
+            // 2) Buyer (mismas reglas que al facturar)
+            int buyerDocumentType = sale.CustomerIdType switch
+            {
+                "CUIT" => 80,
+                "DNI" => 96,
+                "CUIL" => 86,
+                _ => throw new InvalidOperationException("Invalid customer ID type.")
+            };
+
+            if (string.IsNullOrWhiteSpace(sale.CustomerTaxId))
+                throw new InvalidOperationException("Customer TaxId is required.");
+
+            // 3) Emisor (empresa)
+            var company = await _companyServiceClient.GetCompanyInfoAsync()
+                          ?? throw new InvalidOperationException("Company information not found.");
+
+            // 4) Validación por motivo + armado de Items/Importes
+            var items = new List<FiscalDocumentItemDTO>();
+            decimal netAmount = 0m, vatAmount = 0m;
+
+            if (dto.Reason == CreditNoteReason.PartialReturn)
+            {
+                // --- NC por ÍTEMS ---
+                if (dto.Items == null || dto.Items.Count == 0)
+                    throw new InvalidOperationException("Items are required for PartialReturn.");
+
+                foreach (var req in dto.Items)
+                {
+                    if (req.Quantity <= 0) throw new InvalidOperationException("Quantity must be > 0.");
+
+                    var saleLine = sale.Articles.FirstOrDefault(a => a.ArticleId == req.ArticleId)
+                                   ?? throw new InvalidOperationException($"Article {req.ArticleId} not found in sale.");
+
+                    // TODO (opcional): validar que no exceda lo ya devuelto acumulado
+
+                    var articleInfo = await _catalogService.GetArticleByIdAsync(req.ArticleId)
+                                     ?? throw new InvalidOperationException($"Article {req.ArticleId} not found in catalog.");
+
+                    var priceWithDiscount = saleLine.UnitPrice * (1 - saleLine.DiscountPercent / 100m) * sale.ExchangeRate;
+                    var baseLine = priceWithDiscount * req.Quantity;
+                    var lineVat = Math.Round(baseLine * (saleLine.IVAPercent / 100m), 2);
+
+                    items.Add(new FiscalDocumentItemDTO
+                    {
+                        Sku = articleInfo.SKU,
+                        Description = $"{articleInfo.Description} - Brand: {articleInfo.Brand}",
+                        UnitPrice = Math.Round(priceWithDiscount, 2),
+                        Quantity = (int)req.Quantity,
+                        VatBase = Math.Round(baseLine, 2),
+                        VatAmount = lineVat,
+                        VatId = saleLine.IVAPercent == 21 ? 5 : 4, // mismo criterior que usas para facturas
+                        DispatchCode = null,
+                        Warranty = articleInfo.Warranty
+                    });
+
+                    netAmount += Math.Round(baseLine, 2);
+                    vatAmount += lineVat;
+                }
+            }
+            else
+            {
+                // --- NC por MONTO ---
+                if (!dto.NetAmount.HasValue || dto.NetAmount.Value <= 0)
+                    throw new InvalidOperationException("NetAmount must be provided and > 0.");
+
+                if (dto.VatAmount.HasValue)
+                {
+                    netAmount = Math.Round(dto.NetAmount.Value, 2);
+                    vatAmount = Math.Round(dto.VatAmount.Value, 2);
+                }
+                else
+                {
+                    if (!dto.VatPercent.HasValue || dto.VatPercent.Value < 0)
+                        throw new InvalidOperationException("VatPercent must be provided when VatAmount is not present.");
+
+                    netAmount = Math.Round(dto.NetAmount.Value, 2);
+                    vatAmount = Math.Round(netAmount * (dto.VatPercent.Value / 100m), 2);
+                }
+
+                // Podés enviar 1 ítem genérico si Fiscal lo prefiere, o dejar Items vacío.
+                items.Add(new FiscalDocumentItemDTO
+                {
+                    Sku = "ADJ-CREDIT",
+                    Description = dto.Comment ?? "Credit adjustment",
+                    UnitPrice = netAmount,
+                    Quantity = 1,
+                    VatBase = netAmount,
+                    VatAmount = vatAmount,
+                    VatId = (dto.VatPercent ?? 21m) == 21m ? 5 : 4,
+                    DispatchCode = null,
+                    Warranty = 0
+                });
+            }
+
+            var totalAmount = Math.Round(netAmount + vatAmount, 2);
+
+            // 5) Armar request al servicio Fiscal
+            var request = new CreditNoteCreateClientDTO
+            {
+                RelatedFiscalDocumentId = baseInvoice.Id,
+                BuyerDocumentType = buyerDocumentType,
+                BuyerDocumentNumber = long.Parse(sale.CustomerTaxId),
+                NetAmount = netAmount,
+                VatAmount = vatAmount,
+                TotalAmount = totalAmount,
+                Items = items,
+                Currency = "PES",
+                ExchangeRate = 1,
+                IssuerTaxId = company.TaxId,
+                Reason = dto.Comment ?? dto.Reason.ToString()
+            };
+
+            var created = await _fiscalServiceClient.CreateCreditNoteAsync(request);
+
+            // si es devolución física, registrar ingreso de mercadería
+            if (dto.Reason == CreditNoteReason.PartialReturn)
+            {
+                if (!dto.ReturnWarehouseId.HasValue || dto.ReturnWarehouseId.Value <= 0)
+                    throw new InvalidOperationException("ReturnWarehouseId is required for PartialReturn.");
+
+                // por cada ítem devuelto, un movimiento hacia el depósito destino
+                foreach (var it in dto.Items!)
+                {
+                    // validación simple
+                    if (it.Quantity <= 0) 
+                        throw new InvalidOperationException("Item quantity must be > 0 for PartialReturn.");
+
+                    var movement = new StockMovementCreateDTO
+                    {
+                        ArticleId = it.ArticleId,
+                        FromWarehouseId = null,                                            // viene de cliente → no hay depósito de origen
+                        ToWarehouseId = dto.ReturnWarehouseId.Value,                       // depósito que recibe
+                        Quantity = it.Quantity,                                            // cantidad devuelta
+                        Reference = $"Nota de Credito {created.DocumentNumber}",           // referencia útil (ej: "CN 0001-00001234")
+                        DispatchId = null,                                                 // si querés enlazar a un remito, cargarlo acá
+                        MovementType = 2                                                   // ⬅️ nuestro tipo “Adjustment”
+                    };
+
+                    await _stockServiceClient.RegisterQuickStockMovementAsync(movement);
+                }
+            }
+
+            // 6) Respuesta en tu DTO resumido (mismo que usas para la factura)
+            return MapToBasic(created);
+        }
+        public async Task<InvoiceBasicDTO> CreateDebitNoteAsync(int saleId, DebitNoteCreateForSaleDTO dto)
+        {
+            var sale = await _unitOfWork.SaleRepository.GetIncludingAsync(saleId, s => s.Articles)
+                       ?? throw new InvalidOperationException("Sale not found.");
+
+            if (!sale.HasInvoice)
+                throw new InvalidOperationException("Cannot create a debit note without an invoice.");
+
+            // 1) Factura base de esta venta (para referenciar)
+            var baseInvoice = await _fiscalServiceClient.GetBySaleIdAsync(sale.Id)
+                             ?? throw new InvalidOperationException("Base invoice not found.");
+
+            // 2) Buyer (mismas reglas que al facturar)
+            int buyerDocumentType = sale.CustomerIdType switch
+            {
+                "CUIT" => 80,
+                "DNI" => 96,
+                "CUIL" => 86,
+                _ => throw new InvalidOperationException("Invalid customer ID type.")
+            };
+
+            if (string.IsNullOrWhiteSpace(sale.CustomerTaxId))
+                throw new InvalidOperationException("Customer TaxId is required.");
+
+            // 3) Emisor (empresa)
+            var company = await _companyServiceClient.GetCompanyInfoAsync()
+                          ?? throw new InvalidOperationException("Company information not found.");
+
+            // 4) Validaciones + cálculo de importes
+            if (dto.NetAmount <= 0)
+                throw new InvalidOperationException("NetAmount must be > 0.");
+
+            decimal netAmount = Math.Round(dto.NetAmount, 2);
+            decimal vatAmount;
+
+            if (dto.VatAmount.HasValue)
+            {
+                vatAmount = Math.Round(dto.VatAmount.Value, 2);
+            }
+            else
+            {
+                if (!dto.VatPercent.HasValue || dto.VatPercent.Value < 0)
+                    throw new InvalidOperationException("VatPercent must be provided when VatAmount is not present.");
+                vatAmount = Math.Round(netAmount * (dto.VatPercent.Value / 100m), 2);
+            }
+
+            var totalAmount = Math.Round(netAmount + vatAmount, 2);
+
+            // 5) Armar request al servicio Fiscal
+            var request = new DebitNoteCreateClientDTO
+            {
+                RelatedFiscalDocumentId = baseInvoice.Id,
+                BuyerDocumentType = buyerDocumentType,
+                BuyerDocumentNumber = long.Parse(sale.CustomerTaxId),
+                NetAmount = netAmount,
+                VatAmount = vatAmount,
+                TotalAmount = totalAmount,
+                // Items: vacío en ND por monto
+                Currency = "PES",
+                ExchangeRate = 1,
+                IssuerTaxId = company.TaxId,
+                Reason = dto.Comment ?? dto.Reason.ToString()
+            };
+
+            var created = await _fiscalServiceClient.CreateDebitNoteAsync(request);
+
+            // 6) Devolver en formato básico (mismo que usás para factura/NC)
+            return MapToBasic(created);
+        }
+
+
+
         private static InvoiceBasicDTO MapToBasic(FiscalDocumentResponseDTO f) => new()
         {
             Id = f.Id,

@@ -1,4 +1,4 @@
-﻿namespace SalesService.Business.Models.Sale
+﻿namespace SalesService.Business.Models.Sale.fiscalDocs
 {
     public class InvoiceBasicDTO
     {

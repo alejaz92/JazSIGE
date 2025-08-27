@@ -4,6 +4,7 @@ using SalesService.Business.Interfaces;
 using SalesService.Business.Models.Clients;
 using SalesService.Business.Models.DeliveryNote;
 using SalesService.Business.Models.Sale;
+using SalesService.Business.Models.Sale.fiscalDocs;
 
 namespace SalesService.Controllers
 {
@@ -194,6 +195,32 @@ namespace SalesService.Controllers
             {
                 return StatusCode(500, new { message = ex.Message });
             }
+        }
+
+        [HttpPost("{saleId}/credit-note")]
+        public async Task<ActionResult<InvoiceBasicDTO>> CreateCreditNote(int saleId, [FromBody] CreditNoteCreateForSaleDTO dto)
+        {
+            try
+            {
+                var result = await _saleService.CreateCreditNoteAsync(saleId, dto);
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+            catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+            catch (Exception ex) { return StatusCode(500, new { message = ex.Message }); }
+        }
+
+        [HttpPost("{saleId}/debit-note")]
+        public async Task<ActionResult<InvoiceBasicDTO>> CreateDebitNote(int saleId, [FromBody] DebitNoteCreateForSaleDTO dto)
+        {
+            try
+            {
+                var result = await _saleService.CreateDebitNoteAsync(saleId, dto);
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+            catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+            catch (Exception ex) { return StatusCode(500, new { message = ex.Message }); }
         }
 
     }
