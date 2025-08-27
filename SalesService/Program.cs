@@ -77,10 +77,12 @@ builder.Services.AddScoped<ISalesQuoteService, SalesQuoteService>();
 builder.Services.AddScoped<ISaleService, SaleService>();
 builder.Services.AddScoped<IDeliveryNoteService, DeliveryNoteService>();
 builder.Services.AddScoped<IFiscalServiceClient, FiscalServiceClient>();
+builder.Services.AddScoped<IRatesService, RatesService>();
 
 
 
 //inyect configuration
+builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient();
 //builder.Services.Configure<AuthServiceSettings>(builder.Configuration.GetSection("AuthService"));
 builder.Services.AddHttpContextAccessor();
