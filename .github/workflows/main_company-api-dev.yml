@@ -1,46 +1,51 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 
-name: Deploy CompanyService
+name: Deploy CompanyService (dev)
 
 on:
   push:
     branches: [ main ]
     paths:
       - 'CompanyService/**'
+      - '.github/workflows/main_company-api-dev.yml'
 
 concurrency:
   group: ${{ github.workflow }}
   cancel-in-progress: true
 
-
 jobs:
   build-and-deploy:
-    runs-on: windows-latest
-    permissions:
-      id-token: write
-      contents: read
-
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Log in to Azure
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - uses: actions/checkout@v4
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
 
-      - name: Publish
-        run: dotnet publish ./CompanyService/CompanyService.csproj -c Release -o ./publish -v minimal
+      - name: Restore
+        run: dotnet restore ./CompanyService/CompanyService.csproj
+
+      - name: Publish (CompanyService only)
+        run: dotnet publish ./CompanyService/CompanyService.csproj -c Release -o ${{ runner.temp }}/publish-company -v minimal
+
+      - name: Sanity check
+        run: |
+          ls -la ${{ runner.temp }}/publish-company
+          test -f ${{ runner.temp }}/publish-company/CompanyService.dll
+          if [ -f "${{ runner.temp }}/publish-company/web.config" ]; then
+            grep -q "CompanyService.dll" ${{ runner.temp }}/publish-company/web.config
+          fi
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
           app-name: companyinfo-api-dev
-          package: ./publish
-
+          package: ${{ runner.temp }}/publish-company

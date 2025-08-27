@@ -1,45 +1,51 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 
-name: Deploy PurchaseService
+name: Deploy PurchaseService (dev)
 
 on:
   push:
     branches: [ main ]
     paths:
       - 'PurchaseService/**'
+      - '.github/workflows/main_purchase-api-dev.yml'
 
 concurrency:
   group: ${{ github.workflow }}
   cancel-in-progress: true
 
-
 jobs:
   build-and-deploy:
-    runs-on: windows-latest
-    permissions:
-      id-token: write
-      contents: read
-
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Log in to Azure
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - uses: actions/checkout@v4
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
 
-      - name: Publish
-        run: dotnet publish -c Release -o ./publish
+      - name: Restore
+        run: dotnet restore ./PurchaseService/PurchaseService.csproj
+
+      - name: Publish (PurchaseService only)
+        run: dotnet publish ./PurchaseService/PurchaseService.csproj -c Release -o ${{ runner.temp }}/publish-purchase -v minimal
+
+      - name: Sanity check
+        run: |
+          ls -la ${{ runner.temp }}/publish-purchase
+          test -f ${{ runner.temp }}/publish-purchase/PurchaseService.dll
+          if [ -f "${{ runner.temp }}/publish-purchase/web.config" ]; then
+            grep -q "PurchaseService.dll" ${{ runner.temp }}/publish-purchase/web.config
+          fi
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
           app-name: purchase-api-dev
-          package: ./publish
+          package: ${{ runner.temp }}/publish-purchase
