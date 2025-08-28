@@ -1,15 +1,17 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using System.Text;
+using SalesService.Business.Interfaces;
+using SalesService.Business.Interfaces.Clients;
+using SalesService.Business.Services;
+using SalesService.Business.Services.Clients;
+using SalesService.Infrastructure.Data;
 using SalesService.Infrastructure.Interfaces;
 using SalesService.Infrastructure.Repositories;
-using SalesService.Infrastructure.Data;
-using SalesService.Business.Interfaces;
-using SalesService.Business.Services;
 using System.Security.Claims;
-using SalesService.Business.Interfaces.Clients;
-using SalesService.Business.Services.Clients;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 // test433
 
@@ -88,7 +90,14 @@ builder.Services.AddHttpClient();
 builder.Services.AddHttpContextAccessor();
 
 // Controllers
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(o =>
+    {
+        // serializa enums como texto (camelCase opcional) y ACEPTA enteros al deserializar
+        o.JsonSerializerOptions.Converters.Add(
+            new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: true)
+        );
+    });
 
 var app = builder.Build();
 

@@ -1,17 +1,15 @@
-using FiscalDocumentationService.Business.Interfaces;
-using FiscalDocumentationService.Business.Interfaces.Clients;
-using FiscalDocumentationService.Business.Services;
-using FiscalDocumentationService.Business.Services.Clients;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using System.Security.Claims;
 using FiscalDocumentationService.Infrastructure.Data;
 using FiscalDocumentationService.Infrastructure.Interfaces;
 using FiscalDocumentationService.Infrastructure.Repositories;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using System.Security.Claims;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
+using FiscalDocumentationService.Business.Interfaces;
+using FiscalDocumentationService.Business.Services;
+using FiscalDocumentationService.Business.Interfaces.Clients;
+using FiscalDocumentationService.Business.Services.Clients;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -66,17 +64,8 @@ builder.Services.AddScoped<IArcaServiceClient, ArcaServiceClient>();
 builder.Services.AddHttpClient();
 
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddControllers();
 
-
-
-builder.Services.AddControllers()
-    .AddJsonOptions(o =>
-    {
-        // Serializa enums como strings (camelCase opcional) y ACEPTA enteros al deserializar
-        o.JsonSerializerOptions.Converters.Add(
-            new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: true)
-        );
-    });
 
 
 var app = builder.Build();
