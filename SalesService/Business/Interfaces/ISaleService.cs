@@ -13,7 +13,10 @@ namespace SalesService.Business.Interfaces
         Task<QuickSaleResultDTO> CreateQuickAsync(QuickSaleCreateDTO dto, int performedByUserId);
         Task DeleteAsync(int id);
         Task<IEnumerable<SaleDTO>> GetAllAsync();
+        Task<IReadOnlyList<SaleNoteSummaryDTO>> GetAllNotesAsync(int saleId);
         Task<SaleDetailDTO?> GetByIdAsync(int id);
+        Task<IReadOnlyList<SaleNoteSummaryDTO>> GetCreditNotesAsync(int saleId);
+        Task<IReadOnlyList<SaleNoteSummaryDTO>> GetDebitNotesAsync(int saleId);
         Task<InvoiceBasicDTO> GetInvoiceAsync(int saleId);
         Task<InvoiceDetailDTO> GetInvoiceDetailAsync(int saleId);
     }

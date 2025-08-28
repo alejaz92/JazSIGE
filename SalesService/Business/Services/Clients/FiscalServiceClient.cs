@@ -92,5 +92,18 @@ namespace SalesService.Business.Services.Clients
             var list = await response.Content.ReadFromJsonAsync<IEnumerable<FiscalDocumentResponseDTO>>();
             return list ?? Enumerable.Empty<FiscalDocumentResponseDTO>();
         }
+        public async Task<IEnumerable<FiscalDocumentResponseDTO>> GetDebitNotesByRelatedIdAsync(int relatedFiscalDocumentId)
+        {
+            var client = CreateAuthorizedClient();
+            var url = $"{_fiscalBaseUrl.TrimEnd('/')}/debit-notes?relatedId={relatedFiscalDocumentId}";
+            var response = await client.GetAsync(url);
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                throw new InvalidOperationException($"Error fetching debit notes: {error}");
+            }
+            var list = await response.Content.ReadFromJsonAsync<IEnumerable<FiscalDocumentResponseDTO>>();
+            return list ?? Enumerable.Empty<FiscalDocumentResponseDTO>();
+        }
     }
 }

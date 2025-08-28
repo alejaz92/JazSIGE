@@ -223,5 +223,28 @@ namespace SalesService.Controllers
             catch (Exception ex) { return StatusCode(500, new { message = ex.Message }); }
         }
 
+        // Controllers/SaleController.cs
+        [HttpGet("{saleId}/credit-notes")]
+        public async Task<ActionResult<IEnumerable<SaleNoteSummaryDTO>>> GetCreditNotes(int saleId)
+        {
+            var res = await _saleService.GetCreditNotesAsync(saleId);
+            return Ok(res);
+        }
+
+        [HttpGet("{saleId}/debit-notes")]
+        public async Task<ActionResult<IEnumerable<SaleNoteSummaryDTO>>> GetDebitNotes(int saleId)
+        {
+            var res = await _saleService.GetDebitNotesAsync(saleId);
+            return Ok(res);
+        }
+
+        [HttpGet("{saleId}/notes")]
+        public async Task<ActionResult<IEnumerable<SaleNoteSummaryDTO>>> GetAllNotes(int saleId)
+        {
+            var res = await _saleService.GetAllNotesAsync(saleId);
+            return Ok(res);
+        }
+
+
     }
 }
