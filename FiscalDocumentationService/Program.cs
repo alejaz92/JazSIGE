@@ -66,7 +66,7 @@ builder.Services.AddScoped<IArcaServiceClient, ArcaServiceClient>();
 builder.Services.AddHttpClient();
 
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddControllers();
+
 
 
 builder.Services.AddControllers()
