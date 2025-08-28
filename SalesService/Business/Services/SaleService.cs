@@ -640,6 +640,58 @@ namespace SalesService.Business.Services
             var baseInvoice = await _fiscalServiceClient.GetBySaleIdAsync(sale.Id)
                              ?? throw new InvalidOperationException("Base invoice not found.");
 
+            // 1) Traer NC previas de la factura base
+            var previousCNs = await _fiscalServiceClient.GetCreditNotesByRelatedIdAsync(baseInvoice.Id);
+
+            // 2) Sumar total acumulado de NC previas (para validar contra el total de la factura)
+            var previousCNsTotal = previousCNs.Sum(n => n.TotalAmount);
+
+            // 3) Si el motivo es devolución por ítems, validar cantidades acumuladas por artículo
+            if (dto.Reason == CreditNoteReason.PartialReturn && dto.Items != null && dto.Items.Count > 0)
+            {
+                // Mapa SKU -> devuelto acumulado (desde NC previas)
+                var returnedQtyBySku = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var note in previousCNs)
+                {
+                    if (note.Items == null) continue;
+                    foreach (var it in note.Items)
+                    {
+                        // ignorar líneas genéricas de ajuste monetario (si las hubo)
+                        if (string.IsNullOrWhiteSpace(it.Sku) || it.Sku == "ADJ-CREDIT") continue;
+
+                        if (!returnedQtyBySku.ContainsKey(it.Sku))
+                            returnedQtyBySku[it.Sku] = 0;
+
+                        returnedQtyBySku[it.Sku] += it.Quantity;
+                    }
+                }
+
+                // Validar que lo solicitado no exceda lo vendido por artículo
+                foreach (var req in dto.Items)
+                {
+                    var saleLine = sale.Articles.FirstOrDefault(a => a.ArticleId == req.ArticleId)
+                                   ?? throw new InvalidOperationException($"Article {req.ArticleId} not found in sale.");
+
+                    var artInfo = await _catalogService.GetArticleByIdAsync(req.ArticleId)
+                                 ?? throw new InvalidOperationException($"Article {req.ArticleId} not found in catalog.");
+
+                    var prevReturned = returnedQtyBySku.TryGetValue(artInfo.SKU, out var q) ? q : 0m;
+                    var requested = req.Quantity;
+                    var sold = saleLine.Quantity;
+
+                    if (requested <= 0)
+                        throw new InvalidOperationException($"Invalid quantity for article {req.ArticleId}.");
+
+                    if (prevReturned + requested > sold)
+                    {
+                        throw new InvalidOperationException(
+                            $"Accumulated return for article {req.ArticleId} exceeds sold quantity. " +
+                            $"Sold: {sold}, Returned: {prevReturned}, Requested: {requested}.");
+                    }
+                }
+            }
+
             // 2) Buyer (mismas reglas que al facturar)
             int buyerDocumentType = sale.CustomerIdType switch
             {
@@ -735,6 +787,17 @@ namespace SalesService.Business.Services
             }
 
             var totalAmount = Math.Round(netAmount + vatAmount, 2);
+
+            var newCNTot = Math.Round(netAmount + vatAmount, 2);
+            if (previousCNsTotal + newCNTot > baseInvoice.TotalAmount)
+            {
+                throw new InvalidOperationException(
+                    $"Credit notes total would exceed the base invoice total. " +
+                    $"Invoice total: {baseInvoice.TotalAmount}, " +
+                    $"Already credited: {previousCNsTotal}, " +
+                    $"This CN: {newCNTot}.");
+            }
+
 
             // 5) Armar request al servicio Fiscal
             var request = new CreditNoteCreateClientDTO

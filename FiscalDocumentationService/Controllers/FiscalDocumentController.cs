@@ -59,5 +59,21 @@ namespace FiscalDocumentationService.Controllers
             return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
         }
 
+        [HttpGet("credit-notes")]
+        public async Task<ActionResult<IEnumerable<FiscalDocumentDTO>>> GetCreditNotes([FromQuery] int relatedId)
+        {
+            if (relatedId <= 0) return BadRequest(new { message = "relatedId must be > 0." });
+            var list = await _fiscalDocumentService.GetCreditNotesByRelatedIdAsync(relatedId);
+            return Ok(list);
+        }
+
+        [HttpGet("debit-notes")]
+        public async Task<ActionResult<IEnumerable<FiscalDocumentDTO>>> GetDebitNotes([FromQuery] int relatedId)
+        {
+            if (relatedId <= 0) return BadRequest(new { message = "relatedId must be > 0." });
+            var list = await _fiscalDocumentService.GetDebitNotesByRelatedIdAsync(relatedId);
+            return Ok(list);
+        }
+
     }
 }

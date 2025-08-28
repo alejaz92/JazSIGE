@@ -262,6 +262,20 @@ namespace FiscalDocumentationService.Business.Services
 
             return MapToDTO(document);
         }
+        public async Task<IReadOnlyList<FiscalDocumentDTO>> GetCreditNotesByRelatedIdAsync(int relatedId)
+        {
+            var docs = await _unitOfWork.FiscalDocumentRepository
+                .GetByRelatedIdAsync(relatedId, FiscalDocumentType.CreditNote);
+
+            return docs.Select(MapToDTO).ToList();
+        }
+        public async Task<IReadOnlyList<FiscalDocumentDTO>> GetDebitNotesByRelatedIdAsync(int relatedId)
+        {
+            var docs = await _unitOfWork.FiscalDocumentRepository
+                .GetByRelatedIdAsync(relatedId, FiscalDocumentType.DebitNote);
+
+            return docs.Select(MapToDTO).ToList();
+        }
 
 
         private FiscalDocumentDTO MapToDTO(FiscalDocument doc)

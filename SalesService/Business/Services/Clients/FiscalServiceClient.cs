@@ -77,5 +77,20 @@ namespace SalesService.Business.Services.Clients
             var result = await response.Content.ReadFromJsonAsync<FiscalDocumentResponseDTO>();
             return result!;
         }
+        public async Task<IEnumerable<FiscalDocumentResponseDTO>> GetCreditNotesByRelatedIdAsync(int relatedFiscalDocumentId)
+        {
+            var client = CreateAuthorizedClient();
+            var url = $"{_fiscalBaseUrl.TrimEnd('/')}/credit-notes?relatedId={relatedFiscalDocumentId}";
+            var response = await client.GetAsync(url);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                throw new InvalidOperationException($"Error fetching credit notes: {error}");
+            }
+
+            var list = await response.Content.ReadFromJsonAsync<IEnumerable<FiscalDocumentResponseDTO>>();
+            return list ?? Enumerable.Empty<FiscalDocumentResponseDTO>();
+        }
     }
 }

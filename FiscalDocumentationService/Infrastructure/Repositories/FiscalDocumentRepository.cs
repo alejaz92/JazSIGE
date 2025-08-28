@@ -33,5 +33,17 @@ namespace FiscalDocumentationService.Infrastructure.Repositories
         public async Task<decimal> GetDebitNotesTotalForAsync(int relatedId) => await _context.FiscalDocuments
                 .Where(d => d.RelatedFiscalDocumentId == relatedId && d.Type == FiscalDocumentType.DebitNote)
                 .SumAsync(d => d.TotalAmount);
+
+        public async Task<List<FiscalDocument>> GetByRelatedIdAsync(int relatedId, FiscalDocumentType? type = null)
+        {
+            var query = _context.FiscalDocuments
+                .Include(d => d.Items)
+                .Where(d => d.RelatedFiscalDocumentId == relatedId);
+
+            if (type.HasValue)
+                query = query.Where(d => d.Type == type.Value);
+
+            return await query.ToListAsync();
+        }
     }
 }

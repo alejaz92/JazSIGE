@@ -9,5 +9,7 @@ namespace FiscalDocumentationService.Business.Interfaces
         Task<FiscalDocumentDTO> CreateDebitNoteAsync(DebitNoteCreateDTO dto);
         Task<FiscalDocumentDTO?> GetByIdAsync(int id);
         Task<FiscalDocumentDTO?> GetBySalesOrderIdAsync(int salesOrderId);
+        Task<IReadOnlyList<FiscalDocumentDTO>> GetCreditNotesByRelatedIdAsync(int relatedId);
+        Task<IReadOnlyList<FiscalDocumentDTO>> GetDebitNotesByRelatedIdAsync(int relatedId);
     }
 }

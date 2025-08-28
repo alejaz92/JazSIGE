@@ -8,5 +8,6 @@ namespace SalesService.Business.Interfaces.Clients
         Task<FiscalDocumentResponseDTO> CreateDebitNoteAsync(DebitNoteCreateClientDTO dto);
         Task<FiscalDocumentResponseDTO> CreateInvoiceAsync(FiscalDocumentCreateDTO dto);
         Task<FiscalDocumentResponseDTO?> GetBySaleIdAsync(int salesOrderId);
+        Task<IEnumerable<FiscalDocumentResponseDTO>> GetCreditNotesByRelatedIdAsync(int relatedFiscalDocumentId);
     }
 }
