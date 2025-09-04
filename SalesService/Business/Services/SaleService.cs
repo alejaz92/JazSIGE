@@ -640,7 +640,7 @@ namespace SalesService.Business.Services
                              ?? throw new InvalidOperationException("Base invoice not found.");
 
             // 1) Traer NC previas de la factura base
-            var previousCNs = await _fiscalServiceClient.GetCreditNotesIdAsync(sale.Id);
+            var previousCNs = await _fiscalServiceClient.GetCreditNotesAsync(sale.Id);
 
             // 2) Sumar total acumulado de NC previas (para validar contra el total de la factura)
             var previousCNsTotal = previousCNs.Sum(n => n.TotalAmount);
