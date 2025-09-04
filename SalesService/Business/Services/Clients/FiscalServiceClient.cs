@@ -91,10 +91,10 @@ namespace SalesService.Business.Services.Clients
         //    var result = await response.Content.ReadFromJsonAsync<FiscalDocumentResponseDTO>();
         //    return result!;
         //}
-        public async Task<IEnumerable<FiscalDocumentResponseDTO>> GetCreditNotesByRelatedIdAsync(int relatedFiscalDocumentId)
+        public async Task<IEnumerable<FiscalDocumentResponseDTO>> GetCreditNotesAsync(int saleId)
         {
             var client = CreateAuthorizedClient();
-            var url = $"{_fiscalBaseUrl.TrimEnd('/')}/credit-notes?relatedId={relatedFiscalDocumentId}";
+            var url = $"{_fiscalBaseUrl.TrimEnd('/')}/credit-notes?saleId={saleId}";
             var response = await client.GetAsync(url);
 
             if (!response.IsSuccessStatusCode)
@@ -106,10 +106,10 @@ namespace SalesService.Business.Services.Clients
             var list = await response.Content.ReadFromJsonAsync<IEnumerable<FiscalDocumentResponseDTO>>();
             return list ?? Enumerable.Empty<FiscalDocumentResponseDTO>();
         }
-        public async Task<IEnumerable<FiscalDocumentResponseDTO>> GetDebitNotesByRelatedIdAsync(int relatedFiscalDocumentId)
+        public async Task<IEnumerable<FiscalDocumentResponseDTO>> GetDebitNotesdIdAsync(int saleId)
         {
             var client = CreateAuthorizedClient();
-            var url = $"{_fiscalBaseUrl.TrimEnd('/')}/debit-notes?relatedId={relatedFiscalDocumentId}";
+            var url = $"{_fiscalBaseUrl.TrimEnd('/')}/debit-notes?saleId={saleId}";
             var response = await client.GetAsync(url);
             if (!response.IsSuccessStatusCode)
             {

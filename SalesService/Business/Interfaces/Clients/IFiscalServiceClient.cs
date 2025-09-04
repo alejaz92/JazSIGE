@@ -9,7 +9,8 @@ namespace SalesService.Business.Interfaces.Clients
         Task<FiscalDocumentResponseDTO> CreateFiscalNoteAsync(FiscalDocumentCreateDTO dto);
         Task<FiscalDocumentResponseDTO?> GetByIdAsync(int id);
         Task<FiscalDocumentResponseDTO?> GetBySaleIdAsync(int salesOrderId);
-        Task<IEnumerable<FiscalDocumentResponseDTO>> GetCreditNotesByRelatedIdAsync(int relatedFiscalDocumentId);
-        Task<IEnumerable<FiscalDocumentResponseDTO>> GetDebitNotesByRelatedIdAsync(int relatedFiscalDocumentId);
+        Task<IEnumerable<FiscalDocumentResponseDTO>> GetCreditNotesAsync(int saleId);
+        Task<IEnumerable<FiscalDocumentResponseDTO>> GetCreditNotesIdAsync(int saleId);
+        Task<IEnumerable<FiscalDocumentResponseDTO>> GetDebitNotesIdAsync(int saleId);
     }
 }

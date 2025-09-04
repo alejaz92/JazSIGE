@@ -1009,7 +1009,7 @@ namespace SalesService.Business.Services
         {
             var baseInvoice = await _fiscalServiceClient.GetBySaleIdAsync(saleId)
                              ?? throw new InvalidOperationException("Base invoice not found.");
-            var notes = await _fiscalServiceClient.GetCreditNotesByRelatedIdAsync(baseInvoice.Id);
+            var notes = await _fiscalServiceClient.GetCreditNotesAsync(baseInvoice.Id);
 
             return notes.Select(n => new SaleNoteSummaryDTO
             {
@@ -1024,7 +1024,7 @@ namespace SalesService.Business.Services
         {
             var baseInvoice = await _fiscalServiceClient.GetBySaleIdAsync(saleId)
                              ?? throw new InvalidOperationException("Base invoice not found.");
-            var notes = await _fiscalServiceClient.GetDebitNotesByRelatedIdAsync(baseInvoice.Id);
+            var notes = await _fiscalServiceClient.GetDebitNotesIdAsync(saleId);
 
             return notes.Select(n => new SaleNoteSummaryDTO
             {
