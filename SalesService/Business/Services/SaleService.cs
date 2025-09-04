@@ -501,7 +501,7 @@ namespace SalesService.Business.Services
                 IssuerTaxId = company.TaxId
             };
 
-            var result = await _fiscalServiceClient.CreateInvoiceAsync(fiscalRequest);
+            var result = await _fiscalServiceClient.CreateFiscalNoteAsync(fiscalRequest);
 
             sale.HasInvoice = true;
             _unitOfWork.SaleRepository.Update(sale);
@@ -645,6 +645,40 @@ namespace SalesService.Business.Services
             // 2) Sumar total acumulado de NC previas (para validar contra el total de la factura)
             var previousCNsTotal = previousCNs.Sum(n => n.TotalAmount);
 
+
+            // define invoice type based on customer
+            var invoiceType = 0;
+            CustomerDTO customer = new CustomerDTO
+            {
+                Id = 0,
+                CompanyName = "Final Consumer",
+                TaxId = "N/A",
+                Address = "N/A",
+                PostalCode = "N/A",
+                City = "N/A",
+                Province = "N/A",
+                Country = "N/A",
+                SellCondition = "N/A",
+                IVAType = "N/A"
+            };
+
+            if (!sale.IsFinalConsumer)
+            {
+                customer = await _catalogService.GetCustomerByIdAsync(sale.CustomerId.Value);
+                if (customer == null)
+                    throw new InvalidOperationException("Customer not found.");
+
+            }
+
+
+            if (sale.IsFinalConsumer || customer.IVAType == "Exento" || customer.IVAType == "Monotributo")
+                // Nota Credito tipo b
+                invoiceType = 8; // Nota de Crédito B
+
+            else
+                invoiceType = 3; // Nota de Crédito A
+
+
             // 3) Si el motivo es devolución por ítems, validar cantidades acumuladas por artículo
             if (dto.Reason == CreditNoteReason.PartialReturn && dto.Items != null && dto.Items.Count > 0)
             {
@@ -774,7 +808,7 @@ namespace SalesService.Business.Services
                 items.Add(new FiscalDocumentItemDTO
                 {
                     Sku = "ADJ-CREDIT",
-                    Description = dto.Comment ?? "Credit adjustment",
+                    Description = dto.Comment ?? "Ajuste de Credito",
                     UnitPrice = netAmount,
                     Quantity = 1,
                     VatBase = netAmount,
@@ -797,24 +831,27 @@ namespace SalesService.Business.Services
                     $"This CN: {newCNTot}.");
             }
 
+            
+            //// 5) Armar request al servicio Fiscal
 
-            // 5) Armar request al servicio Fiscal
-            var request = new CreditNoteCreateClientDTO
+            var request = new FiscalDocumentCreateDTO
             {
-                RelatedFiscalDocumentId = baseInvoice.Id,
+                PointOfSale = baseInvoice.PointOfSale,
+                InvoiceType = invoiceType,
                 BuyerDocumentType = buyerDocumentType,
                 BuyerDocumentNumber = long.Parse(sale.CustomerTaxId),
                 NetAmount = netAmount,
                 VatAmount = vatAmount,
                 TotalAmount = totalAmount,
+                SalesOrderId = saleId,
                 Items = items,
-                Currency = "PES",
+                Currency = "PES", // Default currency
                 ExchangeRate = 1,
-                IssuerTaxId = company.TaxId,
-                Reason = dto.Comment ?? dto.Reason.ToString()
+                IssuerTaxId = company.TaxId
             };
 
-            var created = await _fiscalServiceClient.CreateCreditNoteAsync(request);
+
+            var created = await _fiscalServiceClient.CreateFiscalNoteAsync(request);
 
             // si es devolución física, registrar ingreso de mercadería
             if (dto.Reason == CreditNoteReason.PartialReturn)
@@ -871,6 +908,38 @@ namespace SalesService.Business.Services
             if (string.IsNullOrWhiteSpace(sale.CustomerTaxId))
                 throw new InvalidOperationException("Customer TaxId is required.");
 
+            // define invoice type based on customer
+            var invoiceType = 0;
+            CustomerDTO customer = new CustomerDTO
+            {
+                Id = 0,
+                CompanyName = "Final Consumer",
+                TaxId = "N/A",
+                Address = "N/A",
+                PostalCode = "N/A",
+                City = "N/A",
+                Province = "N/A",
+                Country = "N/A",
+                SellCondition = "N/A",
+                IVAType = "N/A"
+            };
+
+            if (!sale.IsFinalConsumer)
+            {
+                customer = await _catalogService.GetCustomerByIdAsync(sale.CustomerId.Value);
+                if (customer == null)
+                    throw new InvalidOperationException("Customer not found.");
+
+            }
+
+
+            if (sale.IsFinalConsumer || customer.IVAType == "Exento" || customer.IVAType == "Monotributo")
+                // Nota Credito tipo b
+                invoiceType = 7; // Nota de Debito B
+
+            else
+                invoiceType = 2; // Nota de Debito A
+
             // 3) Emisor (empresa)
             var company = await _companyServiceClient.GetCompanyInfoAsync()
                           ?? throw new InvalidOperationException("Company information not found.");
@@ -895,23 +964,43 @@ namespace SalesService.Business.Services
 
             var totalAmount = Math.Round(netAmount + vatAmount, 2);
 
-            // 5) Armar request al servicio Fiscal
-            var request = new DebitNoteCreateClientDTO
+            
+            // crear item generico
+            var items = new List<FiscalDocumentItemDTO>
             {
-                RelatedFiscalDocumentId = baseInvoice.Id,
+                new FiscalDocumentItemDTO
+                {
+                    Sku = "ADJ-DEBIT",
+                    Description = dto.Comment ?? "Ajuste de Debito",
+                    UnitPrice = netAmount,
+                    Quantity = 1,
+                    VatBase = netAmount,
+                    VatAmount = vatAmount,
+                    VatId = (dto.VatPercent ?? 21m) == 21m ? 5 : 4,
+                    DispatchCode = null,
+                    Warranty = 0
+                }
+            };
+
+
+            // 5) Armar request al servicio Fiscal
+            var request = new FiscalDocumentCreateDTO
+            {
+                PointOfSale = baseInvoice.PointOfSale,
+                InvoiceType = invoiceType,
                 BuyerDocumentType = buyerDocumentType,
                 BuyerDocumentNumber = long.Parse(sale.CustomerTaxId),
                 NetAmount = netAmount,
                 VatAmount = vatAmount,
                 TotalAmount = totalAmount,
-                // Items: vacío en ND por monto
-                Currency = "PES",
+                SalesOrderId = saleId,
+                Items = items,
+                Currency = "PES", // Default currency
                 ExchangeRate = 1,
-                IssuerTaxId = company.TaxId,
-                Reason = dto.Comment ?? dto.Reason.ToString()
+                IssuerTaxId = company.TaxId
             };
 
-            var created = await _fiscalServiceClient.CreateDebitNoteAsync(request);
+            var created = await _fiscalServiceClient.CreateFiscalNoteAsync(request);
 
             // 6) Devolver en formato básico (mismo que usás para factura/NC)
             return MapToBasic(created);

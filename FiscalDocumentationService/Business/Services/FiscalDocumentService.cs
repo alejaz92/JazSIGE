@@ -226,12 +226,6 @@ namespace FiscalDocumentationService.Business.Services
             public string tipoCodAut { get; set; } = "E";
             public string codAut { get; set; } = "";
         }
-
-        // Mapea el tipo de NOTA (AFIP) a partir del tipo de FACTURA base.
-        // A: 01 -> ND 02, NC 03
-        // B: 06 -> ND 07, NC 08
-        // C: 11 -> ND 12, NC 13
-        // M: 51 -> ND 52, NC 53
         
 
     }
