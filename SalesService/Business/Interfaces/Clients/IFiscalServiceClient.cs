@@ -10,7 +10,6 @@ namespace SalesService.Business.Interfaces.Clients
         Task<FiscalDocumentResponseDTO?> GetByIdAsync(int id);
         Task<FiscalDocumentResponseDTO?> GetBySaleIdAsync(int salesOrderId);
         Task<IEnumerable<FiscalDocumentResponseDTO>> GetCreditNotesAsync(int saleId);
-        Task<IEnumerable<FiscalDocumentResponseDTO>> GetCreditNotesIdAsync(int saleId);
-        Task<IEnumerable<FiscalDocumentResponseDTO>> GetDebitNotesIdAsync(int saleId);
+        Task<IEnumerable<FiscalDocumentResponseDTO>> GetDebitNotesAsync(int saleId);
     }
 }

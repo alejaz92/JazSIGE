@@ -106,7 +106,7 @@ namespace SalesService.Business.Services.Clients
             var list = await response.Content.ReadFromJsonAsync<IEnumerable<FiscalDocumentResponseDTO>>();
             return list ?? Enumerable.Empty<FiscalDocumentResponseDTO>();
         }
-        public async Task<IEnumerable<FiscalDocumentResponseDTO>> GetDebitNotesdIdAsync(int saleId)
+        public async Task<IEnumerable<FiscalDocumentResponseDTO>> GetDebitNotesAsync(int saleId)
         {
             var client = CreateAuthorizedClient();
             var url = $"{_fiscalBaseUrl.TrimEnd('/')}/debit-notes?saleId={saleId}";
