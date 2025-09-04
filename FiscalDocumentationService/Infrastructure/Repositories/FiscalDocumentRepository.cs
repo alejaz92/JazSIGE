@@ -26,19 +26,19 @@ namespace FiscalDocumentationService.Infrastructure.Repositories
                 .Include(d => d.Items)
                 .FirstOrDefaultAsync(d => d.SalesOrderId == salesOrderId);
 
-        public async Task<decimal> GetCreditNotesTotalForAsync(int relatedId) => await _context.FiscalDocuments
-                .Where(d => d.RelatedFiscalDocumentId == relatedId && d.Type == FiscalDocumentType.CreditNote)
+        public async Task<decimal> GetCreditNotesTotalForAsync(int saleId) => await _context.FiscalDocuments
+                .Where(d => d.SalesOrderId == saleId && d.Type == FiscalDocumentType.CreditNote)
                 .SumAsync(d => d.TotalAmount);
 
-        public async Task<decimal> GetDebitNotesTotalForAsync(int relatedId) => await _context.FiscalDocuments
-                .Where(d => d.RelatedFiscalDocumentId == relatedId && d.Type == FiscalDocumentType.DebitNote)
+        public async Task<decimal> GetDebitNotesTotalForAsync(int saleId) => await _context.FiscalDocuments
+                .Where(d => d.SalesOrderId == saleId && d.Type == FiscalDocumentType.DebitNote)
                 .SumAsync(d => d.TotalAmount);
 
-        public async Task<List<FiscalDocument>> GetByRelatedIdAsync(int relatedId, FiscalDocumentType? type = null)
+        public async Task<List<FiscalDocument>> GetBySaleIdIdAsync(int saleId, FiscalDocumentType? type = null)
         {
             var query = _context.FiscalDocuments
                 .Include(d => d.Items)
-                .Where(d => d.RelatedFiscalDocumentId == relatedId);
+                .Where(d => d.SalesOrderId == saleId);
 
             if (type.HasValue)
                 query = query.Where(d => d.Type == type.Value);

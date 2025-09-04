@@ -45,33 +45,19 @@ namespace FiscalDocumentationService.Controllers
             return Ok(document);
         }
 
-        [HttpPost("credit-notes")]
-        public async Task<ActionResult<FiscalDocumentDTO>> CreateCreditNote([FromBody] CreditNoteCreateDTO dto)
-        {
-            var result = await _fiscalDocumentService.CreateCreditNoteAsync(dto);
-            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
-        }
-
-        [HttpPost("debit-notes")]
-        public async Task<ActionResult<FiscalDocumentDTO>> CreateDebitNote([FromBody] DebitNoteCreateDTO dto)
-        {
-            var result = await _fiscalDocumentService.CreateDebitNoteAsync(dto);
-            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
-        }
-
         [HttpGet("credit-notes")]
-        public async Task<ActionResult<IEnumerable<FiscalDocumentDTO>>> GetCreditNotes([FromQuery] int relatedId)
+        public async Task<ActionResult<IEnumerable<FiscalDocumentDTO>>> GetCreditNotes([FromQuery] int saleId)
         {
-            if (relatedId <= 0) return BadRequest(new { message = "relatedId must be > 0." });
-            var list = await _fiscalDocumentService.GetCreditNotesByRelatedIdAsync(relatedId);
+            if (saleId <= 0) return BadRequest(new { message = "relatedId must be > 0." });
+            var list = await _fiscalDocumentService.GetCreditNotesBySaleIdAsync(saleId);
             return Ok(list);
         }
 
         [HttpGet("debit-notes")]
-        public async Task<ActionResult<IEnumerable<FiscalDocumentDTO>>> GetDebitNotes([FromQuery] int relatedId)
+        public async Task<ActionResult<IEnumerable<FiscalDocumentDTO>>> GetDebitNotes([FromQuery] int saleId)
         {
-            if (relatedId <= 0) return BadRequest(new { message = "relatedId must be > 0." });
-            var list = await _fiscalDocumentService.GetDebitNotesByRelatedIdAsync(relatedId);
+            if (saleId <= 0) return BadRequest(new { message = "relatedId must be > 0." });
+            var list = await _fiscalDocumentService.GetDebitNotesBySaleIdAsync(saleId);
             return Ok(list);
         }
 

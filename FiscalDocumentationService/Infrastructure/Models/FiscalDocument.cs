@@ -27,7 +27,7 @@
         public decimal OtherTaxesAmount { get; set; }
         public decimal TotalAmount { get; set; }
 
-        public int? SalesOrderId { get; set; }
+        public int SalesOrderId { get; set; }
 
         public ICollection<FiscalDocumentItem> Items { get; set; } = new List<FiscalDocumentItem>();
 
@@ -35,7 +35,7 @@
         public decimal ExchangeRate { get; set; } = 1; // Default exchange rate
         public string IssuerTaxId { get; set; }
 
-        public int? RelatedFiscalDocumentId { get; set; }
+        
 
     }
 }

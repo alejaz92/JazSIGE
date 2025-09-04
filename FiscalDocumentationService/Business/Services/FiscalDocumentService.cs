@@ -130,149 +130,17 @@ namespace FiscalDocumentationService.Business.Services
             var doc = await _unitOfWork.FiscalDocumentRepository.GetBySalesOrderIdAsync(salesOrderId);
             return doc == null ? null : MapToDTO(doc);
         }
-        public async Task<FiscalDocumentDTO> CreateCreditNoteAsync(CreditNoteCreateDTO dto)
-        {
-            var baseInvoice = await _unitOfWork.FiscalDocumentRepository.GetByIdAsync(dto.RelatedFiscalDocumentId)
-                ?? throw new ArgumentException("Related invoice not found");
-
-            // Validaciones mínimas: mismo receptor
-            if (baseInvoice.BuyerDocumentType != dto.BuyerDocumentType ||
-                baseInvoice.BuyerDocumentNumber != dto.BuyerDocumentNumber)
-                throw new InvalidOperationException("Buyer must match the original invoice.");
-
-            // (Opcional) Validar que no se exceda el total de la factura con las NC acumuladas
-            var creditAcc = await _unitOfWork.FiscalDocumentRepository.GetCreditNotesTotalForAsync(baseInvoice.Id);
-            if (creditAcc + dto.TotalAmount > baseInvoice.TotalAmount)
-                throw new InvalidOperationException("Credit amount exceeds original invoice total.");
-
-            var number = GenerateInvoiceNumber();
-            var document = new FiscalDocument
-            {
-                Type = FiscalDocumentType.CreditNote,
-                RelatedFiscalDocumentId = baseInvoice.Id,
-
-                PointOfSale = dto.PointOfSale,
-                InvoiceType = MapNoteTypeFromInvoice(baseInvoice.InvoiceType, isCredit: true),
-                BuyerDocumentType = dto.BuyerDocumentType,
-                BuyerDocumentNumber = dto.BuyerDocumentNumber,
-
-                InvoiceFrom = number,
-                InvoiceTo = number,
-                Date = DateTime.Now,
-
-                NetAmount = dto.NetAmount,
-                VATAmount = dto.VatAmount,
-                ExemptAmount = dto.ExemptAmount,
-                NonTaxableAmount = dto.NonTaxableAmount,
-                OtherTaxesAmount = dto.OtherTaxesAmount,
-                TotalAmount = dto.TotalAmount,
-
-                Currency = dto.Currency,
-                ExchangeRate = dto.ExchangeRate,
-                IssuerTaxId = dto.IssuerTaxId.Replace("-", ""),
-
-                Items = dto.Items.Select(i => new FiscalDocumentItem
-                {
-                    Sku = i.Sku,
-                    Description = i.Description,
-                    UnitPrice = i.UnitPrice,
-                    Quantity = i.Quantity,
-                    VATId = i.VatId,
-                    VATBase = i.VatBase,
-                    VATAmount = i.VatAmount,
-                    DispatchCode = i.DispatchCode,
-                    Warranty = i.Warranty
-                }).ToList()
-            };
-
-            var arcaRequest = BuildArcaRequest(document); // Reusa tu builder
-            var arcaResponse = await _arcaClient.AuthorizeAsync(arcaRequest);
-
-            document.CAE = arcaResponse.cae;
-            document.CAEExpiration = DateTime.ParseExact(arcaResponse.caeExpirationDate, "yyyyMMdd", null);
-            document.DocumentNumber = $"{document.PointOfSale:0000}-{document.InvoiceFrom:00000000}";
-
-            await _unitOfWork.FiscalDocumentRepository.CreateAsync(document);
-            await _unitOfWork.SaveChangesAsync();
-
-            return MapToDTO(document);
-        }
-        public async Task<FiscalDocumentDTO> CreateDebitNoteAsync(DebitNoteCreateDTO dto)
-        {
-            var baseInvoice = await _unitOfWork.FiscalDocumentRepository.GetByIdAsync(dto.RelatedFiscalDocumentId)
-                ?? throw new ArgumentException("Related invoice not found");
-
-            if (baseInvoice.BuyerDocumentType != dto.BuyerDocumentType ||
-                baseInvoice.BuyerDocumentNumber != dto.BuyerDocumentNumber)
-                throw new InvalidOperationException("Buyer must match the original invoice.");
-
-            var debitAcc = await _unitOfWork.FiscalDocumentRepository.GetDebitNotesTotalForAsync(baseInvoice.Id);
-            // (Opcional) Podés limitar el tope si tu negocio lo requiere. Por defecto, ND puede superar.
-            // if (debitAcc + dto.TotalAmount > someLimit) ...
-
-            var number = GenerateInvoiceNumber();
-            var document = new FiscalDocument
-            {
-                Type = FiscalDocumentType.DebitNote,
-                RelatedFiscalDocumentId = baseInvoice.Id,
-
-                PointOfSale = dto.PointOfSale,
-                InvoiceType = MapNoteTypeFromInvoice(baseInvoice.InvoiceType, isCredit: false),
-                BuyerDocumentType = dto.BuyerDocumentType,
-                BuyerDocumentNumber = dto.BuyerDocumentNumber,
-
-                InvoiceFrom = number,
-                InvoiceTo = number,
-                Date = DateTime.Now,
-
-                NetAmount = dto.NetAmount,
-                VATAmount = dto.VatAmount,
-                ExemptAmount = dto.ExemptAmount,
-                NonTaxableAmount = dto.NonTaxableAmount,
-                OtherTaxesAmount = dto.OtherTaxesAmount,
-                TotalAmount = dto.TotalAmount,
-
-                Currency = dto.Currency,
-                ExchangeRate = dto.ExchangeRate,
-                IssuerTaxId = dto.IssuerTaxId.Replace("-", ""),
-
-                Items = dto.Items.Select(i => new FiscalDocumentItem
-                {
-                    Sku = i.Sku,
-                    Description = i.Description,
-                    UnitPrice = i.UnitPrice,
-                    Quantity = i.Quantity,
-                    VATId = i.VatId,
-                    VATBase = i.VatBase,
-                    VATAmount = i.VatAmount,
-                    DispatchCode = i.DispatchCode,
-                    Warranty = i.Warranty
-                }).ToList()
-            };
-
-            var arcaRequest = BuildArcaRequest(document);
-            var arcaResponse = await _arcaClient.AuthorizeAsync(arcaRequest);
-
-            document.CAE = arcaResponse.cae;
-            document.CAEExpiration = DateTime.ParseExact(arcaResponse.caeExpirationDate, "yyyyMMdd", null);
-            document.DocumentNumber = $"{document.PointOfSale:0000}-{document.InvoiceFrom:00000000}";
-
-            await _unitOfWork.FiscalDocumentRepository.CreateAsync(document);
-            await _unitOfWork.SaveChangesAsync();
-
-            return MapToDTO(document);
-        }
-        public async Task<IReadOnlyList<FiscalDocumentDTO>> GetCreditNotesByRelatedIdAsync(int relatedId)
+        public async Task<IReadOnlyList<FiscalDocumentDTO>> GetCreditNotesBySaleIdAsync(int saleId)
         {
             var docs = await _unitOfWork.FiscalDocumentRepository
-                .GetByRelatedIdAsync(relatedId, FiscalDocumentType.CreditNote);
+                .GetBySaleIdIdAsync(saleId, FiscalDocumentType.CreditNote);
 
             return docs.Select(MapToDTO).ToList();
         }
-        public async Task<IReadOnlyList<FiscalDocumentDTO>> GetDebitNotesByRelatedIdAsync(int relatedId)
+        public async Task<IReadOnlyList<FiscalDocumentDTO>> GetDebitNotesBySaleIdAsync(int saleId)
         {
             var docs = await _unitOfWork.FiscalDocumentRepository
-                .GetByRelatedIdAsync(relatedId, FiscalDocumentType.DebitNote);
+                .GetBySaleIdIdAsync(saleId, FiscalDocumentType.DebitNote);
 
             return docs.Select(MapToDTO).ToList();
         }
@@ -364,21 +232,7 @@ namespace FiscalDocumentationService.Business.Services
         // B: 06 -> ND 07, NC 08
         // C: 11 -> ND 12, NC 13
         // M: 51 -> ND 52, NC 53
-        private int MapNoteTypeFromInvoice(int baseInvoiceType, bool isCredit)
-        {
-            return (baseInvoiceType, isCredit) switch
-            {
-                (01, false) => 02,
-                (01, true) => 03,
-                (06, false) => 07,
-                (06, true) => 08,
-                (11, false) => 12,
-                (11, true) => 13,
-                (51, false) => 52,
-                (51, true) => 53,
-                _ => throw new InvalidOperationException($"Unsupported base invoice type for notes: {baseInvoiceType}")
-            };
-        }
+        
 
     }
 }

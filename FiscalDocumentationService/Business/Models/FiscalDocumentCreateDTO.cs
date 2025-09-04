@@ -15,7 +15,7 @@
         public decimal OtherTaxesAmount { get; set; } = 0;
         public decimal TotalAmount { get; set; }
 
-        public int? SalesOrderId { get; set; }
+        public int SalesOrderId { get; set; }
 
         public List<FiscalDocumentItemDTO> Items { get; set; } = new();
 
@@ -40,63 +40,5 @@
 
 
 
-    // credit and debit notes 
-    public class CreditNoteCreateDTO
-    {
-        // Debe apuntar SIEMPRE a la factura original
-        public int RelatedFiscalDocumentId { get; set; }
-
-        // Datos fiscales base: copiamos explícitos para no asumir nada en el servicio
-        public int PointOfSale { get; set; }
-        // Este InvoiceType DEBE ser el tipo de Nota correcto (03/08/13 según la factura base)
-        public int InvoiceType { get; set; }
-
-        public int BuyerDocumentType { get; set; }
-        public long BuyerDocumentNumber { get; set; }
-
-        // Totales (positivos). El signo conceptual lo determina el tipo de documento
-        public decimal NetAmount { get; set; }
-        public decimal VatAmount { get; set; }
-        public decimal ExemptAmount { get; set; } = 0;
-        public decimal NonTaxableAmount { get; set; } = 0;
-        public decimal OtherTaxesAmount { get; set; } = 0;
-        public decimal TotalAmount { get; set; }
-
-        public List<FiscalDocumentItemDTO> Items { get; set; } = new();
-
-        public string Currency { get; set; } = "PES";
-        public decimal ExchangeRate { get; set; } = 1;
-        public string IssuerTaxId { get; set; }
-
-        // Opcional: motivo de la nota (devolución, descuento, corrección)
-        public string? Reason { get; set; }
-    }
-
-    public class DebitNoteCreateDTO
-    {
-        public int RelatedFiscalDocumentId { get; set; }
-
-        public int PointOfSale { get; set; }
-        // Este InvoiceType DEBE ser el tipo de Nota correcto (02/07/12 según la factura base)
-        public int InvoiceType { get; set; }
-
-        public int BuyerDocumentType { get; set; }
-        public long BuyerDocumentNumber { get; set; }
-
-        public decimal NetAmount { get; set; }
-        public decimal VatAmount { get; set; }
-        public decimal ExemptAmount { get; set; } = 0;
-        public decimal NonTaxableAmount { get; set; } = 0;
-        public decimal OtherTaxesAmount { get; set; } = 0;
-        public decimal TotalAmount { get; set; }
-
-        public List<FiscalDocumentItemDTO> Items { get; set; } = new();
-
-        public string Currency { get; set; } = "PES";
-        public decimal ExchangeRate { get; set; } = 1;
-        public string IssuerTaxId { get; set; }
-
-        public string? Reason { get; set; }
-    }
 }
 

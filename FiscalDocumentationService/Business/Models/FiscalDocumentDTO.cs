@@ -21,7 +21,7 @@
         public decimal OtherTaxesAmount { get; set; }
         public decimal TotalAmount { get; set; }
 
-        public int? SalesOrderId { get; set; }
+        public int SalesOrderId { get; set; }
 
         public List<FiscalDocumentItemDTO> Items { get; set; } = new();
 
