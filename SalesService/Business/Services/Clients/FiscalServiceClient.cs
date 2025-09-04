@@ -53,6 +53,20 @@ namespace SalesService.Business.Services.Clients
             var result = await response.Content.ReadFromJsonAsync<FiscalDocumentResponseDTO>();
             return result;
         }
+        public async Task<FiscalDocumentResponseDTO?> GetByIdAsync(int id)
+        {
+            var client = CreateAuthorizedClient();
+            var response = await client.GetAsync($"{_fiscalBaseUrl}/{id}");
+            if (!response.IsSuccessStatusCode)
+            {
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    return null;
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new InvalidOperationException($"Error fetching invoice by ID: {errorContent}");
+            }
+            var result = await response.Content.ReadFromJsonAsync<FiscalDocumentResponseDTO>();
+            return result;
+        }
         public async Task<FiscalDocumentResponseDTO> CreateCreditNoteAsync(CreditNoteCreateClientDTO dto)
         {
             var client = CreateAuthorizedClient();

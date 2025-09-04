@@ -521,16 +521,15 @@ namespace SalesService.Business.Services
                 throw new InvalidOperationException("Invoice not found.");
             return MapToBasic(invoice);
         }
-        public async Task<InvoiceDetailDTO> GetInvoiceDetailAsync(int saleId)
+        public async Task<InvoiceDetailDTO> GetInvoiceDetailAsync(int Id)
         {
-            var sale = await _unitOfWork.SaleRepository.GetIncludingAsync(saleId, s => s.Articles);
-            if (sale == null)
-                throw new InvalidOperationException("Sale not found.");
-            if (!sale.HasInvoice)
-                throw new InvalidOperationException("No invoice generated for this sale.");
-            var invoice = await _fiscalServiceClient.GetBySaleIdAsync(saleId);
+
+            var invoice = await _fiscalServiceClient.GetByIdAsync(Id);
             if (invoice == null)
                 throw new InvalidOperationException("Invoice not found.");
+            var sale = await _unitOfWork.SaleRepository.GetByIdAsync(invoice.SalesOrderId.Value);
+            if (sale == null)
+                throw new InvalidOperationException("Sale not found.");
 
             // get company info from CompanyInfo Service
             var company = await _companyServiceClient.GetCompanyInfoAsync();
@@ -917,7 +916,42 @@ namespace SalesService.Business.Services
             // 6) Devolver en formato básico (mismo que usás para factura/NC)
             return MapToBasic(created);
         }
+        public async Task<IReadOnlyList<SaleNoteSummaryDTO>> GetCreditNotesAsync(int saleId)
+        {
+            var baseInvoice = await _fiscalServiceClient.GetBySaleIdAsync(saleId)
+                             ?? throw new InvalidOperationException("Base invoice not found.");
+            var notes = await _fiscalServiceClient.GetCreditNotesByRelatedIdAsync(baseInvoice.Id);
 
+            return notes.Select(n => new SaleNoteSummaryDTO
+            {
+                Id = n.Id,
+                DocumentNumber = n.DocumentNumber,
+                Date = n.Date,
+                TotalAmount = n.TotalAmount,
+                Kind = "CreditNote"
+            }).OrderByDescending(x => x.Date).ToList();
+        }
+        public async Task<IReadOnlyList<SaleNoteSummaryDTO>> GetDebitNotesAsync(int saleId)
+        {
+            var baseInvoice = await _fiscalServiceClient.GetBySaleIdAsync(saleId)
+                             ?? throw new InvalidOperationException("Base invoice not found.");
+            var notes = await _fiscalServiceClient.GetDebitNotesByRelatedIdAsync(baseInvoice.Id);
+
+            return notes.Select(n => new SaleNoteSummaryDTO
+            {
+                Id = n.Id,
+                DocumentNumber = n.DocumentNumber,
+                Date = n.Date,
+                TotalAmount = n.TotalAmount,
+                Kind = "DebitNote"
+            }).OrderByDescending(x => x.Date).ToList();
+        }
+        public async Task<IReadOnlyList<SaleNoteSummaryDTO>> GetAllNotesAsync(int saleId)
+        {
+            var credit = await GetCreditNotesAsync(saleId);
+            var debit = await GetDebitNotesAsync(saleId);
+            return credit.Concat(debit).OrderByDescending(x => x.Date).ToList();
+        }
 
 
         private static InvoiceBasicDTO MapToBasic(FiscalDocumentResponseDTO f) => new()

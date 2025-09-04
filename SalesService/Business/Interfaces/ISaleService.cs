@@ -18,6 +18,6 @@ namespace SalesService.Business.Interfaces
         Task<IReadOnlyList<SaleNoteSummaryDTO>> GetCreditNotesAsync(int saleId);
         Task<IReadOnlyList<SaleNoteSummaryDTO>> GetDebitNotesAsync(int saleId);
         Task<InvoiceBasicDTO> GetInvoiceAsync(int saleId);
-        Task<InvoiceDetailDTO> GetInvoiceDetailAsync(int saleId);
+        Task<InvoiceDetailDTO> GetInvoiceDetailAsync(int Id);
     }
 }
