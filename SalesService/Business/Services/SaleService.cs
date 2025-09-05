@@ -836,6 +836,7 @@ namespace SalesService.Business.Services
 
             var request = new FiscalDocumentCreateDTO
             {
+
                 PointOfSale = baseInvoice.PointOfSale,
                 InvoiceType = invoiceType,
                 BuyerDocumentType = buyerDocumentType,

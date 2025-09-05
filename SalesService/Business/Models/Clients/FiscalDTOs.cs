@@ -2,6 +2,7 @@
 {
     public class FiscalDocumentCreateDTO
     {
+        public int Type { get; set; } // 1=Invoice, 2=Credit Note, 3=Debit Note
         public int PointOfSale { get; set; }
         public int InvoiceType { get; set; }
         public int BuyerDocumentType { get; set; }

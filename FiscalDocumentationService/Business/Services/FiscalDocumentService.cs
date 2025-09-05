@@ -24,6 +24,25 @@ namespace FiscalDocumentationService.Business.Services
         {
             var invoiceNumber = GenerateInvoiceNumber();
 
+            // define type (invoice, credit note, debit note) based on dto.InvoiceType if 
+
+            var type = dto.InvoiceType switch
+            {
+                1 => FiscalDocumentType.Invoice,       // A
+                6 => FiscalDocumentType.Invoice,       // B
+                11 => FiscalDocumentType.Invoice,      // C
+                51 => FiscalDocumentType.Invoice,      // M
+                2 => FiscalDocumentType.DebitNote,     // A
+                7 => FiscalDocumentType.DebitNote,     // B
+                12 => FiscalDocumentType.DebitNote,    // C
+                52 => FiscalDocumentType.DebitNote,    // M
+                3 => FiscalDocumentType.CreditNote,    // A
+                8 => FiscalDocumentType.CreditNote,    // B
+                13 => FiscalDocumentType.CreditNote,   // C
+                53 => FiscalDocumentType.CreditNote,   // M
+                _ => throw new ArgumentException("Invalid Invoice Type")
+            };
+
             var document = new FiscalDocument
             {
                 PointOfSale = dto.PointOfSale,
@@ -33,7 +52,7 @@ namespace FiscalDocumentationService.Business.Services
                 InvoiceFrom = invoiceNumber,
                 InvoiceTo = invoiceNumber,
                 Date = DateTime.Now,
-
+                Type = type,
                 NetAmount = dto.NetAmount,
                 VATAmount = dto.VatAmount,
                 ExemptAmount = dto.ExemptAmount,
@@ -227,11 +246,6 @@ namespace FiscalDocumentationService.Business.Services
             public string codAut { get; set; } = "";
         }
 
-        // Mapea el tipo de NOTA (AFIP) a partir del tipo de FACTURA base.
-        // A: 01 -> ND 02, NC 03
-        // B: 06 -> ND 07, NC 08
-        // C: 11 -> ND 12, NC 13
-        // M: 51 -> ND 52, NC 53
         
 
     }
