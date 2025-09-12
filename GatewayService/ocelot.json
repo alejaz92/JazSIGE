@@ -30,7 +30,7 @@
           //"Port": 7042
         }
       ],
-      "UpstreamPathTemplate": "/auth/{everything}",
+      "UpstreamPathTemplate": "/accounting/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
       "AddHeadersToRequest": {
         "Authorization": "{Headers.Authorization}"
