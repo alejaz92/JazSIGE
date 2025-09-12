@@ -770,7 +770,7 @@ namespace SalesService.Business.Services
                     items.Add(new FiscalDocumentItemDTO
                     {
                         Sku = articleInfo.SKU,
-                        Description = $"{articleInfo.Description} - Brand: {articleInfo.Brand}",
+                        Description = $"{articleInfo.Description} - Marca: {articleInfo.Brand}",
                         UnitPrice = Math.Round(priceWithDiscount, 2),
                         Quantity = (int)req.Quantity,
                         VatBase = Math.Round(baseLine, 2),
