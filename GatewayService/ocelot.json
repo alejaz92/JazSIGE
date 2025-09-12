@@ -7,7 +7,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "auth-api-dev-gjbcdtb0bxffckha.brazilsouth-01.azurewebsites.net",
-          "Port": 443,
+          "Port": 443
           //"Host": "localhost",
           //"Port": 7042
         }
@@ -18,6 +18,24 @@
         "Authorization": "{Headers.Authorization}"
       },
       "SwaggerKey": "auth"
+    },
+    {
+      "DownstreamPathTemplate": "/api/accounting/{everything}",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "accounting-api-dev-jaz.azurewebsites.net",
+          "Port": 443
+          //"Host": "localhost",
+          //"Port": 7042
+        }
+      ],
+      "UpstreamPathTemplate": "/auth/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "AddHeadersToRequest": {
+        "Authorization": "{Headers.Authorization}"
+      },
+      "SwaggerKey": "accounting"
     },
     {
       "DownstreamPathTemplate": "/api/user/{everything}",
@@ -45,7 +63,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "catalog-api-dev-g9b4g8gtfyambhd6.brazilsouth-01.azurewebsites.net",
-          "Port": 443,
+          "Port": 443
           //"Host": "localhost",
           //"Port": 7285
         }
@@ -183,6 +201,17 @@
       ]
     },
     {
+      "Key": "accounting",
+      "Config": [
+        {
+          "Name": "Accounting Service",
+          "Version": "v1",
+          "Url": "https://accounting-api-dev-jaz.azurewebsites.net/swagger/v1/swagger.json"
+          //"Url": "https://localhost:7042/swagger/v1/swagger.json"
+        }
+      ]
+    },
+    {
       "Key": "catalog",
       "Config": [
         {
@@ -199,7 +228,7 @@
         {
           "Name": "PurchaseService API",
           "Version": "v1",
-          "Url": "https://purchase-api-dev-hffpakhtaecbcff4.brazilsouth-01.azurewebsites.net/swagger/v1/swagger.json",
+          "Url": "https://purchase-api-dev-hffpakhtaecbcff4.brazilsouth-01.azurewebsites.net/swagger/v1/swagger.json"
           //"Url": "https://localhost:7079/swagger/v1/swagger.json"
         }
       ]
@@ -210,7 +239,7 @@
         {
           "Name": "StockService API",
           "Version": "v1",
-          "Url": "https://stock-api-dev-esbre0dae0b0gkd8.centralus-01.azurewebsites.net/swagger/v1/swagger.json",
+          "Url": "https://stock-api-dev-esbre0dae0b0gkd8.centralus-01.azurewebsites.net/swagger/v1/swagger.json"
           //"Url": "https://localhost:7215/swagger/v1/swagger.json"
         }
       ]
