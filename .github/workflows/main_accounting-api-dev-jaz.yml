@@ -1,4 +1,7 @@
-name: Deploy AccountingService (Dev)
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+
+name: Deploy SalesService (dev)
 
 on:
   push:
@@ -6,55 +9,44 @@ on:
     paths:
       - 'AccountingService/**'
       - '.github/workflows/main_accounting-api-dev-jaz.yml'
-  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
 
 jobs:
   build-and-deploy:
-    runs-on: windows-latest
-    permissions:
-      contents: read
-      id-token: write
-
-    env:
-      DOTNET_VERSION: '9.0.x'
-      PROJECT_PATH: 'AccountingService/AccountingService.csproj'
-      PUBLISH_DIR: '${{ runner.temp }}\publish\AccountingService'
-      ZIP_PATH:     '${{ runner.temp }}\AccountingService.zip'
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: '9.0.x'
 
       - name: Restore
-        run: dotnet restore ${{ env.PROJECT_PATH }}
+        run: dotnet restore ./AccountingService/AccountingService.csproj
 
-      - name: Build (Release)
-        run: dotnet build ${{ env.PROJECT_PATH }} -c Release --no-restore
+      - name: Publish (AccountingService only)
+        run: dotnet publish ./AccountingService/AccountingService.csproj -c Release -o ${{ runner.temp }}/publish-sales
 
-      - name: Publish (single project, isolated output)
-        run: dotnet publish ${{ env.PROJECT_PATH }} -c Release --no-build -o "${{ env.PUBLISH_DIR }}"
+      # Sanity checks para evitar mezclas
+      - name: List output
+        run: ls -la ${{ runner.temp }}/publish-accounting
+      - name: Assert AccountingService.dll exists
+        run: test -f ${{ runner.temp }}/publish-accounting/AccountingService.dll
+      - name: Assert web.config apunta a AccountingService.dll
+        run: grep -q "AccountingService.dll" ${{ runner.temp }}/publish-accounting/web.config
 
-      - name: Zip artifact
-        shell: pwsh
-        run: |
-          Remove-Item -Force -ErrorAction SilentlyContinue "${{ env.ZIP_PATH }}"
-          Compress-Archive -Path "${{ env.PUBLISH_DIR }}\*" -DestinationPath "${{ env.ZIP_PATH }}"
-
-      - name: Azure login (federated)
+      - name: Azure login
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_7DFF1A9DE6084BB99C07918F15128421 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_3706084246FC49E89A66196192DA4161 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_E7DF3715211E4F9D82587A2D1AD49875 }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v3
+      - name: Deploy to Azure Web App (accounting-api-dev-jaz)
+        uses: azure/webapps-deploy@v2
         with:
           app-name: accounting-api-dev-jaz
-          slot-name: Production
-          package: ${{ env.ZIP_PATH }}
+          package: ${{ runner.temp }}/publish-accounting
