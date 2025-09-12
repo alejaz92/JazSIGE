@@ -8,7 +8,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 
 
-//test
+//test2
 var builder = WebApplication.CreateBuilder(args);
 
 // DB
