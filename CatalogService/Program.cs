@@ -60,6 +60,8 @@ builder.Services.AddSwaggerGen();
 // declare repositories
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<IArticleRepository, ArticleRepository>();
+builder.Services.AddScoped<IBankRepositoty, BankRepository>();
+builder.Services.AddScoped<IBankAccountRepository, BankAccountRepository>();
 builder.Services.AddScoped<IBrandRepository, BrandRepository>();
 builder.Services.AddScoped<ICityRepository, CityRepository>();
 builder.Services.AddScoped<ICountryRepository, CountryRepository>();
@@ -80,6 +82,8 @@ builder.Services.AddScoped<IWarehouseRepository, WarehouseRepository>();
 // declare services
 builder.Services.AddScoped<IArticleService, ArticleService>();
 builder.Services.AddScoped<IArticleValidatorService, ArticleValidatorService>();
+builder.Services.AddScoped<IBankService, BankService>();
+builder.Services.AddScoped<IBankAccountService, BankAccountService>();
 builder.Services.AddScoped<IBrandService, BrandService>();
 builder.Services.AddScoped<ICityService, CityService>();
 builder.Services.AddScoped<ICountryService, CountryService>();

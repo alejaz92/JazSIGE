@@ -10,6 +10,8 @@ namespace CatalogService.Infrastructure.Data
         }
         
         public DbSet<Article> Articles { get; set; }
+        public DbSet<Bank> Banks { get; set; }
+        public DbSet<BankAccount> BankAccounts { get; set; }
         public DbSet<Brand> Brands { get; set; }
         public DbSet<City> Cities { get; set; }
         public DbSet<Country> Countries { get; set; }
