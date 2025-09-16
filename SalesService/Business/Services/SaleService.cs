@@ -20,6 +20,7 @@ namespace SalesService.Business.Services
         private readonly IFiscalServiceClient _fiscalServiceClient;
         private readonly IDeliveryNoteService _deliveryNoteService;
         private readonly ICompanyServiceClient _companyServiceClient;
+        private readonly IAccountingServiceClient _accountingServiceClient;
 
         public SaleService(
             IUnitOfWork unitOfWork,
@@ -27,6 +28,7 @@ namespace SalesService.Business.Services
             IStockServiceClient stockServiceClient,
             IUserServiceClient userService,
             IFiscalServiceClient fiscalServiceClient,
+            IAccountingServiceClient accountingServiceClient,
             IDeliveryNoteService deliveryNoteService,
             ICompanyServiceClient companyServiceClient)
         {
@@ -37,6 +39,7 @@ namespace SalesService.Business.Services
             _fiscalServiceClient = fiscalServiceClient;
             _deliveryNoteService = deliveryNoteService;
             _companyServiceClient = companyServiceClient;
+            _accountingServiceClient = accountingServiceClient;
         }
 
         public async Task<IEnumerable<SaleDTO>> GetAllAsync()
@@ -503,6 +506,31 @@ namespace SalesService.Business.Services
 
             var result = await _fiscalServiceClient.CreateFiscalNoteAsync(fiscalRequest);
 
+            // ---> Notificar a Accounting (solo clientes; no consumidor final)
+            if (!sale.IsFinalConsumer && sale.CustomerId.HasValue)
+            {
+                try
+                {
+                    await _accountingServiceClient.CreateLedgerDocumentAsync(new AccountingDocumentCreateDTO
+                    {
+                        PartyType = 0, // Customer
+                        PartyId = sale.CustomerId.Value,
+                        Kind = 0, // Invoice
+                        FiscalDocumentId = result.Id,
+                        FiscalDocumentNumber = result.DocumentNumber,
+                        DocumentDate = result.Date,
+                        Currency = "ARS",         // o result.Currency si lo devolvés
+                        FxRate = 1m,              // o result.ExchangeRate
+                        TotalOriginal = result.TotalAmount
+                    });
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException("Error notifying accounting.", ex);
+                }
+            }
+
+
             sale.HasInvoice = true;
             _unitOfWork.SaleRepository.Update(sale);
             await _unitOfWork.SaveAsync();
@@ -854,6 +882,31 @@ namespace SalesService.Business.Services
 
             var created = await _fiscalServiceClient.CreateFiscalNoteAsync(request);
 
+            if (!sale.IsFinalConsumer && sale.CustomerId.HasValue)
+            {
+                try
+                {
+                    await _accountingServiceClient.CreateLedgerDocumentAsync(new AccountingDocumentCreateDTO
+                    {
+                        PartyType = 0,
+                        PartyId = sale.CustomerId.Value,
+                        Kind = 2, // CreditNote  (en DebitNote usá 1)
+                        FiscalDocumentId = created.Id,
+                        FiscalDocumentNumber = created.DocumentNumber,
+                        DocumentDate = created.Date,
+                        Currency = "ARS",
+                        FxRate = 1m,
+                        TotalOriginal = created.TotalAmount
+                    });
+                }
+                catch (Exception ex)
+                {
+                    // throw exception
+                    throw new InvalidOperationException("Error notifying accounting.", ex);
+                }
+            }
+
+
             // si es devolución física, registrar ingreso de mercadería
             if (dto.Reason == CreditNoteReason.PartialReturn)
             {
@@ -1002,6 +1055,31 @@ namespace SalesService.Business.Services
             };
 
             var created = await _fiscalServiceClient.CreateFiscalNoteAsync(request);
+
+            if (!sale.IsFinalConsumer && sale.CustomerId.HasValue)
+            {
+                try
+                {
+                    await _accountingServiceClient.CreateLedgerDocumentAsync(new AccountingDocumentCreateDTO
+                    {
+                        PartyType = 0,
+                        PartyId = sale.CustomerId.Value,
+                        Kind = 1, 
+                        FiscalDocumentId = created.Id,
+                        FiscalDocumentNumber = created.DocumentNumber,
+                        DocumentDate = created.Date,
+                        Currency = "ARS",
+                        FxRate = 1m,
+                        TotalOriginal = created.TotalAmount
+                    });
+                }
+                catch (Exception ex)
+                {
+                    // throw exception
+                    throw new InvalidOperationException("Error notifying accounting.", ex);
+                }
+            }
+
 
             // 6) Devolver en formato básico (mismo que usás para factura/NC)
             return MapToBasic(created);

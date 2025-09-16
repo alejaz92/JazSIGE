@@ -80,6 +80,7 @@ builder.Services.AddScoped<ISaleService, SaleService>();
 builder.Services.AddScoped<IDeliveryNoteService, DeliveryNoteService>();
 builder.Services.AddScoped<IFiscalServiceClient, FiscalServiceClient>();
 builder.Services.AddScoped<IRatesService, RatesService>();
+builder.Services.AddScoped<IAccountingServiceClient, AccountingServiceClient>();
 
 // prueba cambio
 
