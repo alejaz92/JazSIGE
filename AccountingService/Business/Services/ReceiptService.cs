@@ -93,7 +93,6 @@ public class ReceiptService : IReceiptService
         TotalBase = r.TotalBase,
         Notes = r.Notes,
         IsVoided = r.IsVoided,
-        CreatedAt = default, // si tu entity no tiene CreatedAt, podés quitarlo del DTO
         VoidedAt = r.VoidedAt,
         Payments = r.PaymentLines.Select(p => new PaymentLineResponse
         {
