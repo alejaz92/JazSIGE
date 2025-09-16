@@ -1,4 +1,9 @@
+using AccountingService.Business.Services;
+using AccountingService.Business.Services.Interfaces;
 using AccountingService.Infrastructure.Data;
+using AccountingService.Infrastructure.Interfaces;
+using AccountingService.Infrastructure.Repositories;
+using AccountingService.Infrastructure.UnitOfWork;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -52,9 +57,14 @@ builder.Services.AddSwaggerGen();
 
 
 // Repositories
-
+builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+builder.Services.AddScoped<ILedgerDocumentRepository, LedgerDocumentRepository>();
+builder.Services.AddScoped<IReceiptRepository, ReceiptRepository>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 //Services
+builder.Services.AddScoped<ILedgerDocumentService, LedgerDocumentService>();
+builder.Services.AddScoped<IReceiptService, ReceiptService>();
 
 
 // prueba cambio
@@ -84,7 +94,7 @@ app.UseSwaggerUI(c =>
     c.RoutePrefix = string.Empty;  // Podés cambiar el prefijo o dejarlo vacío
 });
 
-app.UseCors("AllowAll");
+app.UseCors("FrontendPolicy");
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
