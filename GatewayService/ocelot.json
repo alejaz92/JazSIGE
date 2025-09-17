@@ -128,10 +128,10 @@
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
         {
-          //"Host": "sales-api-dev-e2bqduakc2ehhuaa.centralus-01.azurewebsites.net",
-          //"Port": 443
-          "Host": "localhost",
-          "Port": 7080
+          "Host": "sales-api-dev-e2bqduakc2ehhuaa.centralus-01.azurewebsites.net",
+          "Port": 443
+          //"Host": "localhost",
+          //"Port": 7080
         }
       ],
       "UpstreamPathTemplate": "/{everything}",
@@ -250,8 +250,8 @@
         {
           "Name": "SalesService API",
           "Version": "v1",
-          //"Url": "https://sales-api-dev-e2bqduakc2ehhuaa.centralus-01.azurewebsites.net/swagger/v1/swagger.json"
-          "Url": "https://localhost:7080/swagger/v1/swagger.json"
+          "Url": "https://sales-api-dev-e2bqduakc2ehhuaa.centralus-01.azurewebsites.net/swagger/v1/swagger.json"
+          //"Url": "https://localhost:7080/swagger/v1/swagger.json"
         }
       ]
     },
