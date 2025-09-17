@@ -33,7 +33,7 @@ namespace SalesService.Business.Services.Clients
         {
             var client = CreateAuthorizedClient();
             // Ajustá la ruta si en Accounting dejaste otra (recomendado: /api/accounting/documents)
-            var resp = await client.PostAsJsonAsync($"{_accountingBaseUrl.TrimEnd('/')}/api/accounting", dto, ct);
+            var resp = await client.PostAsJsonAsync($"{_accountingBaseUrl.TrimEnd('/')}/Documents", dto, ct);
             resp.EnsureSuccessStatusCode();
         }
     }

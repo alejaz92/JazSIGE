@@ -513,9 +513,9 @@ namespace SalesService.Business.Services
                 {
                     await _accountingServiceClient.CreateLedgerDocumentAsync(new AccountingDocumentCreateDTO
                     {
-                        PartyType = 0, // Customer
+                        PartyType = "customer", // Customer
                         PartyId = sale.CustomerId.Value,
-                        Kind = 0, // Invoice
+                        Kind = "invoice", // Invoice
                         FiscalDocumentId = result.Id,
                         FiscalDocumentNumber = result.DocumentNumber,
                         DocumentDate = result.Date,
@@ -888,9 +888,9 @@ namespace SalesService.Business.Services
                 {
                     await _accountingServiceClient.CreateLedgerDocumentAsync(new AccountingDocumentCreateDTO
                     {
-                        PartyType = 0,
+                        PartyType = "customer",
                         PartyId = sale.CustomerId.Value,
-                        Kind = 2, // CreditNote  (en DebitNote usá 1)
+                        Kind = "creditNote", // CreditNote  (en DebitNote usá 1)
                         FiscalDocumentId = created.Id,
                         FiscalDocumentNumber = created.DocumentNumber,
                         DocumentDate = created.Date,
@@ -1062,9 +1062,9 @@ namespace SalesService.Business.Services
                 {
                     await _accountingServiceClient.CreateLedgerDocumentAsync(new AccountingDocumentCreateDTO
                     {
-                        PartyType = 0,
+                        PartyType = "customer",
                         PartyId = sale.CustomerId.Value,
-                        Kind = 1, 
+                        Kind = "debitNote", 
                         FiscalDocumentId = created.Id,
                         FiscalDocumentNumber = created.DocumentNumber,
                         DocumentDate = created.Date,
@@ -1120,8 +1120,6 @@ namespace SalesService.Business.Services
             var debit = await GetDebitNotesAsync(saleId);
             return credit.Concat(debit).OrderByDescending(x => x.Date).ToList();
         }
-
-
         private static InvoiceBasicDTO MapToBasic(FiscalDocumentResponseDTO f) => new()
         {
             Id = f.Id,

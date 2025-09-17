@@ -3,10 +3,10 @@
     public class AccountingDocumentCreateDTO
     {
         // V1: siempre clientes
-        public byte PartyType { get; set; } = 0;        // 0 = Customer
+        public string PartyType { get; set; } = "customer";        // 0 = Customer
         public int PartyId { get; set; }                // CustomerId
 
-        public byte Kind { get; set; }                  // 0=Invoice, 1=DebitNote, 2=CreditNote
+        public string Kind { get; set; }                  // 0=Invoice, 1=DebitNote, 2=CreditNote
 
         public int FiscalDocumentId { get; set; }
         public string FiscalDocumentNumber { get; set; } = string.Empty;
