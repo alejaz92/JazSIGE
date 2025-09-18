@@ -1,3 +1,4 @@
+using AccountingService.Business.Interfaces;
 using AccountingService.Business.Services;
 using AccountingService.Business.Services.Interfaces;
 using AccountingService.Infrastructure.Data;
@@ -66,9 +67,10 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 //Services
 builder.Services.AddScoped<ILedgerDocumentService, LedgerDocumentService>();
 builder.Services.AddScoped<IReceiptService, ReceiptService>();
+builder.Services.AddScoped<ICustomerLedgerQueryService, CustomerLedgerQueryService>() ;
+builder.Services.AddScoped<ICustomerPendingQueryService, CustomerPendingQueryService>();
+builder.Services.AddScoped<ICustomerBalancesQueryService, CustomerBalancesQueryService>();
 
-
-// prueba cambio
 
 //inyect configuration
 builder.Services.AddMemoryCache();

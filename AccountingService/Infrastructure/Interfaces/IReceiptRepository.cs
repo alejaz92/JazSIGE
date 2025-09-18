@@ -6,5 +6,6 @@ namespace AccountingService.Infrastructure.Interfaces
     {
         Task<Receipt?> GetWithPaymentsAsync(int id, CancellationToken ct = default);
         Task<IEnumerable<Receipt>> GetByPartyAsync(int partyId, DateTime? from = null, DateTime? to = null, CancellationToken ct = default);
+        IQueryable<Receipt> Query();
     }
 }

@@ -7,5 +7,6 @@ namespace AccountingService.Infrastructure.Interfaces
         Task<LedgerDocument?> GetByFiscalIdAsync(int fiscalDocumentId, CancellationToken ct = default);
         Task<bool> ExistsByFiscalIdAsync(int fiscalDocumentId, CancellationToken ct = default);
         Task<IEnumerable<LedgerDocument>> GetByPartyAsync(int partyId, CancellationToken ct = default);
+        IQueryable<LedgerDocument> Query();
     }
 }

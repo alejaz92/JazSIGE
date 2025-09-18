@@ -26,5 +26,9 @@ namespace AccountingService.Infrastructure.Repositories
                                          .Where(d => d.PartyId == partyId)
                                          .OrderByDescending(d => d.DocumentDate)
                                          .ToListAsync(ct);
+
+        public IQueryable<LedgerDocument> Query()
+            => _ctx.LedgerDocuments.AsNoTracking();
+
     }
 }

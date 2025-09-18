@@ -29,5 +29,9 @@ namespace AccountingService.Infrastructure.Repositories
 
             return await q.OrderByDescending(r => r.Date).ToListAsync(ct);
         }
+
+        public IQueryable<Receipt> Query()
+            => _ctx.Receipts.AsNoTracking();
+
     }
 }
