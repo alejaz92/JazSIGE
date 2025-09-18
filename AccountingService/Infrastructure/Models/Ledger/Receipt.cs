@@ -24,5 +24,6 @@
         public DateTime? VoidedAt { get; set; }
 
         public ICollection<PaymentLine> PaymentLines { get; set; } = new List<PaymentLine>();
+        public ICollection<Allocation> Allocations { get; set; } = new List<Allocation>();
     }
 }

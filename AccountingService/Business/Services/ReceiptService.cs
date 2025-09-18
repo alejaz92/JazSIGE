@@ -68,7 +68,56 @@ public class ReceiptService : IReceiptService
             await _uow.Receipts.AddAsync(receipt);
             await _uow.SaveChangesAsync(ct);
 
-            // (allocations todavía no — vendrán en el próximo paso)
+            if (req.Allocations is not null && req.Allocations.Count > 0)
+            {
+                // 1) Traer documentos y validar pertenencia/tipos
+                var docIds = req.Allocations.Select(a => a.DocumentId).Distinct().ToList();
+                var docs = await _uow.LedgerDocuments.FindAsync(d => docIds.Contains(d.Id));
+                var docsById = docs.ToDictionary(d => d.Id);
+
+                foreach (var a in req.Allocations)
+                {
+                    if (!docsById.TryGetValue(a.DocumentId, out var doc))
+                        throw new InvalidOperationException($"Document {a.DocumentId} not found.");
+
+                    if (doc.PartyType != receipt.PartyType || doc.PartyId != receipt.PartyId)
+                        throw new InvalidOperationException($"Document {a.DocumentId} belongs to another party.");
+
+                    if (doc.Kind == LedgerDocumentKind.CreditNote)
+                        throw new InvalidOperationException("Credit notes are not allocated via receipt.");
+                }
+
+                // 2) Validar pendientes actuales por documento
+                var applied = await _uow.Allocations.GetAppliedByDocumentsAsync(docIds, ct);
+                foreach (var a in req.Allocations)
+                {
+                    var doc = docsById[a.DocumentId];
+                    var already = applied.TryGetValue(a.DocumentId, out var sum) ? sum : 0m;
+                    var pending = doc.TotalBase - already;
+
+                    if (a.AmountBase > pending + 0.0001m)
+                        throw new InvalidOperationException($"Allocation exceeds pending for document {a.DocumentId}. Pending: {pending:N2}");
+                }
+
+                // 3) Validar que la suma no exceda el total del recibo
+                var sumAlloc = req.Allocations.Sum(x => x.AmountBase);
+                if (sumAlloc > receipt.TotalBase + 0.0001m)
+                    throw new InvalidOperationException("Allocations exceed receipt total.");
+
+                // 4) Crear imputaciones
+                foreach (var a in req.Allocations)
+                {
+                    await _uow.Allocations.AddAsync(new Allocation
+                    {
+                        ReceiptId = receipt.Id,
+                        DebitDocumentId = a.DocumentId,
+                        AmountBase = Math.Round(a.AmountBase, 2, MidpointRounding.ToEven)
+                    });
+                }
+
+                await _uow.SaveChangesAsync(ct);
+            }
+
             await _uow.CommitTransactionAsync(ct);
         }
         catch

@@ -11,6 +11,7 @@ namespace AccountingService.Infrastructure.Data
         public DbSet<LedgerDocument> LedgerDocuments { get; set; }
         public DbSet<Receipt> Receipts { get; set; }
         public DbSet<PaymentLine> PaymentLines { get; set; }
+        public DbSet<Allocation> Allocations { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -74,6 +75,29 @@ namespace AccountingService.Infrastructure.Data
                  .HasForeignKey(x => x.ReceiptId)
                  .OnDelete(DeleteBehavior.Cascade);
             });
+
+            // Allocation
+            modelBuilder.Entity<Allocation>(b =>
+            {
+                b.ToTable("Allocations");
+                b.HasKey(x => x.Id);
+                b.Property(x => x.AmountBase).HasPrecision(18, 2);
+                b.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+
+                b.HasOne(x => x.Receipt)
+                 .WithMany(r => r.Allocations)
+                 .HasForeignKey(x => x.ReceiptId)
+                 .OnDelete(DeleteBehavior.Restrict);
+
+                b.HasOne(x => x.DebitDocument)
+                 .WithMany()
+                 .HasForeignKey(x => x.DebitDocumentId)
+                 .OnDelete(DeleteBehavior.Restrict);
+
+                b.HasIndex(x => x.ReceiptId);
+                b.HasIndex(x => x.DebitDocumentId);
+            });
+
         }
     }
 }

@@ -26,7 +26,8 @@ namespace AccountingService.Business.Models.Ledger
         [MinLength(1)]
         public List<PaymentLineRequest> Payments { get; set; } = new();
         // Nota: TotalOriginal/Base del recibo se computa a partir de Payments.
-        //       Las imputaciones (allocations) van en un paso siguiente.
+        
+        public List<AllocationItemRequest>? Allocations { get; set; } 
     }
 
     public class PaymentLineRequest
@@ -45,5 +46,13 @@ namespace AccountingService.Business.Models.Ledger
 
         public DateTime? ValueDate { get; set; }
         // Nota: AmountBase por línea se calcula = AmountOriginal * FxRate del recibo
+    }
+
+    public class AllocationItemRequest
+    {
+        [Required]
+        public int DocumentId { get; set; } // Id de factura/ND a imputar
+        [Range(0.01, 999_999_999)]
+        public decimal AmountBase { get; set; } // en ARS
     }
 }

@@ -12,6 +12,7 @@ namespace AccountingService.Infrastructure.UnitOfWork
         private readonly AccountingDbContext _ctx;
         private ILedgerDocumentRepository? _ledgerDocuments;
         private IReceiptRepository? _receipts;
+        private IAllocationRepository? _allocations;
         private IDbContextTransaction? _trx;
 
         public UnitOfWork(AccountingDbContext ctx)
@@ -25,6 +26,9 @@ namespace AccountingService.Infrastructure.UnitOfWork
 
         public IReceiptRepository Receipts =>
             _receipts ??= new ReceiptRepository(_ctx);
+
+        public IAllocationRepository Allocations =>
+            _allocations ??= new AllocationRepository(_ctx);
 
         // Persistencia
         public Task<int> SaveChangesAsync(CancellationToken ct = default) =>
