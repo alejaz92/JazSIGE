@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AccountingService.Controllers
 {
-    [Route("api/Accounting/Customers/{customerId:int}")]
+    [Route("api/Customers/{customerId:int}")]
     [ApiController]
     public class AccountingCustomerController : ControllerBase
     {
