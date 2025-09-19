@@ -27,8 +27,10 @@ namespace AccountingService.Business.Services
             var docsQ = _uow.LedgerDocuments.Query()
                 .Where(d => d.PartyType == PartyType.Customer && d.PartyId == customerId);
 
+            
+
             if (from.HasValue) docsQ = docsQ.Where(d => d.DocumentDate >= from.Value);
-            if (to.HasValue) docsQ = docsQ.Where(d => d.DocumentDate <= to.Value);
+            if (to.HasValue) docsQ = docsQ.Where(d => d.DocumentDate <= to.Value.AddDays(1));
             if (kind.HasValue) docsQ = docsQ.Where(d => d.Kind == kind.Value);
             if (status.HasValue) docsQ = docsQ.Where(d => d.Status == status.Value);
 
