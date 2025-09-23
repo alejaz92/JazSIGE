@@ -57,9 +57,6 @@ namespace CatalogService.Business.Services
             var accounts = await _repository.FindAsync(b => b.AccountNumber == accountNumber);
             return !accounts.Any();
         }
-
-        // 
-
         public override async Task<string> ValidateBeforeSave(BankAccountCreateDTO model)
         {
             if (string.IsNullOrWhiteSpace(model.AccountNumber)) return "Account Number is mandatory.";
@@ -72,6 +69,8 @@ namespace CatalogService.Business.Services
             if (!isUnique) return "Account Number already exists.";
             return null;
         }
+        protected override  Task<IEnumerable<BankAccount>> GetAllWithIncludes() => _repository.GetAllIncludingAsync(account => account.Bank);
+        protected override Task<BankAccount> GetWithIncludes(int id) => _repository.GetIncludingAsync(id, account => account.Bank);
 
     }
 }
