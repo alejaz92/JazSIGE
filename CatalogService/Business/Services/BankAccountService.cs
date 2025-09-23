@@ -68,7 +68,7 @@ namespace CatalogService.Business.Services
             if (string.IsNullOrWhiteSpace(model.AccountType)) return "Account Type is mandatory.";
             var isUnique = await IsAccountNumberUnique(model.AccountNumber);
             if (!isUnique) return "Account Number already exists.";
-            return string.Empty;
+            return null;
         }
 
     }
