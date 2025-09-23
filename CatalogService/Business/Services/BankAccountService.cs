@@ -58,6 +58,8 @@ namespace CatalogService.Business.Services
             return !accounts.Any();
         }
 
+        // 
+
         public override async Task<string> ValidateBeforeSave(BankAccountCreateDTO model)
         {
             if (string.IsNullOrWhiteSpace(model.AccountNumber)) return "Account Number is mandatory.";
