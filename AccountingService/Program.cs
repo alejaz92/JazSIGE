@@ -1,6 +1,5 @@
 using AccountingService.Business.Interfaces;
 using AccountingService.Business.Services;
-using AccountingService.Business.Services.Interfaces;
 using AccountingService.Infrastructure.Data;
 using AccountingService.Infrastructure.Interfaces;
 using AccountingService.Infrastructure.Repositories;
@@ -65,11 +64,10 @@ builder.Services.AddScoped<IAllocationRepository, AllocationRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 //Services
-builder.Services.AddScoped<ILedgerDocumentService, LedgerDocumentService>();
-builder.Services.AddScoped<IReceiptService, ReceiptService>();
-builder.Services.AddScoped<ICustomerLedgerQueryService, CustomerLedgerQueryService>() ;
-builder.Services.AddScoped<ICustomerPendingQueryService, CustomerPendingQueryService>();
-builder.Services.AddScoped<ICustomerBalancesQueryService, CustomerBalancesQueryService>();
+builder.Services.AddScoped<ICustomerAccountQueryService, CustomerAccountQueryService>();
+builder.Services.AddScoped<IDocumentIntakeService, DocumentIntakeService>();
+builder.Services.AddScoped<IReceiptCommandService, ReceiptCommandService>();
+
 
 
 //inyect configuration

@@ -14,12 +14,18 @@ namespace AccountingService.Infrastructure.Repositories
             _ctx = ctx;
         }
 
-        public Task<LedgerDocument?> GetByFiscalIdAsync(int fiscalDocumentId, CancellationToken ct = default)
-            => _ctx.LedgerDocuments.AsNoTracking()
-                                   .FirstOrDefaultAsync(d => d.FiscalDocumentId == fiscalDocumentId, ct);
 
-        public Task<bool> ExistsByFiscalIdAsync(int fiscalDocumentId, CancellationToken ct = default)
-            => _ctx.LedgerDocuments.AnyAsync(d => d.FiscalDocumentId == fiscalDocumentId, ct);
+        public Task<LedgerDocument?> GetBySourceAsync(SourceKind sourceKind, long sourceId, CancellationToken ct = default)
+            => _ctx.LedgerDocuments.AsNoTracking()
+                                   .FirstOrDefaultAsync(d => d.SourceKind == sourceKind && d.SourceDocumentId == sourceId, ct);
+
+        public Task<bool> ExistsBySourceAsync(SourceKind sourceKind, long sourceId, CancellationToken ct = default)
+            => _ctx.LedgerDocuments.AnyAsync(d => d.SourceKind == sourceKind && d.SourceDocumentId == sourceId, ct);
+
+        // Receipts vinculados localmente
+        public Task<LedgerDocument?> GetByReceiptIdAsync(int receiptId, CancellationToken ct = default)
+            => _ctx.LedgerDocuments.AsNoTracking()
+                                   .FirstOrDefaultAsync(d => d.ReceiptId == receiptId, ct);
 
         public async Task<IEnumerable<LedgerDocument>> GetByPartyAsync(int partyId, CancellationToken ct = default)
             => await _ctx.LedgerDocuments.AsNoTracking()
@@ -27,8 +33,6 @@ namespace AccountingService.Infrastructure.Repositories
                                          .OrderByDescending(d => d.DocumentDate)
                                          .ToListAsync(ct);
 
-        public IQueryable<LedgerDocument> Query()
-            => _ctx.LedgerDocuments.AsNoTracking();
-
+        public IQueryable<LedgerDocument> Query() => _ctx.LedgerDocuments.AsNoTracking();
     }
 }

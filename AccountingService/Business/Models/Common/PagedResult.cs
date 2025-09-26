@@ -2,9 +2,17 @@
 {
     public class PagedResult<T>
     {
-        public int Page { get; set; }
-        public int PageSize { get; set; }
-        public int Total { get; set; }
-        public List<T> Items { get; set; } = new();
+        public IReadOnlyList<T> Items { get; }
+        public int Total { get; }
+        public int Page { get; }
+        public int PageSize { get; }
+
+        public PagedResult(IReadOnlyList<T> items, int total, int page, int pageSize)
+        {
+            Items = items;
+            Total = total;
+            Page = page;
+            PageSize = pageSize;
+        }
     }
 }

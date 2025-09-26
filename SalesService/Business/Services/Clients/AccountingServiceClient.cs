@@ -29,11 +29,12 @@ namespace SalesService.Business.Services.Clients
             return client;
         }
 
-        public async Task CreateLedgerDocumentAsync(AccountingDocumentCreateDTO dto, CancellationToken ct = default)
+        // Nuevo: Ingesta de documentos fiscales en Accounting
+        public async Task IngestFiscalAsync(AccountingFiscalIngestDTO dto, CancellationToken ct = default)
         {
             var client = CreateAuthorizedClient();
-            // Ajustá la ruta si en Accounting dejaste otra (recomendado: /api/accounting/documents)
-            var resp = await client.PostAsJsonAsync($"{_accountingBaseUrl.TrimEnd('/')}/Documents", dto, ct);
+            var url = $"{_accountingBaseUrl.TrimEnd('/')}/Documents/fiscal";
+            var resp = await client.PostAsJsonAsync(url, dto, ct);
             resp.EnsureSuccessStatusCode();
         }
     }

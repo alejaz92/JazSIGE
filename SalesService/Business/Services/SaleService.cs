@@ -511,16 +511,17 @@ namespace SalesService.Business.Services
             {
                 try
                 {
-                    await _accountingServiceClient.CreateLedgerDocumentAsync(new AccountingDocumentCreateDTO
+                    await _accountingServiceClient.IngestFiscalAsync(new AccountingFiscalIngestDTO
                     {
-                        PartyType = "customer", // Customer
+                        PartyType = 0,                                 // Customer
                         PartyId = sale.CustomerId.Value,
-                        Kind = "invoice", // Invoice
-                        FiscalDocumentId = result.Id,
-                        FiscalDocumentNumber = result.DocumentNumber,
+                        Kind = 0,                                      // Invoice
+                        SourceKind = 0,                                // FiscalInvoice
+                        SourceDocumentId = result.Id,
+                        DisplayNumber = result.DocumentNumber,
                         DocumentDate = result.Date,
-                        Currency = "ARS",         // o result.Currency si lo devolvés
-                        FxRate = 1m,              // o result.ExchangeRate
+                        Currency = "ARS",                              // o result.Currency si corresponde
+                        FxRate = 1m,                                   // o result.ExchangeRate
                         TotalOriginal = result.TotalAmount
                     });
                 }
@@ -886,13 +887,14 @@ namespace SalesService.Business.Services
             {
                 try
                 {
-                    await _accountingServiceClient.CreateLedgerDocumentAsync(new AccountingDocumentCreateDTO
+                    await _accountingServiceClient.IngestFiscalAsync(new AccountingFiscalIngestDTO
                     {
-                        PartyType = "customer",
+                        PartyType = 0,                                 // Customer
                         PartyId = sale.CustomerId.Value,
-                        Kind = "creditNote", // CreditNote  (en DebitNote usá 1)
-                        FiscalDocumentId = created.Id,
-                        FiscalDocumentNumber = created.DocumentNumber,
+                        Kind = 2,                                      // CreditNote
+                        SourceKind = 2,                                // FiscalCreditNote
+                        SourceDocumentId = created.Id,
+                        DisplayNumber = created.DocumentNumber,
                         DocumentDate = created.Date,
                         Currency = "ARS",
                         FxRate = 1m,
@@ -901,7 +903,6 @@ namespace SalesService.Business.Services
                 }
                 catch (Exception ex)
                 {
-                    // throw exception
                     throw new InvalidOperationException("Error notifying accounting.", ex);
                 }
             }
@@ -1060,13 +1061,14 @@ namespace SalesService.Business.Services
             {
                 try
                 {
-                    await _accountingServiceClient.CreateLedgerDocumentAsync(new AccountingDocumentCreateDTO
+                    await _accountingServiceClient.IngestFiscalAsync(new AccountingFiscalIngestDTO
                     {
-                        PartyType = "customer",
+                        PartyType = 0,                                 // Customer
                         PartyId = sale.CustomerId.Value,
-                        Kind = "debitNote", 
-                        FiscalDocumentId = created.Id,
-                        FiscalDocumentNumber = created.DocumentNumber,
+                        Kind = 1,                                      // DebitNote
+                        SourceKind = 1,                                // FiscalDebitNote
+                        SourceDocumentId = created.Id,
+                        DisplayNumber = created.DocumentNumber,
                         DocumentDate = created.Date,
                         Currency = "ARS",
                         FxRate = 1m,
@@ -1075,7 +1077,6 @@ namespace SalesService.Business.Services
                 }
                 catch (Exception ex)
                 {
-                    // throw exception
                     throw new InvalidOperationException("Error notifying accounting.", ex);
                 }
             }
