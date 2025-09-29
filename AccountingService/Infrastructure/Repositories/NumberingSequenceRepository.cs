@@ -3,13 +3,14 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using AccountingService.Infrastructure.Interfaces;
 using AccountingService.Infrastructure.Models.Common;
+using AccountingService.Infrastructure.Data;
 
 namespace AccountingService.Infrastructure.Repositories
 {
     public class NumberingSequenceRepository : INumberingSequenceRepository
     {
-        private readonly DbContext _ctx;
-        public NumberingSequenceRepository(DbContext ctx) => _ctx = ctx;
+        private readonly AccountingDbContext _ctx;
+        public NumberingSequenceRepository(AccountingDbContext ctx) => _ctx = ctx;
 
         public async Task<int> GetNextAsync(string scope, CancellationToken ct = default)
         {
