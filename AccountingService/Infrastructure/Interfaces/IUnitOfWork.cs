@@ -8,6 +8,7 @@ namespace AccountingService.Infrastructure.Interfaces
         ILedgerDocumentRepository LedgerDocuments { get; }
         IReceiptRepository Receipts { get; }
         IAllocationRepository Allocations { get; }
+        INumberingSequenceRepository NumberingSequences { get; }
 
         // Persistencia y transacciones
         Task<int> SaveChangesAsync(CancellationToken ct = default);

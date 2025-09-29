@@ -13,6 +13,7 @@ namespace AccountingService.Infrastructure.UnitOfWork
         private ILedgerDocumentRepository? _ledgerDocuments;
         private IReceiptRepository? _receipts;
         private IAllocationRepository? _allocations;
+        private INumberingSequenceRepository? _numberingSequences; 
         private IDbContextTransaction? _trx;
 
         public UnitOfWork(AccountingDbContext ctx)
@@ -29,6 +30,9 @@ namespace AccountingService.Infrastructure.UnitOfWork
 
         public IAllocationRepository Allocations =>
             _allocations ??= new AllocationRepository(_ctx);
+
+        public INumberingSequenceRepository NumberingSequences =>               
+            _numberingSequences ??= new NumberingSequenceRepository(_ctx);      
 
         // Persistencia
         public Task<int> SaveChangesAsync(CancellationToken ct = default) =>

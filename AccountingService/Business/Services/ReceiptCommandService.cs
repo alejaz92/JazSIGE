@@ -26,9 +26,17 @@ namespace AccountingService.Business.Services
                     throw new InvalidOperationException("BankAccountId is required for bank transfer/deposit.");
             }
 
+            // Punto fijo por ahora
+            const string pointOfReceipt = "0001";
+            var scope = $"Receipt:{pointOfReceipt}";
+
+            // Nro robusto bajo concurrencia
+            var next = await _uow.NumberingSequences.GetNextAsync(scope, ct);
+            var formatted = $"{pointOfReceipt}-{next:D8}";
+
             var receipt = new Receipt
             {
-                Number = null,
+                Number = formatted,
                 Date = req.Date,
                 PartyType = req.PartyType,
                 PartyId = req.PartyId,

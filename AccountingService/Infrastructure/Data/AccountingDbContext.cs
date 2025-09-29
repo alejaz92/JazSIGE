@@ -1,4 +1,5 @@
-﻿using AccountingService.Infrastructure.Models.Ledger;
+﻿using AccountingService.Infrastructure.Models.Common;
+using AccountingService.Infrastructure.Models.Ledger;
 using Microsoft.EntityFrameworkCore;
 
 namespace AccountingService.Infrastructure.Data
@@ -13,6 +14,7 @@ namespace AccountingService.Infrastructure.Data
         public DbSet<Receipt> Receipts { get; set; }
         public DbSet<PaymentLine> PaymentLines { get; set; }
         public DbSet<Allocation> Allocations { get; set; }
+        public DbSet<NumberingSequence> NumberingSequences { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -137,5 +139,7 @@ namespace AccountingService.Infrastructure.Data
                 b.HasIndex(x => x.DebitDocumentId);
             });
         }
+        
+        
     }
 }
