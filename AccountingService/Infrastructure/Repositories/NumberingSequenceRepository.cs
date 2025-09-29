@@ -1,59 +1,56 @@
-﻿using System.Data;
+﻿// Infrastructure/Repositories/NumberingSequenceRepository.cs
+using AccountingService.Infrastructure.Data;        // tu DbContext concreto
+using AccountingService.Infrastructure.Interfaces;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using AccountingService.Infrastructure.Interfaces;
-using AccountingService.Infrastructure.Models.Common;
-using AccountingService.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore.Storage;
+using System.Data;
 
 namespace AccountingService.Infrastructure.Repositories
 {
     public class NumberingSequenceRepository : INumberingSequenceRepository
     {
-        private readonly AccountingDbContext _ctx;
+        private readonly AccountingDbContext _ctx; // usar el DbContext concreto
         public NumberingSequenceRepository(AccountingDbContext ctx) => _ctx = ctx;
 
         public async Task<int> GetNextAsync(string scope, CancellationToken ct = default)
         {
-            // Asegura transacción serializable para evitar carreras
-            await using var tx = await _ctx.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+            await using var tx = await _ctx.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable, ct);
 
-            // 1) Intentar actualizar y obtener el nuevo NextNumber de forma atómica
-            var sql = @"
-                IF NOT EXISTS (SELECT 1 FROM NumberingSequences WITH (UPDLOCK, HOLDLOCK) WHERE Scope = @scope)
+            const string sql = @"
+                IF NOT EXISTS (SELECT 1 FROM ledger.NumberingSequences WITH (UPDLOCK, HOLDLOCK) WHERE Scope = @scope)
                 BEGIN
-                    INSERT INTO NumberingSequences (Scope, NextNumber) VALUES (@scope, 1);
+                    INSERT INTO ledger.NumberingSequences (Scope, NextNumber) VALUES (@scope, 1);
                 END
 
                 DECLARE @current int;
 
-                UPDATE NumberingSequences WITH (ROWLOCK, UPDLOCK)
-                SET NextNumber = NextNumber + 1,
-                    @current = NextNumber
+                UPDATE ledger.NumberingSequences WITH (ROWLOCK, UPDLOCK)
+                SET @current = NextNumber,
+                    NextNumber = NextNumber + 1
                 WHERE Scope = @scope;
 
-                -- @current ahora quedó en NextNumber actualizado; el siguiente a entregar es (@current - 1)
-                SELECT @current - 1;
-                ";
+                SELECT @current;";
 
-            var param = new SqlParameter("@scope", scope);
-            var next = await _ctx.Database.ExecuteSqlRawAsync("/* ping */ SELECT 1", ct); // mantiene la conexión caliente (opcional)
+            var conn = _ctx.Database.GetDbConnection();
+            await _ctx.Database.OpenConnectionAsync(ct);
 
-            int issued;
-            await foreach (var row in _ctx.Set<ScalarInt>().FromSqlRaw(sql, param).AsAsyncEnumerable().WithCancellation(ct))
-            {
-                issued = row.Value;
-                await tx.CommitAsync(ct);
-                return issued;
-            }
+            await using var cmd = conn.CreateCommand();
+            cmd.Transaction = _ctx.Database.CurrentTransaction?.GetDbTransaction();
+            cmd.CommandText = sql;
 
-            // Fallback (no debería ocurrir)
-            await tx.RollbackAsync(ct);
-            throw new InvalidOperationException("Failed to obtain next sequence number.");
+            var pScope = cmd.CreateParameter();
+            pScope.ParameterName = "@scope";
+            pScope.Value = scope;
+            cmd.Parameters.Add(pScope);
+
+            var obj = await cmd.ExecuteScalarAsync(ct);
+            var issued = Convert.ToInt32(obj);
+
+            await tx.CommitAsync(ct);
+            return issued;
         }
 
-        private class ScalarInt
-        {
-            public int Value { get; set; }
-        }
     }
 }
