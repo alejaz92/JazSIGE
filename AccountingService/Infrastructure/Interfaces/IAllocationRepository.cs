@@ -6,5 +6,6 @@ namespace AccountingService.Infrastructure.Interfaces
     {
         Task<Dictionary<int, decimal>> GetAppliedByDocumentsAsync(IEnumerable<int> documentIds, CancellationToken ct = default);
         Task<Dictionary<int, decimal>> GetAppliedByReceiptsAsync(IEnumerable<int> receiptIds, CancellationToken ct = default);
+        IQueryable<Allocation> Query();
     }
 }

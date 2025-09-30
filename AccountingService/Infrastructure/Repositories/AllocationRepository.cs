@@ -30,5 +30,7 @@ namespace AccountingService.Infrastructure.Repositories
                 .Select(g => new { g.Key, Sum = g.Sum(x => x.AmountBase) })
                 .ToDictionaryAsync(x => x.Key, x => x.Sum, ct);
         }
+
+        public IQueryable<Allocation> Query() => _context.Allocations.AsNoTracking();
     }
 }

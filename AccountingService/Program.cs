@@ -1,5 +1,7 @@
 using AccountingService.Business.Interfaces;
+using AccountingService.Business.Interfaces.Clients;
 using AccountingService.Business.Services;
+using AccountingService.Business.Services.Clients;
 using AccountingService.Infrastructure.Data;
 using AccountingService.Infrastructure.Interfaces;
 using AccountingService.Infrastructure.Repositories;
@@ -68,6 +70,9 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<ICustomerAccountQueryService, CustomerAccountQueryService>();
 builder.Services.AddScoped<IDocumentIntakeService, DocumentIntakeService>();
 builder.Services.AddScoped<IReceiptCommandService, ReceiptCommandService>();
+builder.Services.AddScoped<ICompanyServiceClient, CompanyServiceClient>();
+builder.Services.AddScoped<ICatalogServiceClient, CatalogServiceClient>();
+
 
 
 

@@ -10,10 +10,14 @@ namespace AccountingService.Controllers
     public class ReceiptsController : ControllerBase
     {
         private readonly IReceiptCommandService _service;
+        private readonly IReceiptQueryService _queryService;
 
-        public ReceiptsController(IReceiptCommandService service)
+        public ReceiptsController(
+            IReceiptCommandService service,
+            IReceiptQueryService queryService)
         {
             _service = service;
+            _queryService = queryService;
         }
 
         [HttpPost]
@@ -61,6 +65,22 @@ namespace AccountingService.Controllers
             // El servicio ignora si no existe (idempotente). Si preferís 404, chequeá antes.
             await _service.DeallocateAsync(allocationId, ct);
             return NoContent();
+        }
+
+        [HttpGet("{id:int}/detail")]
+        [ProducesResponseType(typeof(ReceiptDetailDTO), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetDetail(int id, CancellationToken ct = default)
+        {
+            try
+            {
+                var dto = await _queryService.GetDetailAsync(id, ct);
+                return Ok(dto);
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
+            {
+                return NotFound();
+            }
         }
 
         public class AllocationBody

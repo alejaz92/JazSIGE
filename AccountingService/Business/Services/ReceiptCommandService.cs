@@ -32,7 +32,7 @@ namespace AccountingService.Business.Services
 
             // Nro robusto bajo concurrencia
             var next = await _uow.NumberingSequences.GetNextAsync(scope, ct);
-            var formatted = $"{pointOfReceipt}-{next:D8}";
+            var formatted = $"{next:D8}";
 
             var receipt = new Receipt
             {
