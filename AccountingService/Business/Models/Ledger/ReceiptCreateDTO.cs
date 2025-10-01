@@ -29,18 +29,24 @@ namespace AccountingService.Business.Models.Ledger
 
     public class PaymentLineCreateDTO
     {
-        [Required] public PaymentMethod Method { get; set; }
+        public PaymentMethod Method { get; set; }
+        public decimal AmountOriginal { get; set; }
 
-        [Range(0.01, 999_999_999)]
-        public decimal AmountOriginal { get; set; }             // in Currency
+        public int? BankAccountId { get; set; }
+        public string? TransactionReference { get; set; }
 
-        public int? BankAccountId { get; set; }                 // your company bank account id
-        [StringLength(100)] public string? TransactionReference { get; set; }
-        [StringLength(100)] public string? Notes { get; set; }
+        // Cheque (usar si Method == Check)
+        public string? CheckIssuerBankCode { get; set; }
+        public string? CheckNumber { get; set; }
+        public DateTime? CheckIssueDate { get; set; }
+        public DateTime? CheckPaymentDate { get; set; }
+        public string? CheckIssuerTaxId { get; set; }
+        public string? CheckIssuerName { get; set; }
+        public bool? CheckIsThirdParty { get; set; }
 
-        public DateTime? ValueDate { get; set; }
 
-        // AmountBase is computed server-side = AmountOriginal * FxRate of the receipt
+        public string? Notes { get; set; }
+        public DateTime? ValueDate { get; set; } // si no se envía y es cheque, se tomará CheckPaymentDate
     }
 
     public class AllocationCreateDTO

@@ -92,10 +92,21 @@ namespace AccountingService.Business.Services
                     AmountBase = p.AmountBase,
                     BankAccountId = p.BankAccountId,
                     TransactionReference = p.TransactionReference,
+
+                    // Cheque
+                    CheckIssuerBankCode = p.CheckIssuerBankCode,
+                    CheckNumber = p.CheckNumber,
+                    CheckIssueDate = p.CheckIssueDate,
+                    CheckPaymentDate = p.CheckPaymentDate,
+                    CheckIssuerTaxId = p.CheckIssuerTaxId,
+                    CheckIssuerName = p.CheckIssuerName,
+                    CheckIsThirdParty = p.CheckIsThirdParty,
+
                     Notes = p.Notes,
                     ValueDate = p.ValueDate
                 })
                 .ToList();
+
 
             // 7) Armar DTO (nombres = tu contrato)
             var dto = new ReceiptDetailDTO

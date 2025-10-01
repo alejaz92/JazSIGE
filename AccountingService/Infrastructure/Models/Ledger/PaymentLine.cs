@@ -20,5 +20,14 @@
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? ValueDate { get; set; }
+
+        // datos cheque (si Method = Check)
+        public string? CheckIssuerBankCode { get; set; } // código del banco emisor
+        public string? CheckNumber { get; set; }         // número de cheque
+        public DateTime? CheckIssueDate { get; set; }  // fecha de emisión
+        public DateTime? CheckPaymentDate { get; set; } // fecha de pago (vencimiento)
+        public string? CheckIssuerTaxId { get; set; }   // CUIT del emisor
+        public string? CheckIssuerName { get; set; }    // nombre del emisor
+        public bool? CheckIsThirdParty { get; set; }   // si es cheque de terceros
     }
 }

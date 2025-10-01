@@ -24,6 +24,20 @@ namespace AccountingService.Business.Services
             {
                 if ((p.Method == PaymentMethod.BankTransfer || p.Method == PaymentMethod.BankDeposit) && p.BankAccountId is null)
                     throw new InvalidOperationException("BankAccountId is required for bank transfer/deposit.");
+
+                if (p.Method == PaymentMethod.Check)
+                {
+                    if (string.IsNullOrWhiteSpace(p.CheckIssuerBankCode))
+                        throw new InvalidOperationException("CheckIssuerBankCode is required for check.");
+                    if (string.IsNullOrWhiteSpace(p.CheckNumber))
+                        throw new InvalidOperationException("CheckNumber is required for check.");
+                    if (p.CheckIssueDate is null)
+                        throw new InvalidOperationException("CheckIssueDate is required for check.");
+                    if (p.CheckPaymentDate is null)
+                        throw new InvalidOperationException("CheckPaymentDate is required for check.");
+                    if (p.CheckIssueDate > p.CheckPaymentDate)
+                        throw new InvalidOperationException("CheckPaymentDate must be on/after CheckIssueDate.");
+                }
             }
 
             // Punto fijo por ahora
@@ -62,7 +76,18 @@ namespace AccountingService.Business.Services
                     BankAccountId = p.BankAccountId,
                     TransactionReference = p.TransactionReference,
                     Notes = p.Notes,
-                    ValueDate = p.ValueDate
+
+                    // Cheque (solo si corresponde)
+                    CheckIssuerBankCode = p.CheckIssuerBankCode,
+                    CheckNumber = p.CheckNumber,
+                    CheckIssueDate = p.CheckIssueDate,
+                    CheckPaymentDate = p.CheckPaymentDate,
+                    CheckIssuerTaxId = p.CheckIssuerTaxId,
+                    CheckIssuerName = p.CheckIssuerName,
+                    CheckIsThirdParty = p.CheckIsThirdParty,
+
+                    // Fecha valor: si no vino y es cheque, usamos fecha de pago
+                    ValueDate = p.ValueDate ?? (p.Method == PaymentMethod.Check ? p.CheckPaymentDate : null)
                 };
             }).ToList();
 
@@ -291,18 +316,7 @@ namespace AccountingService.Business.Services
 
         private static ReceiptDTO Map(Receipt r) => new()
         {
-            Id = r.Id,
-            Number = r.Number,
-            Date = r.Date,
-            PartyType = r.PartyType,
-            PartyId = r.PartyId,
-            Currency = r.Currency,
-            FxRate = r.FxRate,
-            TotalOriginal = r.TotalOriginal,
-            TotalBase = r.TotalBase,
-            Notes = r.Notes,
-            IsVoided = r.IsVoided,
-            VoidedAt = r.VoidedAt,
+            // ...
             Payments = r.PaymentLines.Select(p => new PaymentLineDTO
             {
                 Id = p.Id,
@@ -311,9 +325,20 @@ namespace AccountingService.Business.Services
                 AmountBase = p.AmountBase,
                 BankAccountId = p.BankAccountId,
                 TransactionReference = p.TransactionReference,
+
+                // Cheque
+                CheckIssuerBankCode = p.CheckIssuerBankCode,
+                CheckNumber = p.CheckNumber,
+                CheckIssueDate = p.CheckIssueDate,
+                CheckPaymentDate = p.CheckPaymentDate,
+                CheckIssuerTaxId = p.CheckIssuerTaxId,
+                CheckIssuerName = p.CheckIssuerName,
+                CheckIsThirdParty = p.CheckIsThirdParty,
+
                 Notes = p.Notes,
                 ValueDate = p.ValueDate
             }).ToList()
         };
+
     }
 }

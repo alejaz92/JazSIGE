@@ -35,8 +35,19 @@ namespace AccountingService.Business.Models.Ledger
         public PaymentMethod Method { get; set; }
         public decimal AmountOriginal { get; set; }
         public decimal AmountBase { get; set; }
+
         public int? BankAccountId { get; set; }
         public string? TransactionReference { get; set; }
+
+        // Cheque
+        public string? CheckIssuerBankCode { get; set; }
+        public string? CheckNumber { get; set; }
+        public DateTime? CheckIssueDate { get; set; }
+        public DateTime? CheckPaymentDate { get; set; }
+        public string? CheckIssuerTaxId { get; set; }
+        public string? CheckIssuerName { get; set; }
+        public bool? CheckIsThirdParty { get; set; }
+
         public string? Notes { get; set; }
         public DateTime? ValueDate { get; set; }
     }
