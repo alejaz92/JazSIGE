@@ -46,6 +46,7 @@ namespace AccountingService.Business.Services
                 .Select(d => new LedgerItemDTO
                 {
                     DocumentId = d.Id,
+                    SourceDocumentId = d.SourceDocumentId ?? 0, // En recibos, el Id del recibo original
                     Kind = d.Kind,
                     Status = d.Status,
                     Date = d.DocumentDate,
