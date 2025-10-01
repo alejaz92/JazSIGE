@@ -21,7 +21,7 @@ namespace AccountingService.Business.Services.Clients
         {
             var client = _httpClientFactory.CreateClient();
             var token = _httpContextAccessor.HttpContext?.Request.Headers["Authorization"].ToString();
-            if (!string.IsNullOrWhiteSpace(token))
+            if (!string.IsNullOrEmpty(token))
                 client.DefaultRequestHeaders.Add("Authorization", token);
             return client;
         }
@@ -29,8 +29,7 @@ namespace AccountingService.Business.Services.Clients
         public async Task<CustomerDTO?> GetCustomerByIdAsync(int customerId)
         {
             var client = CreateAuthorizedClient();
-            var url = $"{_catalogBaseUrl}Customer/{customerId}";
-            using var response = await client.GetAsync(url);
+            var response = await client.GetAsync($"{_catalogBaseUrl}Customer/{customerId}");
             if (!response.IsSuccessStatusCode) return null;
             return await response.Content.ReadFromJsonAsync<CustomerDTO>();
         }

@@ -14,6 +14,8 @@
         public string Province { get; set; } = string.Empty;
         public string Country { get; set; } = string.Empty;
 
+        public string SellerName { get; set; } = string.Empty;
+
 
         public int? PostalCodeId { get; set; }
     }
