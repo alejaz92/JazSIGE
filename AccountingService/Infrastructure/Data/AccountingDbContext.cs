@@ -122,21 +122,45 @@ namespace AccountingService.Infrastructure.Data
                 b.ToTable("Allocations");
                 b.HasKey(x => x.Id);
 
+                b.Property(x => x.Source).HasConversion<byte>();
+
                 b.Property(x => x.AmountBase).HasPrecision(18, 2);
                 b.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
 
+                // Source: Receipt
                 b.HasOne(x => x.Receipt)
                  .WithMany(r => r.Allocations)
                  .HasForeignKey(x => x.ReceiptId)
                  .OnDelete(DeleteBehavior.Restrict);
 
+                // Source: CreditDocument (LedgerDocument con Kind=CreditNote)
+                b.HasOne(x => x.CreditDocument)
+                 .WithMany()
+                 .HasForeignKey(x => x.CreditDocumentId)
+                 .OnDelete(DeleteBehavior.Restrict);
+
+                // Siempre contra un débito (Factura/ND)
                 b.HasOne(x => x.DebitDocument)
                  .WithMany()
                  .HasForeignKey(x => x.DebitDocumentId)
                  .OnDelete(DeleteBehavior.Restrict);
 
+                // Índices típicos
                 b.HasIndex(x => x.ReceiptId);
+                b.HasIndex(x => x.CreditDocumentId);
                 b.HasIndex(x => x.DebitDocumentId);
+
+                // Consistencia: exactamente una fuente
+                b.ToTable(tb =>
+                {
+                    tb.HasCheckConstraint(
+                        "CK_Allocations_SourceShape",
+                        @"(
+                            (Source = 1 AND ReceiptId IS NOT NULL AND CreditDocumentId IS NULL) OR
+                            (Source = 2 AND CreditDocumentId IS NOT NULL AND ReceiptId IS NULL)
+                          )"
+                    );
+                });
             });
         }
         

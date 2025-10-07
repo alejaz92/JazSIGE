@@ -15,7 +15,7 @@ namespace AccountingService.Infrastructure.Repositories
 
         public async Task<Dictionary<int, decimal>> GetAppliedByDocumentsAsync(IEnumerable<int> documentIds, CancellationToken ct = default)
         {
-           return await _context.Allocations
+            return await _context.Allocations
                 .Where(a => documentIds.Contains(a.DebitDocumentId))
                 .GroupBy(a => a.DebitDocumentId)
                 .Select(g => new { g.Key, Sum = g.Sum(x => x.AmountBase) })
@@ -25,9 +25,18 @@ namespace AccountingService.Infrastructure.Repositories
         public Task<Dictionary<int, decimal>> GetAppliedByReceiptsAsync(IEnumerable<int> receiptIds, CancellationToken ct = default)
         {
             return _context.Allocations
-                .Where(a => receiptIds.Contains(a.ReceiptId))
-                .GroupBy(a => a.ReceiptId)
-                .Select(g => new { g.Key, Sum = g.Sum(x => x.AmountBase) })
+                .Where(a => a.Source == AllocationSource.Receipt && receiptIds.Contains(a.ReceiptId!.Value))
+                .GroupBy(a => a.ReceiptId!.Value)
+                .Select(g => new { Key = g.Key, Sum = g.Sum(x => x.AmountBase) })
+                .ToDictionaryAsync(x => x.Key, x => x.Sum, ct);
+        }
+
+        public Task<Dictionary<int, decimal>> GetAppliedByCreditDocsAsync(IEnumerable<int> creditDocIds, CancellationToken ct = default)
+        {
+            return _context.Allocations
+                .Where(a => a.Source == AllocationSource.CreditDocument && creditDocIds.Contains(a.CreditDocumentId!.Value))
+                .GroupBy(a => a.CreditDocumentId!.Value)
+                .Select(g => new { Key = g.Key, Sum = g.Sum(x => x.AmountBase) })
                 .ToDictionaryAsync(x => x.Key, x => x.Sum, ct);
         }
 
