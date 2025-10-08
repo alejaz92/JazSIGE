@@ -73,7 +73,8 @@ builder.Services.AddScoped<IReceiptCommandService, ReceiptCommandService>();
 builder.Services.AddScoped<ICompanyServiceClient, CompanyServiceClient>();
 builder.Services.AddScoped<ICatalogServiceClient, CatalogServiceClient>();
 builder.Services.AddScoped<IReceiptQueryService, ReceiptQueryService>();  
-builder.Services.AddScoped<IManualAllocationService, ManualAllocationService>();
+builder.Services.AddScoped<ICreditsQueryService, CreditsQueryService>();
+builder.Services.AddScoped<IInvoiceCreditApplicationService, InvoiceCreditApplicationService>();
 
 
 

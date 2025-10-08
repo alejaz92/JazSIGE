@@ -127,6 +127,8 @@ namespace AccountingService.Infrastructure.Data
                 b.Property(x => x.AmountBase).HasPrecision(18, 2);
                 b.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
 
+
+
                 // Source: Receipt
                 b.HasOne(x => x.Receipt)
                  .WithMany(r => r.Allocations)
@@ -150,6 +152,8 @@ namespace AccountingService.Infrastructure.Data
                 b.HasIndex(x => x.CreditDocumentId);
                 b.HasIndex(x => x.DebitDocumentId);
 
+
+
                 // Consistencia: exactamente una fuente
                 b.ToTable(tb =>
                 {
@@ -160,6 +164,7 @@ namespace AccountingService.Infrastructure.Data
                             (Source = 2 AND CreditDocumentId IS NOT NULL AND ReceiptId IS NULL)
                           )"
                     );
+                    tb.HasCheckConstraint("CK_Allocations_Amount_Positive", "[AmountBase] > 0");
                 });
             });
         }
