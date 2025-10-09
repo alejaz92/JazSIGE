@@ -1,65 +1,42 @@
-﻿using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore.Storage;
-using AccountingService.Infrastructure.Data;
+﻿using AccountingService.Infrastructure.Data;
 using AccountingService.Infrastructure.Interfaces;
-using AccountingService.Infrastructure.Repositories;
+using AccountingService.Infrastructure.Models;
+using JazSIGE.Accounting.Infrastructure.Interfaces;
+using JazSIGE.Accounting.Infrastructure.Models;
+using JazSIGE.Accounting.Infrastructure.Repositories;
 
-namespace AccountingService.Infrastructure.UnitOfWork
+namespace AccountingService.Infrastructure.Repositories
 {
     public class UnitOfWork : IUnitOfWork
     {
         private readonly AccountingDbContext _ctx;
-        private ILedgerDocumentRepository? _ledgerDocuments;
-        private IReceiptRepository? _receipts;
-        private IAllocationRepository? _allocations;
-        private INumberingSequenceRepository? _numberingSequences; 
-        private IDbContextTransaction? _trx;
 
-        public UnitOfWork(AccountingDbContext ctx)
+        public UnitOfWork(
+            AccountingDbContext ctx,
+            ILedgerDocumentRepository ledgerDocuments,
+            IReceiptRepository receipts,
+            IAllocationBatchRepository allocationBatches)
         {
             _ctx = ctx;
+            LedgerDocuments = ledgerDocuments;
+            Receipts = receipts;
+            AllocationBatches = allocationBatches;
+
+            ReceiptPayments = new GenericRepository<ReceiptPayment>(_ctx);
+            ReceiptAllocations = new GenericRepository<ReceiptAllocation>(_ctx);
+            AllocationItems = new GenericRepository<AllocationItem>(_ctx);
         }
 
-        // Exposición de repos específicos (lazy)
-        public ILedgerDocumentRepository LedgerDocuments =>
-            _ledgerDocuments ??= new LedgerDocumentRepository(_ctx);
+        public ILedgerDocumentRepository LedgerDocuments { get; }
+        public IReceiptRepository Receipts { get; }
+        public IAllocationBatchRepository AllocationBatches { get; }
 
-        public IReceiptRepository Receipts =>
-            _receipts ??= new ReceiptRepository(_ctx);
+        // 🔹 Nuevos repositorios
+        public IGenericRepository<ReceiptPayment> ReceiptPayments { get; }
+        public IGenericRepository<ReceiptAllocation> ReceiptAllocations { get; }
+        public IGenericRepository<AllocationItem> AllocationItems { get; }
 
-        public IAllocationRepository Allocations =>
-            _allocations ??= new AllocationRepository(_ctx);
-
-        public INumberingSequenceRepository NumberingSequences =>               
-            _numberingSequences ??= new NumberingSequenceRepository(_ctx);      
-
-        // Persistencia
-        public Task<int> SaveChangesAsync(CancellationToken ct = default) =>
-            _ctx.SaveChangesAsync(ct);
-
-        // Transacciones
-        public async Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken ct = default)
-        {
-            if (_trx != null) return _trx;
-            _trx = await _ctx.Database.BeginTransactionAsync(ct);
-            return _trx;
-        }
-
-        public async Task CommitTransactionAsync(CancellationToken ct = default)
-        {
-            if (_trx == null) return;
-            await _trx.CommitAsync(ct);
-            await _trx.DisposeAsync();
-            _trx = null;
-        }
-
-        public async Task RollbackTransactionAsync(CancellationToken ct = default)
-        {
-            if (_trx == null) return;
-            await _trx.RollbackAsync(ct);
-            await _trx.DisposeAsync();
-            _trx = null;
-        }
+        public Task<int> SaveChangesAsync(CancellationToken ct = default)
+            => _ctx.SaveChangesAsync(ct);
     }
 }

@@ -5,7 +5,7 @@ using AccountingService.Business.Services.Clients;
 using AccountingService.Infrastructure.Data;
 using AccountingService.Infrastructure.Interfaces;
 using AccountingService.Infrastructure.Repositories;
-using AccountingService.Infrastructure.UnitOfWork;
+using JazSIGE.Accounting.Infrastructure.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -62,19 +62,15 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<ILedgerDocumentRepository, LedgerDocumentRepository>();
 builder.Services.AddScoped<IReceiptRepository, ReceiptRepository>();
-builder.Services.AddScoped<IAllocationRepository, AllocationRepository>();
-builder.Services.AddScoped<INumberingSequenceRepository, NumberingSequenceRepository>();
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IAllocationBatchRepository, AllocationBatchRepository>();
+
+
 
 //Services
-builder.Services.AddScoped<ICustomerAccountQueryService, CustomerAccountQueryService>();
-builder.Services.AddScoped<IDocumentIntakeService, DocumentIntakeService>();
-builder.Services.AddScoped<IReceiptCommandService, ReceiptCommandService>();
+
 builder.Services.AddScoped<ICompanyServiceClient, CompanyServiceClient>();
 builder.Services.AddScoped<ICatalogServiceClient, CatalogServiceClient>();
-builder.Services.AddScoped<IReceiptQueryService, ReceiptQueryService>();  
-builder.Services.AddScoped<ICreditsQueryService, CreditsQueryService>();
-builder.Services.AddScoped<IInvoiceCreditApplicationService, InvoiceCreditApplicationService>();
+
 
 
 

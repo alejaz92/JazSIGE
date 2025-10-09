@@ -1,38 +1,65 @@
 ﻿using AccountingService.Infrastructure.Data;
-using AccountingService.Infrastructure.Interfaces;
-using AccountingService.Infrastructure.Models.Ledger;
+using AccountingService.Infrastructure.Models;
+using JazSIGE.Accounting.Infrastructure.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using static AccountingService.Infrastructure.Models.Enums;
 
 namespace AccountingService.Infrastructure.Repositories
 {
     public class LedgerDocumentRepository : GenericRepository<LedgerDocument>, ILedgerDocumentRepository
     {
-        private readonly AccountingDbContext _ctx;
+        public LedgerDocumentRepository(AccountingDbContext ctx) : base(ctx) { }
 
-        public LedgerDocumentRepository(AccountingDbContext ctx) : base(ctx)
+        public async Task<LedgerDocument?> GetByExternalRefAsync(int externalRefId, LedgerDocumentKind kind)
         {
-            _ctx = ctx;
+            return await _db.FirstOrDefaultAsync(x => x.ExternalRefId == externalRefId && x.Kind == kind);
         }
 
+        public async Task<List<LedgerDocument>> GetPartyDocumentsAsync(PartyType partyType, int partyId)
+        {
+            return await _db
+                .Where(x => x.PartyType == partyType && x.PartyId == partyId && x.Status == DocumentStatus.Active)
+                .OrderByDescending(x => x.DocumentDate)
+                .ToListAsync();
+        }
 
-        public Task<LedgerDocument?> GetBySourceAsync(SourceKind sourceKind, long sourceId, CancellationToken ct = default)
-            => _ctx.LedgerDocuments.AsNoTracking()
-                                   .FirstOrDefaultAsync(d => d.SourceKind == sourceKind && d.SourceDocumentId == sourceId, ct);
+        public async Task<List<LedgerDocument>> GetSelectablesDebitsAsync(PartyType partyType, int partyId)
+        {
+            return await _db
+                .Where(x =>
+                    x.PartyType == partyType &&
+                    x.PartyId == partyId &&
+                    x.Status == DocumentStatus.Active &&
+                    (x.Kind == LedgerDocumentKind.Invoice || x.Kind == LedgerDocumentKind.DebitNote) &&
+                    x.PendingARS > 0)
+                .OrderBy(x => x.DocumentDate)
+                .ToListAsync();
+        }
 
-        public Task<bool> ExistsBySourceAsync(SourceKind sourceKind, long sourceId, CancellationToken ct = default)
-            => _ctx.LedgerDocuments.AnyAsync(d => d.SourceKind == sourceKind && d.SourceDocumentId == sourceId, ct);
+        public async Task<List<LedgerDocument>> GetSelectablesCreditsAsync(PartyType partyType, int partyId)
+        {
+            return await _db
+                .Where(x =>
+                    x.PartyType == partyType &&
+                    x.PartyId == partyId &&
+                    x.Status == DocumentStatus.Active &&
+                    x.Kind == LedgerDocumentKind.CreditNote &&
+                    x.PendingARS > 0)
+                .OrderBy(x => x.DocumentDate)
+                .ToListAsync();
+        }
 
-        // Receipts vinculados localmente
-        public Task<LedgerDocument?> GetByReceiptIdAsync(int receiptId, CancellationToken ct = default)
-            => _ctx.LedgerDocuments.AsNoTracking()
-                                   .FirstOrDefaultAsync(d => d.ReceiptId == receiptId, ct);
-
-        public async Task<IEnumerable<LedgerDocument>> GetByPartyAsync(int partyId, CancellationToken ct = default)
-            => await _ctx.LedgerDocuments.AsNoTracking()
-                                         .Where(d => d.PartyId == partyId)
-                                         .OrderByDescending(d => d.DocumentDate)
-                                         .ToListAsync(ct);
-
-        public IQueryable<LedgerDocument> Query() => _ctx.LedgerDocuments.AsNoTracking();
+        public async Task<List<LedgerDocument>> GetReceiptCreditsAsync(PartyType partyType, int partyId)
+        {
+            return await _db
+                .Where(x =>
+                    x.PartyType == partyType &&
+                    x.PartyId == partyId &&
+                    x.Status == DocumentStatus.Active &&
+                    x.Kind == LedgerDocumentKind.Receipt &&
+                    x.PendingARS > 0)
+                .OrderBy(x => x.DocumentDate)
+                .ToListAsync();
+        }
     }
 }

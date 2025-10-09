@@ -1,19 +1,18 @@
-﻿using Microsoft.EntityFrameworkCore.Storage;
+﻿using AccountingService.Infrastructure.Models;
+using JazSIGE.Accounting.Infrastructure.Interfaces;
 
 namespace AccountingService.Infrastructure.Interfaces
 {
     public interface IUnitOfWork
     {
-        // Repositorios específicos
         ILedgerDocumentRepository LedgerDocuments { get; }
         IReceiptRepository Receipts { get; }
-        IAllocationRepository Allocations { get; }
-        INumberingSequenceRepository NumberingSequences { get; }
+        IAllocationBatchRepository AllocationBatches { get; }
 
-        // Persistencia y transacciones
+        IGenericRepository<ReceiptPayment> ReceiptPayments { get; }
+        IGenericRepository<ReceiptAllocation> ReceiptAllocations { get; }
+        IGenericRepository<AllocationItem> AllocationItems { get; }
+
         Task<int> SaveChangesAsync(CancellationToken ct = default);
-        Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken ct = default);
-        Task CommitTransactionAsync(CancellationToken ct = default);
-        Task RollbackTransactionAsync(CancellationToken ct = default);
     }
 }

@@ -1,5 +1,5 @@
-﻿using AccountingService.Infrastructure.Models.Common;
-using AccountingService.Infrastructure.Models.Ledger;
+﻿
+using AccountingService.Infrastructure.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace AccountingService.Infrastructure.Data
@@ -10,164 +10,86 @@ namespace AccountingService.Infrastructure.Data
         {
         }
 
-        public DbSet<LedgerDocument> LedgerDocuments { get; set; }
-        public DbSet<Receipt> Receipts { get; set; }
-        public DbSet<PaymentLine> PaymentLines { get; set; }
-        public DbSet<Allocation> Allocations { get; set; }
-        public DbSet<NumberingSequence> NumberingSequences { get; set; } = null!;
+        public DbSet<LedgerDocument> LedgerDocuments => Set<LedgerDocument>();
+        public DbSet<Receipt> Receipts => Set<Receipt>();
+        public DbSet<ReceiptPayment> ReceiptPayments => Set<ReceiptPayment>();
+        public DbSet<ReceiptAllocation> ReceiptAllocations => Set<ReceiptAllocation>();
+        public DbSet<AllocationBatch> AllocationBatches => Set<AllocationBatch>();
+        public DbSet<AllocationItem> AllocationItems => Set<AllocationItem>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.HasDefaultSchema("ledger");
+            // Enums
+            modelBuilder.Entity<LedgerDocument>().Property(p => p.PartyType).HasConversion<int>();
+            modelBuilder.Entity<LedgerDocument>().Property(p => p.Kind).HasConversion<int>();
+            modelBuilder.Entity<LedgerDocument>().Property(p => p.Status).HasConversion<int>();
+            modelBuilder.Entity<ReceiptPayment>().Property(p => p.Method).HasConversion<int>();
 
-            // ========= Documents (LedgerDocument) =========
-            modelBuilder.Entity<LedgerDocument>(b =>
-            {
-                b.ToTable("Documents");
-                b.HasKey(x => x.Id);
+            // RowVersion
+            modelBuilder.Entity<LedgerDocument>().Property(p => p.RowVersion).IsRowVersion();
+            modelBuilder.Entity<Receipt>().Property(p => p.RowVersion).IsRowVersion();
+            modelBuilder.Entity<ReceiptPayment>().Property(p => p.RowVersion).IsRowVersion();
+            modelBuilder.Entity<ReceiptAllocation>().Property(p => p.RowVersion).IsRowVersion();
+            modelBuilder.Entity<AllocationBatch>().Property(p => p.RowVersion).IsRowVersion();
+            modelBuilder.Entity<AllocationItem>().Property(p => p.RowVersion).IsRowVersion();
 
-                // ---- Nuevos campos genéricos de origen ----
-                b.Property(x => x.SourceKind)        // enum nullable
-                 .HasConversion<byte?>();
+            // Decimal precisions
+            modelBuilder.Entity<LedgerDocument>().Property(p => p.FxRate).HasColumnType("decimal(18,6)");
+            modelBuilder.Entity<LedgerDocument>().Property(p => p.AmountOriginal).HasColumnType("decimal(18,2)");
+            modelBuilder.Entity<LedgerDocument>().Property(p => p.AmountARS).HasColumnType("decimal(18,2)");
+            modelBuilder.Entity<LedgerDocument>().Property(p => p.PendingARS).HasColumnType("decimal(18,2)");
 
-                b.Property(x => x.SourceDocumentId); // bigint nullable
+            modelBuilder.Entity<ReceiptPayment>().Property(p => p.FxRate).HasColumnType("decimal(18,6)");
+            modelBuilder.Entity<ReceiptPayment>().Property(p => p.AmountOriginal).HasColumnType("decimal(18,2)");
+            modelBuilder.Entity<ReceiptPayment>().Property(p => p.AmountARS).HasColumnType("decimal(18,2)");
 
-                b.Property(x => x.DisplayNumber)
-                 .HasMaxLength(50);                  // número legible (factura o recibo), nullable
+            modelBuilder.Entity<ReceiptAllocation>().Property(p => p.AppliedARS).HasColumnType("decimal(18,2)");
+            modelBuilder.Entity<AllocationItem>().Property(p => p.AppliedARS).HasColumnType("decimal(18,2)");
 
-                // ---- Enlace local a Receipt (1:0..1) ----
-                b.Property(x => x.ReceiptId);
-                b.HasOne(x => x.Receipt)
-                 .WithMany()                         // sin navegación inversa por ahora
-                 .HasForeignKey(x => x.ReceiptId)
-                 .OnDelete(DeleteBehavior.Restrict); // no cascada: el borrado es lógico (Voided)
+            // Required cortos
+            modelBuilder.Entity<LedgerDocument>().Property(p => p.AmountARS).IsRequired();
+            modelBuilder.Entity<LedgerDocument>().Property(p => p.PendingARS).IsRequired();
+            modelBuilder.Entity<Receipt>().Property(p => p.Number).HasMaxLength(50);
+            modelBuilder.Entity<LedgerDocument>().Property(p => p.Currency).HasMaxLength(3);
 
-                // ---- Otros campos ----
-                b.Property(x => x.Currency)
-                 .IsRequired()
-                 .HasMaxLength(3);
+            // Índices
+            modelBuilder.Entity<LedgerDocument>()
+                .HasIndex(p => new { p.Kind, p.ExternalRefId })
+                .IsUnique(); // idempotencia por origen
 
-                b.Property(x => x.FxRate)
-                 .HasPrecision(18, 6);
+            modelBuilder.Entity<LedgerDocument>()
+                .HasIndex(p => new { p.PartyType, p.PartyId, p.DocumentDate });
 
-                b.Property(x => x.TotalOriginal)
-                 .HasPrecision(18, 2);
+            modelBuilder.Entity<LedgerDocument>()
+                .HasIndex(p => new { p.Kind, p.Status });
 
-                b.Property(x => x.TotalBase)
-                 .HasPrecision(18, 2);
+            modelBuilder.Entity<ReceiptAllocation>()
+                .HasIndex(a => a.TargetDocumentId);
 
-                b.Property(x => x.CreatedAt)
-                 .HasDefaultValueSql("SYSUTCDATETIME()");
+            modelBuilder.Entity<AllocationBatch>()
+                .HasMany(b => b.Items)
+                .WithOne(i => i.AllocationBatch)
+                .HasForeignKey(i => i.AllocationBatchId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-                // ---- Índices ----
+            modelBuilder.Entity<AllocationBatch>()
+                .HasIndex(b => b.TargetDocumentId);
 
-                // (ANTES) Única por FiscalDocumentId —-> SE ELIMINA para no forzar fiscal-only.
-                // b.HasIndex(x => x.FiscalDocumentId).IsUnique();  // <-- eliminado
+            // Relaciones Receipt
+            modelBuilder.Entity<ReceiptPayment>()
+                .HasOne(p => p.Receipt)
+                .WithMany(r => r.Payments)
+                .HasForeignKey(p => p.ReceiptId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-                // Nuevo: unicidad por origen genérico (fiscal o recibo)
-                b.HasIndex(x => new { x.SourceKind, x.SourceDocumentId })
-                 .IsUnique()
-                 .HasDatabaseName("UX_Documents_SourceKind_SourceId");
+            modelBuilder.Entity<ReceiptAllocation>()
+                .HasOne(a => a.Receipt)
+                .WithMany(r => r.Allocations)
+                .HasForeignKey(a => a.ReceiptId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-                // Único por recibo (cada recibo genera a lo sumo 1 documento espejo)
-                b.HasIndex(x => x.ReceiptId)
-                 .IsUnique()
-                 .HasFilter("[ReceiptId] IS NOT NULL")
-                 .HasDatabaseName("UX_Documents_ReceiptId");
-
-                // Búsquedas típicas por tercero/estado/tipo con fecha para ordenar
-                b.HasIndex(x => new { x.PartyType, x.PartyId, x.Status, x.Kind, x.DocumentDate })
-                 .HasDatabaseName("IX_Documents_Party_Status_Kind_Date");
-            });
-
-            // ========= Receipts =========
-            modelBuilder.Entity<Receipt>(b =>
-            {
-                b.ToTable("Receipts");
-                b.HasKey(x => x.Id);
-
-                b.Property(x => x.Number).HasMaxLength(30);
-                b.Property(x => x.Currency).IsRequired().HasMaxLength(3);
-                b.Property(x => x.FxRate).HasPrecision(18, 6);
-                b.Property(x => x.TotalOriginal).HasPrecision(18, 2);
-                b.Property(x => x.TotalBase).HasPrecision(18, 2);
-                b.Property(x => x.Notes).HasMaxLength(500);
-
-                b.HasIndex(x => new { x.PartyType, x.PartyId, x.Date });
-            });
-
-            // ========= ReceiptPayments (PaymentLine) =========
-            modelBuilder.Entity<PaymentLine>(b =>
-            {
-                b.ToTable("ReceiptPayments");
-                b.HasKey(x => x.Id);
-
-                b.Property(x => x.AmountOriginal).HasPrecision(18, 2);
-                b.Property(x => x.AmountBase).HasPrecision(18, 2);
-
-                b.Property(x => x.TransactionReference).HasMaxLength(100);
-                b.Property(x => x.Notes).HasMaxLength(100);
-
-                b.HasIndex(x => x.ReceiptId);
-
-                b.HasOne(x => x.Receipt)
-                 .WithMany(r => r.PaymentLines)
-                 .HasForeignKey(x => x.ReceiptId)
-                 .OnDelete(DeleteBehavior.Cascade);
-            });
-
-            // ========= Allocations =========
-            modelBuilder.Entity<Allocation>(b =>
-            {
-                b.ToTable("Allocations");
-                b.HasKey(x => x.Id);
-
-                b.Property(x => x.Source).HasConversion<byte>();
-
-                b.Property(x => x.AmountBase).HasPrecision(18, 2);
-                b.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
-
-
-
-                // Source: Receipt
-                b.HasOne(x => x.Receipt)
-                 .WithMany(r => r.Allocations)
-                 .HasForeignKey(x => x.ReceiptId)
-                 .OnDelete(DeleteBehavior.Restrict);
-
-                // Source: CreditDocument (LedgerDocument con Kind=CreditNote)
-                b.HasOne(x => x.CreditDocument)
-                 .WithMany()
-                 .HasForeignKey(x => x.CreditDocumentId)
-                 .OnDelete(DeleteBehavior.Restrict);
-
-                // Siempre contra un débito (Factura/ND)
-                b.HasOne(x => x.DebitDocument)
-                 .WithMany()
-                 .HasForeignKey(x => x.DebitDocumentId)
-                 .OnDelete(DeleteBehavior.Restrict);
-
-                // Índices típicos
-                b.HasIndex(x => x.ReceiptId);
-                b.HasIndex(x => x.CreditDocumentId);
-                b.HasIndex(x => x.DebitDocumentId);
-
-
-
-                // Consistencia: exactamente una fuente
-                b.ToTable(tb =>
-                {
-                    tb.HasCheckConstraint(
-                        "CK_Allocations_SourceShape",
-                        @"(
-                            (Source = 1 AND ReceiptId IS NOT NULL AND CreditDocumentId IS NULL) OR
-                            (Source = 2 AND CreditDocumentId IS NOT NULL AND ReceiptId IS NULL)
-                          )"
-                    );
-                    tb.HasCheckConstraint("CK_Allocations_Amount_Positive", "[AmountBase] > 0");
-                });
-            });
-        }
+            base.OnModelCreating(modelBuilder);
+        }   
         
         
     }
