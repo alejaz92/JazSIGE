@@ -511,19 +511,19 @@ namespace SalesService.Business.Services
             {
                 try
                 {
-                    await _accountingServiceClient.IngestFiscalAsync(new AccountingFiscalIngestDTO
+                    await _accountingServiceClient.UpsertExternalAsync(new AccountingExternalUpsertDTO
                     {
-                        PartyType = 0,                                 // Customer
+                        PartyType = 0,                                  // Customer
                         PartyId = sale.CustomerId.Value,
-                        Kind = 0,                                      // Invoice
-                        SourceKind = 0,                                // FiscalInvoice
-                        SourceDocumentId = result.Id,
-                        DisplayNumber = result.DocumentNumber,
+                        Kind = 0,                                       // Invoice
+                        ExternalRefId = result.Id,
+                        ExternalRefNumber = result.DocumentNumber,
                         DocumentDate = result.Date,
-                        Currency = "ARS",                              // o result.Currency si corresponde
-                        FxRate = 1m,                                   // o result.ExchangeRate
-                        TotalOriginal = result.TotalAmount
-                    });
+                        Currency = "ARS",
+                        FxRate = 1m,
+                        AmountARS = result.TotalAmount
+                    });                    
+
                 }
                 catch (Exception ex)
                 {
@@ -887,19 +887,19 @@ namespace SalesService.Business.Services
             {
                 try
                 {
-                    await _accountingServiceClient.IngestFiscalAsync(new AccountingFiscalIngestDTO
+                    await _accountingServiceClient.UpsertExternalAsync(new AccountingExternalUpsertDTO
                     {
-                        PartyType = 0,                                 // Customer
+                        PartyType = 0,
                         PartyId = sale.CustomerId.Value,
-                        Kind = 2,                                      // CreditNote
-                        SourceKind = 2,                                // FiscalCreditNote
-                        SourceDocumentId = created.Id,
-                        DisplayNumber = created.DocumentNumber,
+                        Kind = 2,                                       // CreditNote
+                        ExternalRefId = created.Id,
+                        ExternalRefNumber = created.DocumentNumber,
                         DocumentDate = created.Date,
                         Currency = "ARS",
                         FxRate = 1m,
-                        TotalOriginal = created.TotalAmount
+                        AmountARS = created.TotalAmount
                     });
+
                 }
                 catch (Exception ex)
                 {
@@ -1061,19 +1061,19 @@ namespace SalesService.Business.Services
             {
                 try
                 {
-                    await _accountingServiceClient.IngestFiscalAsync(new AccountingFiscalIngestDTO
+                    await _accountingServiceClient.UpsertExternalAsync(new AccountingExternalUpsertDTO
                     {
-                        PartyType = 0,                                 // Customer
+                        PartyType = 0,
                         PartyId = sale.CustomerId.Value,
-                        Kind = 1,                                      // DebitNote
-                        SourceKind = 1,                                // FiscalDebitNote
-                        SourceDocumentId = created.Id,
-                        DisplayNumber = created.DocumentNumber,
+                        Kind = 1,                                       // DebitNote
+                        ExternalRefId = created.Id,
+                        ExternalRefNumber = created.DocumentNumber,
                         DocumentDate = created.Date,
                         Currency = "ARS",
                         FxRate = 1m,
-                        TotalOriginal = created.TotalAmount
+                        AmountARS = created.TotalAmount
                     });
+
                 }
                 catch (Exception ex)
                 {

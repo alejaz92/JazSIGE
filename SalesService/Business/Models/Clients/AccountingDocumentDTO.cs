@@ -1,28 +1,49 @@
 ﻿namespace SalesService.Business.Models.Clients
 {
-    /// Request para /api/Documents/fiscal en el microservicio de Accounting.
-    /// Los enums viajan como int para evitar dependencias cruzadas.
-    public class AccountingFiscalIngestDTO
+    /// Request para /api/accounting/external-documents en Accounting.
+    /// Enums viajan como int para evitar dependencia de tipos.
+    public class AccountingExternalUpsertDTO
     {
-        // 0 = Customer (V1)
+        // 0 = Customer
         public int PartyType { get; set; } = 0;
         public int PartyId { get; set; }
 
         // LedgerDocumentKind: 0=Invoice, 1=DebitNote, 2=CreditNote
         public int Kind { get; set; }
 
-        // SourceKind: 0=FiscalInvoice, 1=FiscalDebitNote, 2=FiscalCreditNote
-        public int SourceKind { get; set; }
-
-        // Id del documento en el servicio Fiscal
-        public long SourceDocumentId { get; set; }
+        public long ExternalRefId { get; set; }
+        public string ExternalRefNumber { get; set; } = string.Empty;
 
         public DateTime DocumentDate { get; set; }
+
+        // Docs fiscales vienen en ARS; mantenemos campos por compat
         public string Currency { get; set; } = "ARS";
         public decimal FxRate { get; set; } = 1m;
-        public decimal TotalOriginal { get; set; }
 
-        // Número legible del documento fiscal (ej: "A 0001-00012345")
-        public string? DisplayNumber { get; set; }
+        // Total en ARS usado por Accounting para Pending/Amount
+        public decimal AmountARS { get; set; }
     }
+
+    public class ReceiptCreditDTO
+    {
+        public int Id { get; set; }                 // LedgerDocumentId del recibo con saldo
+        public string ExternalRefNumber { get; set; } = string.Empty; // Nro de recibo
+        public DateTime DocumentDate { get; set; }
+        public decimal PendingARS { get; set; }
+    }
+
+    public class CoverInvoiceRequest
+    {
+        public int PartyId { get; set; }
+        public int InvoiceExternalRefId { get; set; } // Id de la factura en Sales/Fiscal
+        public List<CoverInvoiceItem> Items { get; set; } = new();
+        public string? Reason { get; set; } = "cover-invoice";
+    }
+
+    public class CoverInvoiceItem
+    {
+        public int SourceLedgerDocumentId { get; set; } // Recibo con saldo (LedgerDocument.Id)
+        public decimal AppliedARS { get; set; }
+    }
+
 }

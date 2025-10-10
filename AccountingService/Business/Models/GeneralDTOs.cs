@@ -50,4 +50,6 @@
         public List<SimpleDocDTO> Credits { get; set; } = new();         // NC
         public List<SimpleDocDTO> ReceiptCredits { get; set; } = new();  // Recibos con saldo
     }
+
+    
 }

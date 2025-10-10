@@ -70,6 +70,10 @@ builder.Services.AddScoped<IAllocationBatchRepository, AllocationBatchRepository
 
 builder.Services.AddScoped<ICompanyServiceClient, CompanyServiceClient>();
 builder.Services.AddScoped<ICatalogServiceClient, CatalogServiceClient>();
+builder.Services.AddScoped<ILedgerQueryService, LedgerQueryService>();
+builder.Services.AddScoped<IExternalDocumentIngestionService, ExternalDocumentIngestionService>();
+builder.Services.AddScoped<IReceiptService, ReceiptService>();
+builder.Services.AddScoped<IAllocationService, AllocationService>();
 
 
 

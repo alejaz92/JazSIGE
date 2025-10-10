@@ -29,13 +29,31 @@ namespace SalesService.Business.Services.Clients
             return client;
         }
 
-        // Nuevo: Ingesta de documentos fiscales en Accounting
-        public async Task IngestFiscalAsync(AccountingFiscalIngestDTO dto, CancellationToken ct = default)
+        public async Task UpsertExternalAsync(AccountingExternalUpsertDTO dto, CancellationToken ct = default)
         {
             var client = CreateAuthorizedClient();
-            var url = $"{_accountingBaseUrl.TrimEnd('/')}/Documents/fiscal";
+            var url = $"{_accountingBaseUrl.TrimEnd('/')}/api/accounting/external-documents";
             var resp = await client.PostAsJsonAsync(url, dto, ct);
             resp.EnsureSuccessStatusCode();
         }
+
+        public async Task<IReadOnlyList<ReceiptCreditDTO>> GetReceiptCreditsAsync(int partyId, CancellationToken ct = default)
+        {
+            var client = CreateAuthorizedClient();
+            var url = $"{_accountingBaseUrl.TrimEnd('/')}/api/accounting/Customer/{partyId}/receipt-credits";
+            var resp = await client.GetAsync(url, ct);
+            resp.EnsureSuccessStatusCode();
+            var data = await resp.Content.ReadFromJsonAsync<List<ReceiptCreditDTO>>(cancellationToken: ct);
+            return data ?? new List<ReceiptCreditDTO>();
+        }
+
+        public async Task CoverInvoiceWithReceiptsAsync(CoverInvoiceRequest dto, CancellationToken ct = default)
+        {
+            var client = CreateAuthorizedClient();
+            var url = $"{_accountingBaseUrl.TrimEnd('/')}/api/allocations/cover-invoice";
+            var resp = await client.PostAsJsonAsync(url, dto, ct);
+            resp.EnsureSuccessStatusCode(); // 204 NoContent esperado
+        }
+
     }
 }
