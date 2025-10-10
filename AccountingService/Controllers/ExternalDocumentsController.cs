@@ -5,7 +5,7 @@ using static AccountingService.Infrastructure.Models.Enums;
 
 namespace AccountingService.Controllers
 {
-    [Route("api/accounting/external-documents")]
+    [Route("api/external-documents")]
     [ApiController]
     public class ExternalDocumentsController : ControllerBase
     {

@@ -6,7 +6,7 @@ using static AccountingService.Infrastructure.Models.Enums;
 
 namespace AccountingService.Controllers
 {
-    [Route("api/accounting/{partyType}/{partyId:int}")]
+    [Route("api/{partyType}/{partyId:int}")]
     [ApiController]
     public class LedgerController : ControllerBase
     {
