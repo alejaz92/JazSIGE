@@ -17,7 +17,7 @@
         public int PartyId { get; set; }
         public LedgerDocumentKind Kind { get; set; }
         public int ExternalRefId { get; set; }
-        public string ExternalRefNumber { get; set; };
+        public string ExternalRefNumber { get; set; }
         public DateTime DocumentDate { get; set; }
         public string Currency { get; set; } = "ARS";
         public decimal FxRate { get; set; }
