@@ -6,7 +6,7 @@ using static AccountingService.Infrastructure.Models.Enums;
 
 namespace AccountingService.Controllers
 {
-    [Route("api/accounting/{partyType:enum}/{partyId:int}")]
+    [Route("api/accounting/{partyType}/{partyId:int}")]
     [ApiController]
     public class LedgerController : ControllerBase
     {
@@ -20,65 +20,77 @@ namespace AccountingService.Controllers
         }
 
         [HttpGet("balances")]
-        public async Task<ActionResult<BalancesDTO>> GetBalances(PartyType partyType, int partyId, CancellationToken ct)
+        public async Task<ActionResult<BalancesDTO>> GetBalances(string partyType, int partyId, CancellationToken ct)
         {
+            if (!Enum.TryParse<PartyType>(partyType, true, out var parsedPartyType))
+                return BadRequest(new { message = "Invalid partyType." });
+
             try
             {
-                return Ok(await _ledgerQueryService.GetBalancesAsync(partyType, partyId));
+                return Ok(await _ledgerQueryService.GetBalancesAsync(parsedPartyType, partyId));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting balances for {partyType} {partyId}", partyType, partyId);
+                _logger.LogError(ex, "Error getting balances for {partyType} {partyId}", parsedPartyType, partyId);
                 return StatusCode(500, new { message = "Error retrieving balances." });
             }
         }
 
         [HttpGet("ledger")]
         public async Task<ActionResult<PagedResult<LedgerDocumentDTO>>> GetLedger(
-        PartyType partyType, int partyId,
-        [FromQuery] DateTime? from,
-        [FromQuery] DateTime? to,
-        [FromQuery] LedgerDocumentKind? kind,
-        [FromQuery] DocumentStatus? status,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 50,
-        CancellationToken ct = default)
+            string partyType, int partyId,
+            [FromQuery] DateTime? from,
+            [FromQuery] DateTime? to,
+            [FromQuery] LedgerDocumentKind? kind,
+            [FromQuery] DocumentStatus? status,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 50,
+            CancellationToken ct = default)
         {
+            if (!Enum.TryParse<PartyType>(partyType, true, out var parsedPartyType))
+                return BadRequest(new { message = "Invalid partyType." });
+
             try
             {
-                return Ok(await _ledgerQueryService.GetLedgerAsync(partyType, partyId, from, to, kind, status, page, pageSize));
+                return Ok(await _ledgerQueryService.GetLedgerAsync(parsedPartyType, partyId, from, to, kind, status, page, pageSize));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting ledger for {partyType} {partyId}", partyType, partyId);
+                _logger.LogError(ex, "Error getting ledger for {partyType} {partyId}", parsedPartyType, partyId);
                 return StatusCode(500, new { message = "Error retrieving ledger." });
             }
         }
 
         [HttpGet("selectables")]
-        public async Task<ActionResult<SelectablesDTO>> GetSelectables(PartyType partyType, int partyId, CancellationToken ct)
+        public async Task<ActionResult<SelectablesDTO>> GetSelectables(string partyType, int partyId, CancellationToken ct)
         {
+            if (!Enum.TryParse<PartyType>(partyType, true, out var parsedPartyType))
+                return BadRequest(new { message = "Invalid partyType." });
+
             try
             {
-                return Ok(await _ledgerQueryService.GetSelectablesForReceiptAsync(partyType, partyId));
+                return Ok(await _ledgerQueryService.GetSelectablesForReceiptAsync(parsedPartyType, partyId));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting selectables for {partyType} {partyId}", partyType, partyId);
+                _logger.LogError(ex, "Error getting selectables for {partyType} {partyId}", parsedPartyType, partyId);
                 return StatusCode(500, new { message = "Error retrieving selectables." });
             }
         }
 
         [HttpGet("receipt-credits")]
-        public async Task<ActionResult<List<SimpleDocDTO>>> GetReceiptCredits(PartyType partyType, int partyId, CancellationToken ct)
+        public async Task<ActionResult<List<SimpleDocDTO>>> GetReceiptCredits(string partyType, int partyId, CancellationToken ct)
         {
+            if (!Enum.TryParse<PartyType>(partyType, true, out var parsedPartyType))
+                return BadRequest(new { message = "Invalid partyType." });
+
             try
             {
-                return Ok(await _ledgerQueryService.GetReceiptCreditsAsync(partyType, partyId));
+                return Ok(await _ledgerQueryService.GetReceiptCreditsAsync(parsedPartyType, partyId));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting receipt credits for {partyType} {partyId}", partyType, partyId);
+                _logger.LogError(ex, "Error getting receipt credits for {partyType} {partyId}", parsedPartyType, partyId);
                 return StatusCode(500, new { message = "Error retrieving receipt credits." });
             }
         }

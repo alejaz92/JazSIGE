@@ -14,7 +14,6 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-
 //test4
 var builder = WebApplication.CreateBuilder(args);
 
@@ -63,6 +62,7 @@ builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepositor
 builder.Services.AddScoped<ILedgerDocumentRepository, LedgerDocumentRepository>();
 builder.Services.AddScoped<IReceiptRepository, ReceiptRepository>();
 builder.Services.AddScoped<IAllocationBatchRepository, AllocationBatchRepository>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 
 
@@ -74,7 +74,6 @@ builder.Services.AddScoped<ILedgerQueryService, LedgerQueryService>();
 builder.Services.AddScoped<IExternalDocumentIngestionService, ExternalDocumentIngestionService>();
 builder.Services.AddScoped<IReceiptService, ReceiptService>();
 builder.Services.AddScoped<IAllocationService, AllocationService>();
-
 
 
 

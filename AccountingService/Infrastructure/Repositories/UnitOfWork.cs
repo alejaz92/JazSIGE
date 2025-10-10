@@ -2,8 +2,7 @@
 using AccountingService.Infrastructure.Interfaces;
 using AccountingService.Infrastructure.Models;
 using JazSIGE.Accounting.Infrastructure.Interfaces;
-using JazSIGE.Accounting.Infrastructure.Models;
-using JazSIGE.Accounting.Infrastructure.Repositories;
+
 
 namespace AccountingService.Infrastructure.Repositories
 {
