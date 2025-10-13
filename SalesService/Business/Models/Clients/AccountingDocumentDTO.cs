@@ -5,11 +5,11 @@
     public class AccountingExternalUpsertDTO
     {
         // 0 = Customer
-        public int PartyType { get; set; } = 0;
+        public string PartyType { get; set; } = "customer";
         public int PartyId { get; set; }
 
         // LedgerDocumentKind: 0=Invoice, 1=DebitNote, 2=CreditNote
-        public int Kind { get; set; }
+        public string Kind { get; set; }
 
         public long ExternalRefId { get; set; }
         public string ExternalRefNumber { get; set; } = string.Empty;

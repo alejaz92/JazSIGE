@@ -27,7 +27,7 @@
           "Host": "accounting-api-dev-jaz.azurewebsites.net",
           "Port": 443
           //"Host": "localhost",
-          //"Port": 7042
+          //"Port": 7298
         }
       ],
       "UpstreamPathTemplate": "/accounting/{everything}",
@@ -207,7 +207,7 @@
           "Name": "Accounting Service",
           "Version": "v1",
           "Url": "https://accounting-api-dev-jaz.azurewebsites.net/swagger/v1/swagger.json"
-          //"Url": "https://localhost:7042/swagger/v1/swagger.json"
+          //"Url": "https://localhost:7298/swagger/v1/swagger.json"
         }
       ]
     },

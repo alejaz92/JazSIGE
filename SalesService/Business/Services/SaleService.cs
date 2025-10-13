@@ -513,9 +513,9 @@ namespace SalesService.Business.Services
                 {
                     await _accountingServiceClient.UpsertExternalAsync(new AccountingExternalUpsertDTO
                     {
-                        PartyType = 0,                                  // Customer
+                        PartyType = "customer",                                  // Customer
                         PartyId = sale.CustomerId.Value,
-                        Kind = 0,                                       // Invoice
+                        Kind = "invoice",                                       // Invoice
                         ExternalRefId = result.Id,
                         ExternalRefNumber = result.DocumentNumber,
                         DocumentDate = result.Date,
@@ -889,9 +889,9 @@ namespace SalesService.Business.Services
                 {
                     await _accountingServiceClient.UpsertExternalAsync(new AccountingExternalUpsertDTO
                     {
-                        PartyType = 0,
+                        PartyType = "customer",
                         PartyId = sale.CustomerId.Value,
-                        Kind = 2,                                       // CreditNote
+                        Kind = "creditNote",                                       // CreditNote
                         ExternalRefId = created.Id,
                         ExternalRefNumber = created.DocumentNumber,
                         DocumentDate = created.Date,
@@ -1063,9 +1063,9 @@ namespace SalesService.Business.Services
                 {
                     await _accountingServiceClient.UpsertExternalAsync(new AccountingExternalUpsertDTO
                     {
-                        PartyType = 0,
+                        PartyType = "customer",
                         PartyId = sale.CustomerId.Value,
-                        Kind = 1,                                       // DebitNote
+                        Kind = "debitNote",                                       // DebitNote
                         ExternalRefId = created.Id,
                         ExternalRefNumber = created.DocumentNumber,
                         DocumentDate = created.Date,
