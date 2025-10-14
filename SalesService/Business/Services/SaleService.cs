@@ -520,7 +520,7 @@ namespace SalesService.Business.Services
                         ExternalRefNumber = result.DocumentNumber,
                         DocumentDate = result.Date,
                         Currency = "ARS",
-                        FxRate = 1m,
+                        FxRate = 1,
                         AmountARS = result.TotalAmount
                     });                    
 

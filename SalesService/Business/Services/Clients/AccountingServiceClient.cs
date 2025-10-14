@@ -32,7 +32,7 @@ namespace SalesService.Business.Services.Clients
         public async Task UpsertExternalAsync(AccountingExternalUpsertDTO dto, CancellationToken ct = default)
         {
             var client = CreateAuthorizedClient();
-            var url = $"{_accountingBaseUrl.TrimEnd('/')}/api/accounting/external-documents";
+            var url = $"{_accountingBaseUrl.TrimEnd('/')}/external-documents";
             var resp = await client.PostAsJsonAsync(url, dto, ct);
             resp.EnsureSuccessStatusCode();
         }
@@ -40,7 +40,7 @@ namespace SalesService.Business.Services.Clients
         public async Task<IReadOnlyList<ReceiptCreditDTO>> GetReceiptCreditsAsync(int partyId, CancellationToken ct = default)
         {
             var client = CreateAuthorizedClient();
-            var url = $"{_accountingBaseUrl.TrimEnd('/')}/api/accounting/Customer/{partyId}/receipt-credits";
+            var url = $"{_accountingBaseUrl.TrimEnd('/')}/customer/{partyId}/receipt-credits";
             var resp = await client.GetAsync(url, ct);
             resp.EnsureSuccessStatusCode();
             var data = await resp.Content.ReadFromJsonAsync<List<ReceiptCreditDTO>>(cancellationToken: ct);
@@ -50,7 +50,7 @@ namespace SalesService.Business.Services.Clients
         public async Task CoverInvoiceWithReceiptsAsync(CoverInvoiceRequest dto, CancellationToken ct = default)
         {
             var client = CreateAuthorizedClient();
-            var url = $"{_accountingBaseUrl.TrimEnd('/')}/api/allocations/cover-invoice";
+            var url = $"{_accountingBaseUrl.TrimEnd('/')}/Allocations/cover-invoice";
             var resp = await client.PostAsJsonAsync(url, dto, ct);
             resp.EnsureSuccessStatusCode(); // 204 NoContent esperado
         }
