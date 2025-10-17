@@ -103,10 +103,15 @@ namespace AccountingService.Business.Services
             if (targets.Any(d => d.PendingARS <= 0))
                 throw new InvalidOperationException("All selected documents must have positive pending balance.");
 
+
+
             // Crear Receipt
+            // 🔹 Generar número si no vino desde el front
+            var receiptNumber = await GenerateNextReceiptNumberAsync();
+
             var receipt = new Receipt
             {
-                Number = dto.Number,
+                Number = receiptNumber,
                 Notes = dto.Notes
             };
             await _uow.Receipts.AddAsync(receipt);
@@ -119,7 +124,7 @@ namespace AccountingService.Business.Services
                 PartyId = dto.PartyId,
                 Kind = LedgerDocumentKind.Receipt,
                 ExternalRefId = receipt.Id,
-                ExternalRefNumber = dto.Number,            
+                ExternalRefNumber = receiptNumber,            
                 DocumentDate = dto.DocumentDate,
                 Currency = "ARS",
                 FxRate = 1m,
@@ -287,6 +292,37 @@ namespace AccountingService.Business.Services
             };
 
             return export;
+        }
+
+        /// <summary>
+        /// Genera el próximo número de recibo con formato 0001-00000001.
+        /// POS por defecto = 0001 (podés reemplazarlo por un valor de Company/Config).
+        /// Maneja concurrencia a nivel aplicación; idealmente acompañar con índice único en DB.
+        /// </summary>
+        private async Task<string> GenerateNextReceiptNumberAsync()
+        {
+            const int defaultPos = 1; // TODO: traer de configuración/empresa si corresponde
+            string pos = defaultPos.ToString("0000");
+
+            // Buscar el último ledger de tipo Recibo con ese POS y número formateado
+            var last = await _uow.LedgerDocuments.Query()
+                .Where(x => x.Kind == LedgerDocumentKind.Receipt
+                            && x.ExternalRefNumber != null
+                            && x.ExternalRefNumber.StartsWith(pos + "-"))
+                .OrderByDescending(x => x.Id)
+                .Select(x => x.ExternalRefNumber!)
+                .FirstOrDefaultAsync();
+
+            int next = 1;
+            if (!string.IsNullOrWhiteSpace(last))
+            {
+                // last = "0001-00000042" -> extrae parte numérica
+                var parts = last.Split('-', 2);
+                if (parts.Length == 2 && int.TryParse(parts[1], out var current))
+                    next = current + 1;
+            }
+
+            return $"{pos}-{next.ToString("00000000")}";
         }
 
     }

@@ -27,7 +27,7 @@
         public PartyType PartyType { get; set; }
         public int PartyId { get; set; }
         public DateTime DocumentDate { get; set; } = DateTime.UtcNow;
-        public string? Number { get; set; }       // si lo generás luego, dejalo null
+        //public string? Number { get; set; }       // si lo generás luego, dejalo null
         public string? Notes { get; set; }
 
         // Seleccionados (TODOS deben quedar en 0 tras confirmar)
