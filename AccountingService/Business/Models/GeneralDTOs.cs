@@ -41,7 +41,7 @@
     {
         public decimal PendingToPayARS { get; set; }   // Σ (Invoice+ND) - Σ (NC)
         public decimal CreditInReceiptsARS { get; set; } // Σ (Receipts with Pending)
-        public decimal TotalBalanceARS => CreditInReceiptsARS - PendingToPayARS;
+        public decimal TotalBalanceARS =>   PendingToPayARS - CreditInReceiptsARS;
     }
 
     public class SelectablesDTO
