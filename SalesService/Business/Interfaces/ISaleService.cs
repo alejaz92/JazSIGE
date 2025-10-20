@@ -6,6 +6,7 @@ namespace SalesService.Business.Interfaces
 {
     public interface ISaleService
     {
+        Task CoverInvoiceWithReceiptsAsync(int saleId, CoverInvoiceRequest request, CancellationToken ct = default);
         Task<SaleDetailDTO> CreateAsync(SaleCreateDTO dto);
         Task<InvoiceBasicDTO> CreateCreditNoteAsync(int saleId, CreditNoteCreateForSaleDTO dto);
         Task<InvoiceBasicDTO> CreateDebitNoteAsync(int saleId, DebitNoteCreateForSaleDTO dto);

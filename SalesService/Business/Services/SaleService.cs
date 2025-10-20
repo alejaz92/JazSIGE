@@ -3,6 +3,7 @@ using SalesService.Business.Interfaces.Clients;
 using SalesService.Business.Models.Clients;
 using SalesService.Business.Models.DeliveryNote;
 using SalesService.Business.Models.Sale;
+using SalesService.Business.Models.Sale.accounting;
 using SalesService.Business.Models.Sale.fiscalDocs;
 using SalesService.Business.Services.Clients;
 using SalesService.Infrastructure.Interfaces;
@@ -59,8 +60,8 @@ namespace SalesService.Business.Services
                     var customer = await _catalogService.GetCustomerByIdAsync(sale.CustomerId.Value);
                     sale.CustomerName = customer?.CompanyName ?? "N/A";
 
-                }       
-                
+                }
+
                 var seller = await _userService.GetUserByIdAsync(sale.SellerId);
 
                 var subtotal = sale.Articles.Sum(a =>
@@ -98,7 +99,7 @@ namespace SalesService.Business.Services
                 dn => dn.Articles
             );
 
-            var hasDeliveryNotes = deliveryNotes.Any();            
+            var hasDeliveryNotes = deliveryNotes.Any();
 
             CustomerDTO customer = new CustomerDTO
             {
@@ -194,7 +195,7 @@ namespace SalesService.Business.Services
                 HasDeliveryNotes = hasDeliveryNotes,
                 IsFullyDelivered = sale.IsFullyDelivered
 
-                
+
             };
         }
         public async Task<SaleDetailDTO> CreateAsync(SaleCreateDTO dto)
@@ -286,7 +287,7 @@ namespace SalesService.Business.Services
 
                 // 3) Crear Remito por la totalidad (descarga stock)
                 // 3.1) Armado del DTO de remito
-    
+
                 var deliveryNoteCreateDTO = new DeliveryNoteCreateDTO
                 {
                     SaleId = sale.Id,
@@ -317,7 +318,7 @@ namespace SalesService.Business.Services
 
                 // 5) Marcar flags (por si tu lógica interna no lo hizo ya)
                 sale.HasInvoice = true;
-                
+
                 _unitOfWork.SaleRepository.Update(sale);
                 await _unitOfWork.SaveAsync();
 
@@ -325,12 +326,15 @@ namespace SalesService.Business.Services
 
                 // 6) Devolver todo junto
                 var saleDetail = await GetByIdAsync(sale.Id);
+                // Agregar advice de imputación si corresponde
+                invoice.AllocationAdvice = await GetAllocationAdviceAsync(sale.Id, invoice, CancellationToken.None);
+
                 return new QuickSaleResultDTO
                 {
                     Sale = saleDetail!,
-                    //DeliveryNote = deliveryNote,
                     Invoice = invoice
                 };
+
             }
             catch
             {
@@ -342,22 +346,7 @@ namespace SalesService.Business.Services
         {
             await _unitOfWork.SaleRepository.DeleteAsync(id);
             await _unitOfWork.SaveAsync();
-        }
-        private async Task UpdateStockToCommited(int saleId, List<SaleArticleCreateDTO> articles, int? customerId, string customerName)
-        {
-            foreach (var article in articles)
-            {
-                var commitedEntry = new CommitedStockEntryCreateDTO
-                {
-                    SaleId = saleId,
-                    CustomerId =  customerId,
-                    CustomerName = customerName,
-                    ArticleId = article.ArticleId,
-                    Quantity = article.Quantity
-                };
-                await _stockServiceClient.RegisterCommitedStockAsync(commitedEntry);
-            }
-        }              
+        }        
         public async Task<InvoiceBasicDTO> CreateInvoiceAsync(int saleId)
         {
             var sale = await _unitOfWork.SaleRepository.GetIncludingAsync(saleId, s => s.Articles);
@@ -412,7 +401,7 @@ namespace SalesService.Business.Services
                 if (articleInfo == null)
                     throw new InvalidOperationException($"Article {article.ArticleId} not found.");
 
-    
+
 
                 // Replace with this corrected code:
                 var deliveryNoteArticles = deliveryNotes
@@ -431,7 +420,7 @@ namespace SalesService.Business.Services
                     throw new InvalidOperationException($"Delivery note article {article.ArticleId} has insufficient quantity.");
                 }
 
-                foreach(var i in deliveryNoteArticles)
+                foreach (var i in deliveryNoteArticles)
                 {
                     var priceWithDiscount = article.UnitPrice * (1 - article.DiscountPercent / 100) * sale.ExchangeRate;
                     var baseAmount = priceWithDiscount * i.Quantity;
@@ -440,7 +429,7 @@ namespace SalesService.Business.Services
                     items.Add(new FiscalDocumentItemDTO
                     {
                         Sku = articleInfo.SKU,
-                        Description = articleInfo.Description + "- Marca: " + articleInfo.Brand ,
+                        Description = articleInfo.Description + "- Marca: " + articleInfo.Brand,
                         UnitPrice = priceWithDiscount,
                         Quantity = (int)article.Quantity,
                         VatBase = baseAmount,
@@ -458,7 +447,7 @@ namespace SalesService.Business.Services
 
 
             }
-            
+
 
             int buyerDocumentType = 0;
             switch (sale.CustomerIdType)
@@ -480,7 +469,7 @@ namespace SalesService.Business.Services
 
             if (sale.IsFinalConsumer || customer.IVAType == "Exento" || customer.IVAType == "Monotributo")
                 invoiceType = 6; // Factura B
-            else 
+            else
                 invoiceType = 1; // Factura A
 
             // get company info from CompanyInfo Service
@@ -522,7 +511,7 @@ namespace SalesService.Business.Services
                         Currency = "ARS",
                         FxRate = 1,
                         AmountARS = result.TotalAmount
-                    });                    
+                    });
 
                 }
                 catch (Exception ex)
@@ -536,7 +525,10 @@ namespace SalesService.Business.Services
             _unitOfWork.SaleRepository.Update(sale);
             await _unitOfWork.SaveAsync();
 
-            return MapToBasic(result);
+            // Agregar advice de imputación
+            var invoice = MapToBasic(result);
+            invoice.AllocationAdvice = await GetAllocationAdviceAsync(saleId, invoice, CancellationToken.None);
+            return invoice;
         }
         public async Task<InvoiceBasicDTO> GetInvoiceAsync(int saleId)
         {
@@ -601,7 +593,7 @@ namespace SalesService.Business.Services
             // generate invoice detail
             var items = invoice.Items.Select(i => new InvoiceDetailItemDTO
             {
-                Sku = i.Sku,    
+                Sku = i.Sku,
                 Description = i.Description,
                 UnitPrice = i.UnitPrice,
                 Quantity = i.Quantity,
@@ -860,7 +852,7 @@ namespace SalesService.Business.Services
                     $"This CN: {newCNTot}.");
             }
 
-            
+
             //// 5) Armar request al servicio Fiscal
 
             var request = new FiscalDocumentCreateDTO
@@ -918,7 +910,7 @@ namespace SalesService.Business.Services
                 foreach (var it in dto.Items!)
                 {
                     // validación simple
-                    if (it.Quantity <= 0) 
+                    if (it.Quantity <= 0)
                         throw new InvalidOperationException("Item quantity must be > 0 for PartialReturn.");
 
                     var movement = new StockMovementCreateDTO
@@ -1019,7 +1011,7 @@ namespace SalesService.Business.Services
 
             var totalAmount = Math.Round(netAmount + vatAmount, 2);
 
-            
+
             // crear item generico
             var items = new List<FiscalDocumentItemDTO>
             {
@@ -1083,7 +1075,9 @@ namespace SalesService.Business.Services
 
 
             // 6) Devolver en formato básico (mismo que usás para factura/NC)
-            return MapToBasic(created);
+            var invoice = MapToBasic(created);
+            invoice.AllocationAdvice = await GetAllocationAdviceAsync(saleId, invoice, CancellationToken.None);
+            return invoice;
         }
         public async Task<IReadOnlyList<SaleNoteSummaryDTO>> GetCreditNotesAsync(int saleId)
         {
@@ -1121,6 +1115,37 @@ namespace SalesService.Business.Services
             var debit = await GetDebitNotesAsync(saleId);
             return credit.Concat(debit).OrderByDescending(x => x.Date).ToList();
         }
+        public async Task CoverInvoiceWithReceiptsAsync(int saleId, CoverInvoiceRequest request, CancellationToken ct = default)
+        {
+            var sale = await _unitOfWork.SaleRepository.GetByIdAsync(saleId);
+            if (sale is null) throw new KeyNotFoundException($"Sale {saleId} not found.");
+
+            if (!sale.CustomerId.HasValue)
+                throw new InvalidOperationException("Sale has no CustomerId (final consumer).");
+
+            if (request.PartyId != sale.CustomerId.Value)
+                throw new InvalidOperationException("Cover request party does not match sale customer.");
+
+            await _accountingServiceClient.CoverInvoiceWithReceiptsAsync(request, ct);
+        }
+
+
+
+        private async Task UpdateStockToCommited(int saleId, List<SaleArticleCreateDTO> articles, int? customerId, string customerName)
+        {
+            foreach (var article in articles)
+            {
+                var commitedEntry = new CommitedStockEntryCreateDTO
+                {
+                    SaleId = saleId,
+                    CustomerId = customerId,
+                    CustomerName = customerName,
+                    ArticleId = article.ArticleId,
+                    Quantity = article.Quantity
+                };
+                await _stockServiceClient.RegisterCommitedStockAsync(commitedEntry);
+            }
+        }
         private static InvoiceBasicDTO MapToBasic(FiscalDocumentResponseDTO f) => new()
         {
             Id = f.Id,
@@ -1133,7 +1158,7 @@ namespace SalesService.Business.Services
             NetAmount = f.NetAmount,
             VatAmount = f.VatAmount,
             TotalAmount = f.TotalAmount
-        };     
+        };
         private async Task ValidateSellerAsync(int sellerId)
         {
             var user = await _userService.GetUserByIdAsync(sellerId);
@@ -1180,6 +1205,29 @@ namespace SalesService.Business.Services
                     throw new InvalidOperationException(
                         $"Insufficient stock for article {a.ArticleId}. Available: {available}, Requested: {a.Quantity}.");
             }
+        }
+        private async Task<AllocationAdviceDTO?> GetAllocationAdviceAsync(int saleId, InvoiceBasicDTO invoice, CancellationToken ct)
+        {
+            var sale = await _unitOfWork.SaleRepository.GetByIdAsync(saleId);
+            if (sale == null || !sale.HasInvoice)
+                return null;
+
+            // Si es CF o no hay cliente, no ofrecemos imputación
+            if (!sale.CustomerId.HasValue || sale.IsFinalConsumer)
+                return null;
+
+            // Traer recibos con saldo (Accounting)
+            var receipts = await _accountingServiceClient.GetReceiptCreditsAsync(sale.CustomerId.Value, ct);
+            var totalCredit = receipts.Sum(r => r.PendingARS);
+
+            // Armado
+            return new AllocationAdviceDTO
+            {
+                CanCoverWithReceipts = totalCredit > 0,
+                InvoiceExternalRefId = invoice.Id,     // el ExternalRefId que Accounting guardó para la factura
+                InvoicePendingARS = invoice.TotalAmount,
+                Candidates = receipts.ToList()
+            };
         }
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace SalesService.Business.Models.Sale.fiscalDocs
+﻿using SalesService.Business.Models.Sale.accounting;
+
+namespace SalesService.Business.Models.Sale.fiscalDocs
 {
     public class InvoiceBasicDTO
     {
@@ -15,6 +17,6 @@
         public decimal VatAmount { get; set; }
         public decimal TotalAmount { get; set; }
 
-        
+        public AllocationAdviceDTO? AllocationAdvice { get; set; }
     }
 }

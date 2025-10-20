@@ -245,6 +245,20 @@ namespace SalesService.Controllers
             return Ok(res);
         }
 
+        [HttpPost("{saleId}/invoice/{invoiceExternalRefId}/cover")]
+        public async Task<IActionResult> CoverInvoice(
+            int saleId,
+            int invoiceExternalRefId,
+            [FromBody] CoverInvoiceRequest request,
+            CancellationToken ct = default)
+        {
+            // asegurar coherencia si el front no mandó el id en el body
+            if (request.InvoiceExternalRefId == 0)
+                request.InvoiceExternalRefId = invoiceExternalRefId;
+
+            await _saleService.CoverInvoiceWithReceiptsAsync(saleId, request, ct);
+            return NoContent(); // 204
+        }
 
     }
 }
