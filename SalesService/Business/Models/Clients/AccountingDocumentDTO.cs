@@ -35,6 +35,7 @@
     public class CoverInvoiceRequest
     {
         public int PartyId { get; set; }
+        public string? PartyType { get; set; } = "customer";
         public int InvoiceExternalRefId { get; set; } // Id de la factura en Sales/Fiscal
         public List<CoverInvoiceItem> Items { get; set; } = new();
         public string? Reason { get; set; } = "cover-invoice";

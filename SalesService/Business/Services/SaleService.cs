@@ -1125,6 +1125,8 @@ namespace SalesService.Business.Services
 
             if (request.PartyId != sale.CustomerId.Value)
                 throw new InvalidOperationException("Cover request party does not match sale customer.");
+            
+            request.PartyType = "customer";
 
             await _accountingServiceClient.CoverInvoiceWithReceiptsAsync(request, ct);
         }
