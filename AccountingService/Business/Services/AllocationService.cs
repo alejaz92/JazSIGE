@@ -15,12 +15,15 @@ namespace AccountingService.Business.Services
 
         public async Task CoverInvoiceWithReceiptsAsync(CoverInvoiceDTO dto, string? userName = null)
         {
+            if (dto.Kind == LedgerDocumentKind.Receipt)
+                throw new InvalidOperationException("Target document cannot be a receipt.");
+
             // Target (Invoice) por ExternalRefId & Kind
             var target = await _uow.LedgerDocuments.Query()
                 .FirstOrDefaultAsync(x =>
                     x.PartyType == dto.PartyType &&
                     x.PartyId == dto.PartyId &&
-                    x.Kind == LedgerDocumentKind.Invoice &&
+                    x.Kind == dto.Kind &&
                     x.ExternalRefId == dto.InvoiceExternalRefId &&
                     x.Status == DocumentStatus.Active);
 

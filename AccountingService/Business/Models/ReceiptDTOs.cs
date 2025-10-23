@@ -87,6 +87,7 @@
 
         // Target por FISCAL ExternalRefId para simplificar integración desde Sales
         public int InvoiceExternalRefId { get; set; }   // Kind=Invoice (o ND si quisieras reutilizar)
+        public LedgerDocumentKind Kind { get; set; } = LedgerDocumentKind.Invoice;
         public List<CoverInvoiceItemDTO> Items { get; set; } = new(); // Sources: recibos con saldo
         public string? Reason { get; set; }
     }
