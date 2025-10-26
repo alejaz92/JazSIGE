@@ -1222,14 +1222,19 @@ namespace SalesService.Business.Services
             var receipts = await _accountingServiceClient.GetReceiptCreditsAsync(sale.CustomerId.Value, ct);
             var totalCredit = receipts.Sum(r => r.PendingARS);
 
+
             // Armado
+            // Si el total de recibos no cubre la factura, no ofrecemos imputación
+            if (totalCredit < invoice.TotalAmount)
+                return null;
             return new AllocationAdviceDTO
-            {
-                CanCoverWithReceipts = totalCredit > 0,
+                {
+                CanCoverWithReceipts = true,
                 InvoiceExternalRefId = invoice.Id,     // el ExternalRefId que Accounting guardó para la factura
                 InvoicePendingARS = invoice.TotalAmount,
                 Candidates = receipts.ToList()
             };
+
         }
     }
 }
