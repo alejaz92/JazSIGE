@@ -162,15 +162,22 @@ namespace AccountingService.Business.Services
                 });
             }
 
-            // Helper interno
-            void ApplyAndAllocate(LedgerDocument target, decimal amountToApply)
+            // Helper interno (revisado)
+            void ApplyAndAllocate(LedgerDocument target, decimal amountToApply, bool consumeReceipt)
             {
                 if (amountToApply <= 0) return;
-                target.PendingARS -= amountToApply;
-                if (target.PendingARS < 0) throw new InvalidOperationException("Target pending would become negative.");
 
-                receiptLedger.PendingARS -= amountToApply;
-                if (receiptLedger.PendingARS < 0) throw new InvalidOperationException("Receipt pending would become negative.");
+                target.PendingARS -= amountToApply;
+                if (target.PendingARS < 0)
+                    throw new InvalidOperationException("Target pending would become negative.");
+
+                // Solo restamos del recibo si corresponde (débitos)
+                if (consumeReceipt)
+                {
+                    receiptLedger.PendingARS -= amountToApply;
+                    if (receiptLedger.PendingARS < 0)
+                        throw new InvalidOperationException("Receipt pending would become negative.");
+                }
 
                 _uow.ReceiptAllocations.AddAsync(new ReceiptAllocation
                 {
@@ -180,12 +187,18 @@ namespace AccountingService.Business.Services
                 }).GetAwaiter().GetResult();
             }
 
-            // Primero créditos (NC y recibos previos), luego débitos
-            foreach (var c in credits) ApplyAndAllocate(c, c.PendingARS);
-            foreach (var r in receiptCredits) ApplyAndAllocate(r, r.PendingARS);
-            foreach (var d in debits) ApplyAndAllocate(d, d.PendingARS);
+            // === Asignaciones ===
+            // Créditos (NC y recibos previos) — se cierran, pero NO consumen el nuevo recibo
+            foreach (var c in credits)
+                ApplyAndAllocate(c, c.PendingARS, consumeReceipt: false);
 
-            await _uow.SaveChangesAsync();
+            foreach (var r in receiptCredits)
+                ApplyAndAllocate(r, r.PendingARS, consumeReceipt: false);
+
+            // Débitos (facturas y ND) — sí consumen el recibo
+            foreach (var d in debits)
+                ApplyAndAllocate(d, d.PendingARS, consumeReceipt: true);
+
 
             var detail = await GetAsync(receipt.Id);
             return detail!;
