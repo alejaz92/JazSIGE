@@ -103,10 +103,7 @@ namespace AccountingService.Business.Services
             if (targets.Any(d => d.PendingARS <= 0))
                 throw new InvalidOperationException("All selected documents must have positive pending balance.");
 
-
-
-            // Crear Receipt
-            // 🔹 Generar número si no vino desde el front
+            // 1) Crear Receipt y obtener Id
             var receiptNumber = await GenerateNextReceiptNumberAsync();
 
             var receipt = new Receipt
@@ -115,16 +112,16 @@ namespace AccountingService.Business.Services
                 Notes = dto.Notes
             };
             await _uow.Receipts.AddAsync(receipt);
-            await _uow.SaveChangesAsync(); // obtener Id
+            await _uow.SaveChangesAsync(); // necesitamos el Id para FK
 
-            // Ledger del recibo
+            // 2) Crear Ledger del Recibo
             var receiptLedger = new LedgerDocument
             {
                 PartyType = dto.PartyType,
                 PartyId = dto.PartyId,
                 Kind = LedgerDocumentKind.Receipt,
                 ExternalRefId = receipt.Id,
-                ExternalRefNumber = receiptNumber,            
+                ExternalRefNumber = receiptNumber,
                 DocumentDate = dto.DocumentDate,
                 Currency = "ARS",
                 FxRate = 1m,
@@ -135,18 +132,18 @@ namespace AccountingService.Business.Services
             };
             await _uow.LedgerDocuments.AddAsync(receiptLedger);
 
-            // Payments
+            // 3) Payments
             foreach (var p in dto.Payments)
             {
-                if (string.IsNullOrWhiteSpace(p.Currency)) p.Currency = "ARS";
-                if (!string.Equals(p.Currency, "ARS", StringComparison.OrdinalIgnoreCase) && p.FxRate <= 0)
+                var curr = string.IsNullOrWhiteSpace(p.Currency) ? "ARS" : p.Currency;
+                if (!string.Equals(curr, "ARS", StringComparison.OrdinalIgnoreCase) && p.FxRate <= 0)
                     throw new InvalidOperationException("FxRate must be > 0 for non-ARS payments.");
 
                 await _uow.ReceiptPayments.AddAsync(new ReceiptPayment
                 {
                     Receipt = receipt,
                     Method = p.Method,
-                    Currency = p.Currency,
+                    Currency = curr,
                     FxRate = p.FxRate,
                     AmountOriginal = p.AmountOriginal,
                     AmountARS = p.AmountARS,
@@ -162,8 +159,8 @@ namespace AccountingService.Business.Services
                 });
             }
 
-            // Helper interno (revisado)
-            void ApplyAndAllocate(LedgerDocument target, decimal amountToApply, bool consumeReceipt)
+            // 4) Helper de asignación
+            async Task ApplyAndAllocateAsync(LedgerDocument target, decimal amountToApply, bool consumeReceipt)
             {
                 if (amountToApply <= 0) return;
 
@@ -171,7 +168,10 @@ namespace AccountingService.Business.Services
                 if (target.PendingARS < 0)
                     throw new InvalidOperationException("Target pending would become negative.");
 
-                // Solo restamos del recibo si corresponde (débitos)
+                //// Cerrar documento si quedó saldado (opcional)
+                //if (target.PendingARS == 0)
+                //    target.Status = DocumentStatus.Settled;
+
                 if (consumeReceipt)
                 {
                     receiptLedger.PendingARS -= amountToApply;
@@ -179,30 +179,38 @@ namespace AccountingService.Business.Services
                         throw new InvalidOperationException("Receipt pending would become negative.");
                 }
 
-                _uow.ReceiptAllocations.AddAsync(new ReceiptAllocation
+                await _uow.ReceiptAllocations.AddAsync(new ReceiptAllocation
                 {
                     Receipt = receipt,
                     TargetDocumentId = target.Id,
                     AppliedARS = amountToApply
-                }).GetAwaiter().GetResult();
+                });
             }
 
-            // === Asignaciones ===
-            // Créditos (NC y recibos previos) — se cierran, pero NO consumen el nuevo recibo
+            // 5) Asignaciones
+            // Créditos (NC y recibos previos): no consumen el nuevo recibo
             foreach (var c in credits)
-                ApplyAndAllocate(c, c.PendingARS, consumeReceipt: false);
+                await ApplyAndAllocateAsync(c, c.PendingARS, consumeReceipt: false);
 
             foreach (var r in receiptCredits)
-                ApplyAndAllocate(r, r.PendingARS, consumeReceipt: false);
+                await ApplyAndAllocateAsync(r, r.PendingARS, consumeReceipt: false);
 
-            // Débitos (facturas y ND) — sí consumen el recibo
+            // Débitos (facturas y ND): consumen el recibo
             foreach (var d in debits)
-                ApplyAndAllocate(d, d.PendingARS, consumeReceipt: true);
+                await ApplyAndAllocateAsync(d, d.PendingARS, consumeReceipt: true);
 
+            //// Cerrar el ledger del recibo si quedó exactamente en cero (opcional)
+            //if (receiptLedger.PendingARS == 0)
+            //    receiptLedger.Status = DocumentStatus.Settled;
 
+            // 6) PERSISTIR TODO
+            await _uow.SaveChangesAsync();
+
+            // 7) Devolver detalle
             var detail = await GetAsync(receipt.Id);
             return detail!;
         }
+
 
         public async Task<ReceiptExportDTO?> GetExportDataAsync(int receiptId)
         {
