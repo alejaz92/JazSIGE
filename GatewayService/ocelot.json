@@ -24,7 +24,7 @@
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
         {
-          "Host": "accounting-api-dev-jaz.azurewebsites.net",
+          "Host": "accounting-api-dev-e0dggzgxcqcybncj.chilecentral-01.azurewebsites.net",
           "Port": 443
           //"Host": "localhost",
           //"Port": 7298
@@ -208,7 +208,7 @@
         {
           "Name": "Accounting Service",
           "Version": "v1",
-          "Url": "https://accounting-api-dev-jaz.azurewebsites.net/swagger/v1/swagger.json"
+          "Url": "https://accounting-api-dev-e0dggzgxcqcybncj.chilecentral-01.azurewebsites.net/swagger/v1/swagger.json"
           //"Url": "https://localhost:7298/swagger/v1/swagger.json"
         }
       ]
