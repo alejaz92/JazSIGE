@@ -178,6 +178,10 @@ namespace AccountingService.Business.Services
                     if (receiptLedger.PendingARS < 0)
                         throw new InvalidOperationException("Receipt pending would become negative.");
                 }
+                else
+                {
+                    receiptLedger.PendingARS += amountToApply;
+                }
 
                 await _uow.ReceiptAllocations.AddAsync(new ReceiptAllocation
                 {
