@@ -94,5 +94,31 @@ namespace AccountingService.Controllers
                 return StatusCode(500, new { message = "Error retrieving receipt credits." });
             }
         }
+
+        [HttpGet("statement")]
+        public async Task<ActionResult<CustomerStatementDTO>> GetStatement(
+            string partyType, int partyId,
+            [FromQuery] DateTime? from,
+            [FromQuery] DateTime? to,
+            [FromQuery] LedgerDocumentKind? kind,
+            [FromQuery] DocumentStatus? status,
+            CancellationToken ct = default)
+        {
+            if (!Enum.TryParse<PartyType>(partyType, true, out var parsedPartyType))
+                return BadRequest(new { message = "Invalid partyType." });
+
+            try
+            {
+                var dto = await _ledgerQueryService.GetStatementAsync(
+                    parsedPartyType, partyId, from, to, kind, status, ct);
+
+                return Ok(dto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting statement for {partyType} {partyId}", parsedPartyType, partyId);
+                return StatusCode(500, new { message = "Error retrieving statement." });
+            }
+        }
     }
 }

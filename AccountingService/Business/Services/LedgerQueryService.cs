@@ -126,5 +126,106 @@ namespace AccountingService.Business.Services
                 PendingARS = x.PendingARS
             }).ToList();
         }
+
+        public async Task<CustomerStatementDTO> GetStatementAsync(
+        PartyType partyType, int partyId,
+        DateTime? from, DateTime? to,
+        LedgerDocumentKind? kind, DocumentStatus? status,
+        CancellationToken ct = default)
+        {
+            // 1) Base query (sin paginado), mismos filtros que ledger
+            var q = _uow.LedgerDocuments.Query()
+                .AsNoTracking()
+                .Where(x => x.PartyType == partyType && x.PartyId == partyId);
+
+            if (kind.HasValue)
+                q = q.Where(x => x.Kind == kind.Value);
+
+            if (status.HasValue)
+                q = q.Where(x => x.Status == status.Value);
+
+            // 2) Saldo inicial: todo antes de 'from'
+            decimal opening = 0m;
+            if (from.HasValue)
+            {
+                var prev = await q
+                    .Where(x => x.DocumentDate < from.Value)
+                    .Select(x => new
+                    {
+                        Debit = (x.Kind == LedgerDocumentKind.Invoice || x.Kind == LedgerDocumentKind.DebitNote) ? x.AmountARS : 0m,
+                        Credit = (x.Kind == LedgerDocumentKind.CreditNote || x.Kind == LedgerDocumentKind.Receipt) ? x.AmountARS : 0m
+                    })
+                    .ToListAsync(ct);
+
+                opening = prev.Sum(p => p.Debit) - prev.Sum(p => p.Credit);
+            }
+
+            // 3) Rango del extracto (Hasta inclusivo)
+            if (from.HasValue) q = q.Where(x => x.DocumentDate >= from.Value);
+            if (to.HasValue) q = q.Where(x => x.DocumentDate < to.Value.AddDays(1));
+
+            var rows = await q
+                .OrderBy(x => x.DocumentDate).ThenBy(x => x.Id)
+                .Select(x => new
+                {
+                    x.DocumentDate,
+                    x.Kind,
+                    x.ExternalRefNumber,
+                    // descripción legible construida
+                    Description = (
+                        (x.Kind == LedgerDocumentKind.Invoice ? "Factura " :
+                         x.Kind == LedgerDocumentKind.DebitNote ? "Nota de débito " :
+                         x.Kind == LedgerDocumentKind.CreditNote ? "Nota de crédito " :
+                         x.Kind == LedgerDocumentKind.Receipt ? "Recibo " : string.Empty)
+                        + (x.ExternalRefNumber ?? string.Empty)
+                    ),
+                    Debit = (x.Kind == LedgerDocumentKind.Invoice || x.Kind == LedgerDocumentKind.DebitNote) ? x.AmountARS : 0m,
+                    Credit = (x.Kind == LedgerDocumentKind.CreditNote || x.Kind == LedgerDocumentKind.Receipt) ? x.AmountARS : 0m
+                })
+                .ToListAsync(ct);
+
+
+            // 4) Armar DTO (running balance y totales)
+            var dto = new CustomerStatementDTO
+            {
+                OpeningBalanceARS = opening
+            };
+
+            decimal running = opening, totalDebit = 0m, totalCredit = 0m;
+
+            foreach (var r in rows)
+            {
+                running += r.Debit - r.Credit;
+                totalDebit += r.Debit;
+                totalCredit += r.Credit;
+
+                dto.Items.Add(new CustomerStatementItemDTO
+                {
+                    DocumentDate = r.DocumentDate,
+                    Kind = r.Kind switch
+                    {
+                        LedgerDocumentKind.Invoice => "invoice",
+                        LedgerDocumentKind.DebitNote => "debitNote",
+                        LedgerDocumentKind.CreditNote => "creditNote",
+                        LedgerDocumentKind.Receipt => "receipt",
+                        _ => r.Kind.ToString().ToLower()
+                    },
+                    ExternalRefNumber = r.ExternalRefNumber,
+                    Description = r.Description,
+                    DebitARS = r.Debit,
+                    CreditARS = r.Credit,
+                    RunningBalanceARS = running
+                });
+            }
+
+            dto.Totals = new CustomerStatementTotalsDTO
+            {
+                DebitARS = totalDebit,
+                CreditARS = totalCredit,
+                ClosingBalanceARS = running
+            };
+
+            return dto;
+        }
     }
 }

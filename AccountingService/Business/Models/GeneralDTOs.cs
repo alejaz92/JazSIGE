@@ -51,5 +51,29 @@
         public List<SimpleDocDTO> ReceiptCredits { get; set; } = new();  // Recibos con saldo
     }
 
-    
+
+    public sealed class CustomerStatementDTO
+    {
+        public decimal OpeningBalanceARS { get; set; }
+        public CustomerStatementTotalsDTO Totals { get; set; } = new();
+        public List<CustomerStatementItemDTO> Items { get; set; } = new();
+    }
+
+    public sealed class CustomerStatementTotalsDTO
+    {
+        public decimal DebitARS { get; set; }
+        public decimal CreditARS { get; set; }
+        public decimal ClosingBalanceARS { get; set; }
+    }
+
+    public sealed class CustomerStatementItemDTO
+    {
+        public DateTime DocumentDate { get; set; }
+        public string Kind { get; set; } = default!; // "invoice"|"debitNote"|"creditNote"|"receipt"
+        public string? ExternalRefNumber { get; set; }
+        public string? Description { get; set; }
+        public decimal DebitARS { get; set; }
+        public decimal CreditARS { get; set; }
+        public decimal RunningBalanceARS { get; set; }
+    }
 }

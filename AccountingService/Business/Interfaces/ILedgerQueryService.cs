@@ -15,5 +15,6 @@ namespace AccountingService.Business.Interfaces
 
         // Modal “cover-invoice”: SOLO recibos con saldo
         Task<List<SimpleDocDTO>> GetReceiptCreditsAsync(PartyType partyType, int partyId);
+        Task<CustomerStatementDTO> GetStatementAsync(PartyType partyType, int partyId, DateTime? from, DateTime? to, LedgerDocumentKind? kind, DocumentStatus? status, CancellationToken ct = default);
     }
 }
