@@ -3,6 +3,7 @@ using PurchaseService.Business.Interfaces;
 using PurchaseService.Business.Models;
 using PurchaseService.Infrastructure.Interfaces;
 using PurchaseService.Infrastructure.Models;
+using PurchaseService.Infrastructure.Repositories;
 
 namespace PurchaseService.Business.Services
 {
@@ -10,6 +11,7 @@ namespace PurchaseService.Business.Services
     {
         private readonly IPurchaseRepository _purchaseRepository;
         private readonly IDispatchRepository _dispatchRepository;
+        private readonly IPurchaseDocumentRepository _purchaseDocumentRepository;
         private readonly ICatalogServiceClient _catalogServiceClient;
         private readonly IUserServiceClient _userServiceClient;
         private readonly IStockServiceClient _stockServiceClient;
@@ -17,6 +19,7 @@ namespace PurchaseService.Business.Services
         public PurchaseService(
             IPurchaseRepository purchaseRepository,
             IDispatchRepository dispatchRepository,
+            IPurchaseDocumentRepository purchaseDocumentRepository,
             ICatalogServiceClient catalogServiceClient,
             IUserServiceClient userServiceClient,
             IStockServiceClient stockServiceClient
@@ -286,5 +289,6 @@ namespace PurchaseService.Business.Services
                 UnitCost = pa.UnitCost
             });
         }
+
     }
 }

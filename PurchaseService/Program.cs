@@ -55,6 +55,7 @@ builder.Services.AddSwaggerGen();
 // Repositories
 builder.Services.AddScoped<IPurchaseRepository, PurchaseRepository>();
 builder.Services.AddScoped<IDispatchRepository, DispatchRepository>();
+builder.Services.AddScoped<IPurchaseDocumentRepository, PurchaseDocumentRepository>();
 
 
 //Services
@@ -63,6 +64,7 @@ builder.Services.AddScoped<IUserServiceClient, UserServiceClient>();
 builder.Services.AddScoped<ICatalogServiceClient, CatalogServiceClient>();
 builder.Services.AddScoped<IStockServiceClient, StockServiceClient>();
 builder.Services.AddScoped<IPurchaseService, PurchaseService.Business.Services.PurchaseService>();
+builder.Services.AddScoped<IPurchaseDocumentService, PurchaseDocumentService>();
 
 //inyect configuration
 builder.Services.AddHttpClient();
