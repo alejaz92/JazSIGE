@@ -6,7 +6,7 @@ using PurchaseService.Business.Exceptions;
 namespace PurchaseService.Controllers;
 
 [ApiController]
-[Route("api/purchases/{purchaseId:int}/documents")]
+[Route("api/{purchaseId:int}/documents")]
 public class PurchaseDocumentsController : ControllerBase
 {
     private readonly IPurchaseDocumentService _service;
