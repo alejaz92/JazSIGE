@@ -18,9 +18,10 @@ namespace PurchaseService.Business.Models
         [Required, RegularExpression("^(USD|ARS)$", ErrorMessage = "Currency must be USD or ARS.")]
         public string Currency { get; set; } = null!;
 
-        // 1 si ARS, precisión alta
-        [Range(0.000000000000000001, 1)]
+        // ARS por 1 USD (ej: 1450). Si Currency = "ARS" debe ser 1.
+        [Range(0.000001, 10000000)] // margen amplio y razonable
         public decimal FxRate { get; set; }
+
 
         // Monto en la moneda original del documento
         [Range(0, 999999999999.99)]

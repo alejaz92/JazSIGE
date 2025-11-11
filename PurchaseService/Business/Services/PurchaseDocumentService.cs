@@ -22,6 +22,11 @@ namespace PurchaseService.Business.Services
 
         public async Task<PurchaseDocumentDTO> CreateAsync(int purchaseId, PurchaseDocumentCreateDTO dto, int currentUserId)
         {
+            if (dto.Currency == "ARS") dto.FxRate = 1m;
+            if (dto.Currency == "USD" && dto.FxRate <= 1m)
+                throw new DomainException("INVALID_FXRATE", "Para USD, FxRate debe ser ARS por 1 USD (ej: 1450).");
+
+
             // 1) Traer la compra
             var purchase = await _purchaseRepository.GetByIdAsync(purchaseId);
             if (purchase == null)
