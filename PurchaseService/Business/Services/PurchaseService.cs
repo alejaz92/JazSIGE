@@ -253,6 +253,8 @@ namespace PurchaseService.Business.Services
                 });
             }
 
+            var hasInvoice = await _purchaseDocumentRepository.ExistsInvoiceAsync(purchase.Id, onlyActive: true);
+
 
             return new PurchaseDTO
             {
@@ -264,6 +266,7 @@ namespace PurchaseService.Business.Services
                 WarehouseName = warehouseName,
                 UserId = purchase.UserId,
                 UserName = userName,
+                HasInvoice = hasInvoice,
                 //HasDispatch = purchase.Dispatch != null,
                 //StockUpdated = purchase.StockUpdated,
                 Articles = articleDTOs,
