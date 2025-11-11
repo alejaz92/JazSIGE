@@ -27,6 +27,7 @@ namespace PurchaseService.Business.Services
         {
             _purchaseRepository = purchaseRepository;
             _dispatchRepository = dispatchRepository;
+            _purchaseDocumentRepository = purchaseDocumentRepository;
             _catalogServiceClient = catalogServiceClient;
             _userServiceClient = userServiceClient;
             _stockServiceClient = stockServiceClient;
