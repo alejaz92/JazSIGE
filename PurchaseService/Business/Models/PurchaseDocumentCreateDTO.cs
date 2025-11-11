@@ -19,7 +19,7 @@ namespace PurchaseService.Business.Models
         public string Currency { get; set; } = null!;
 
         // 1 si ARS, precisión alta
-        [Range(0.000001, 999999999)]
+        [Range(0.000000000000000001, 1)]
         public decimal FxRate { get; set; }
 
         // Monto en la moneda original del documento
