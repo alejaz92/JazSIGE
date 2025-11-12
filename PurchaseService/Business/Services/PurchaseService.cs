@@ -327,7 +327,7 @@ namespace PurchaseService.Business.Services
             });
         }
 
-        public async Task UpdateArticlesAsync(int purchaseId, List<PurchaseArticleUpdateDTO> updates, int userId)
+        public async Task UpdateArticlesAsync(int purchaseId, IEnumerable<PurchaseArticleUpdateDTO> updates, int userId)
         {
             if (updates is null)
                 throw new ArgumentException("No article updates were provided.");
