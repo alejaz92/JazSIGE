@@ -47,5 +47,29 @@ namespace StockService.Infrastructure.Repositories
         public async Task<List<CommitedStockEntry>> GetRemainingByArticleAsync(int articleId) => await _context.CommitedStockEntries
                 .Where(c => c.ArticleId == articleId && (c.Quantity - c.Delivered) > 0)
                 .ToListAsync();
+
+        // Returns total remaining committed for an article (sum of (Quantity - Delivered))
+        public async Task<decimal> SumRemainingByArticleAsync(int articleId)
+        {
+            // NOTE: Remaining = Quantity - Delivered. Avoid negative due to rounding or edge cases.
+            return await _context.CommitedStockEntries
+                .Where(c => c.ArticleId == articleId)
+                .Select(c => (decimal)Math.Max(0, (double)(c.Quantity - c.Delivered)))
+                .SumAsync();
+        }
+
+        // Returns FIFO list of commitments (Remaining > 0), ordered by CreatedAt or Id
+        public async Task<List<(int SalesOrderId, decimal Remaining)>> ListRemainingByArticleAsync(int articleId)
+        {
+            // Project to an anonymous type in the expression tree, then materialize and convert to tuple
+            var result = await _context.CommitedStockEntries
+                .Where(c => c.ArticleId == articleId)
+                .OrderBy(c => c.CreatedAt) // FIFO
+                .Select(c => new { c.SaleId, Remaining = c.Quantity - c.Delivered })
+                .Where(x => x.Remaining > 0)
+                .ToListAsync();
+
+            return result.Select(x => (x.SaleId, x.Remaining)).ToList();
+        }
     }
 }

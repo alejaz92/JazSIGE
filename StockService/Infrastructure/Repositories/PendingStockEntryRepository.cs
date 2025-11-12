@@ -38,5 +38,22 @@ namespace StockService.Infrastructure.Repositories
         public async Task<decimal> GetTotalPendingStockByArticleIdAsync(int articleId) => await _context.PendingStockEntries
                 .Where(p => p.ArticleId == articleId && !p.IsProcessed)
                 .SumAsync(p => p.Quantity);
+
+        // Sum of non-processed pending for a given article (global)
+        public async Task<decimal> SumUnprocessedByArticleAsync(int articleId)
+        {
+            return await _context.PendingStockEntries
+                .Where(p => p.ArticleId == articleId && !p.IsProcessed)
+                .SumAsync(p => p.Quantity);
+        }
+
+        // Returns non-processed pending entries for a purchase/article ordered FIFO
+        public async Task<List<PendingStockEntry>> GetUnprocessedByPurchaseArticleAsync(int purchaseId, int articleId)
+        {
+            return await _context.PendingStockEntries
+                .Where(p => p.PurchaseId == purchaseId && p.ArticleId == articleId && !p.IsProcessed)
+                .OrderBy(p => p.CreatedAt)
+                .ToListAsync();
+        }
     }
 }

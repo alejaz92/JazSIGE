@@ -1,6 +1,8 @@
 ﻿using AuthService.Infrastructure.Models;
 using StockService.Business.Interfaces;
 using StockService.Business.Models;
+using StockService.Business.Models.CommitedStock;
+using StockService.Business.Models.PendingStock;
 using StockService.Infrastructure.Interfaces;
 using StockService.Infrastructure.Models;
 
@@ -9,17 +11,20 @@ namespace StockService.Business.Services
     public class PendingStockService : IPendingStockService
     {
         private readonly IPendingStockEntryRepository _pendingRepository;
+        private readonly ICommitedStockEntryRepository _commitedRepository;
         private readonly IStockMovementRepository _movementRepository;
         private readonly IStockRepository _stockRepository;
         private readonly IStockByDispatchRepository _dispatchRepository;
 
         public PendingStockService(
             IPendingStockEntryRepository pendingRepository,
+            ICommitedStockEntryRepository commitedRepository,
             IStockMovementRepository movementRepository,
             IStockRepository stockRepository,
             IStockByDispatchRepository dispatchRepository)
         {
             _pendingRepository = pendingRepository;
+            _commitedRepository = commitedRepository;
             _movementRepository = movementRepository;
             _stockRepository = stockRepository;
             _dispatchRepository = dispatchRepository;
@@ -117,6 +122,135 @@ namespace StockService.Business.Services
             var pendingEntriesSum = await _pendingRepository.GetTotalPendingStockByArticleIdAsync(articleId);
             return pendingEntriesSum;
 
+        }
+
+        // Applies the pending adjustments for a purchase, never blocks,
+        // and returns a conflict report if availableAfter < 0 for any article.
+        public async Task<StockApplyAdjustmentResultDTO> ApplyPurchasePendingAdjustmentsAsync(PurchasePendingAdjustmentDTO dto)
+        {
+            var result = new StockApplyAdjustmentResultDTO { PurchaseId = dto.PurchaseId };
+            var perArticleDelta = dto.Items
+                .GroupBy(i => i.ArticleId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Sum(x => x.NewQuantity - x.OldQuantity)  // total delta for that article in this purchase
+                );
+
+            // 1) Apply adjustments in PendingStockEntries (FIFO within this purchase/article)
+            foreach (var kvp in perArticleDelta)
+            {
+                var articleId = kvp.Key;
+                var delta = kvp.Value;
+
+                if (delta == 0) continue;
+
+                var entries = await _pendingRepository.GetUnprocessedByPurchaseArticleAsync(dto.PurchaseId, articleId);
+
+                if (delta > 0)
+                {
+                    // Increase pending: append to last unprocessed entry or create a new one if needed
+                    if (entries.Count > 0)
+                    {
+                        // simplest: add to the last entry
+                        var last = entries[^1];
+                        last.Quantity += delta;
+                    }
+                    else
+                    {
+                        _pendingRepository.Add(new PendingStockEntry
+                        {
+                            PurchaseId = dto.PurchaseId,
+                            ArticleId = articleId,
+                            Quantity = delta,
+                            IsProcessed = false,
+                            CreatedAt = DateTime.UtcNow
+                        });
+                    }
+                }
+                else
+                {
+                    // Reduce pending: consume FIFO entries (only unprocessed of this purchase/article)
+                    var remainingToRemove = -delta;
+                    foreach (var e in entries)
+                    {
+                        if (remainingToRemove <= 0) break;
+
+                        var take = Math.Min(e.Quantity, remainingToRemove);
+                        e.Quantity -= take;
+                        remainingToRemove -= take;
+                    }
+
+                    // Clean zero-quantity rows (optional)
+                    foreach (var e in entries.Where(x => x.Quantity == 0).ToList())
+                    {
+                        _pendingRepository.Remove(e);
+                    }
+                }
+            }
+
+            // Persist changes before computing the conflict snapshot, so consumers get the final state
+            await _pendingRepository.SaveChangesAsync();
+
+            // 2) Compute conflicts per article AFTER applying deltas
+            foreach (var kvp in perArticleDelta)
+            {
+                var articleId = kvp.Key;
+                var delta = kvp.Value;
+                if (delta == 0) continue;
+
+                // Compute available BEFORE and AFTER for reporting clarity.
+                // NOTE: onHand access should come from your stock snapshot.
+                // Replace GetOnHandAsync with your real implementation.
+                var onHand = await GetOnHandAsync(articleId); // TODO: wire actual on-hand provider
+
+                var pendingNow = await _pendingRepository.SumUnprocessedByArticleAsync(articleId);
+                var committedRemaining = await _committedRepo.SumRemainingByArticleAsync(articleId);
+
+                // We don't have the "before" snapshot anymore after persist.
+                // Approximate: AvailableBefore = onHand + (pendingNow - delta) - committedRemaining
+                var availableBefore = onHand + (pendingNow - delta) - committedRemaining;
+                var availableAfter = onHand + pendingNow - committedRemaining;
+
+                if (availableAfter < 0)
+                {
+                    var fifo = await _committedRepo.ListRemainingByArticleAsync(articleId);
+                    var shortage = -availableAfter;
+                    var implicated = new List<StockConflictSaleRefDTO>();
+                    foreach (var (salesOrderId, remaining) in fifo)
+                    {
+                        if (shortage <= 0) break;
+                        implicated.Add(new StockConflictSaleRefDTO
+                        {
+                            SalesOrderId = salesOrderId,
+                            RemainingCommitted = remaining
+                        });
+                        shortage -= remaining;
+                    }
+
+                    result.Conflicts.Add(new StockConflictPerArticleDTO
+                    {
+                        ArticleId = articleId,
+                        AvailableBefore = availableBefore,
+                        AvailableAfter = availableAfter,
+                        ImplicatedSales = implicated
+                    });
+
+                    // === SALES WARNING PLACEHOLDER =======================================
+                    // Here we should call Sales client to flag these SalesOrderIds.
+                    // await _salesClient.FlagStockWarningAsync(implicated.Select(x => x.SalesOrderId));
+                    // =====================================================================
+                }
+            }
+
+            return result;
+        }
+
+        // Placeholder until real on-hand source is wired.
+        // Replace with repository/service that reads current stock on hand for the article.
+        private Task<decimal> GetOnHandAsync(int articleId)
+        {
+            // TODO: implement with your stock snapshot provider
+            return Task.FromResult(0m);
         }
     }
 }
