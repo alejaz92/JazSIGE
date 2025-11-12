@@ -11,5 +11,7 @@
         public bool IsImportation { get; set; }
         public bool RegisterStockNow { get; set; }
 
+        public PurchaseDocumentCreateDTO? Document { get; set; }
+
     }
 }

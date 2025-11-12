@@ -12,6 +12,8 @@ namespace PurchaseService.Business.Services
         private readonly IPurchaseRepository _purchaseRepository;
         private readonly IDispatchRepository _dispatchRepository;
         private readonly IPurchaseDocumentRepository _purchaseDocumentRepository;
+
+        private readonly IPurchaseDocumentService _purchaseDocumentService;
         private readonly ICatalogServiceClient _catalogServiceClient;
         private readonly IUserServiceClient _userServiceClient;
         private readonly IStockServiceClient _stockServiceClient;
@@ -20,6 +22,7 @@ namespace PurchaseService.Business.Services
             IPurchaseRepository purchaseRepository,
             IDispatchRepository dispatchRepository,
             IPurchaseDocumentRepository purchaseDocumentRepository,
+            IPurchaseDocumentService purchaseDocumentService,
             ICatalogServiceClient catalogServiceClient,
             IUserServiceClient userServiceClient,
             IStockServiceClient stockServiceClient
@@ -28,6 +31,7 @@ namespace PurchaseService.Business.Services
             _purchaseRepository = purchaseRepository;
             _dispatchRepository = dispatchRepository;
             _purchaseDocumentRepository = purchaseDocumentRepository;
+            _purchaseDocumentService = purchaseDocumentService;
             _catalogServiceClient = catalogServiceClient;
             _userServiceClient = userServiceClient;
             _stockServiceClient = stockServiceClient;
@@ -104,39 +108,33 @@ namespace PurchaseService.Business.Services
 
             return dispatch.Id;
         }
+
         public async Task<int> CreateAsync(PurchaseCreateDTO dto, int userId)
         {
-            //validate supplier
-            var supplierName = await _catalogServiceClient.GetSupplierNameAsync(dto.SupplierId);
-            if (supplierName == null)
-                throw new ArgumentException($"Supplier with ID {dto.SupplierId} does not exist.");
+            // --- External validations (keep existing rules) ---
+            _ = await _catalogServiceClient.GetSupplierNameAsync(dto.SupplierId)
+                ?? throw new ArgumentException($"Supplier with ID {dto.SupplierId} does not exist.");
 
-            //validate warehouse
-            if (dto.WarehouseId != null)
+            if (dto.WarehouseId is not null)
             {
-                var warehouseName = await _catalogServiceClient.GetWarehouseNameAsync(dto.WarehouseId.Value);
-                if (warehouseName == null)
-                    throw new ArgumentException($"Warehouse with ID {dto.WarehouseId} does not exist.");
+                _ = await _catalogServiceClient.GetWarehouseNameAsync(dto.WarehouseId.Value)
+                    ?? throw new ArgumentException($"Warehouse with ID {dto.WarehouseId} does not exist.");
             }
 
-            //validate user
-            var userName = await _userServiceClient.GetUserNameAsync(userId);
-            if (userName == null)
-                throw new ArgumentException($"User with ID {userId} does not exist.");
+            _ = await _userServiceClient.GetUserNameAsync(userId)
+                ?? throw new ArgumentException($"User with ID {userId} does not exist.");
 
-            //validate articles
-            foreach (var article in dto.Articles)
+            foreach (var a in dto.Articles)
             {
-                var articleName = await _catalogServiceClient.GetArticleNameAsync(article.ArticleId);
-                if (articleName == null)
-                    throw new ArgumentException($"Article with ID {article.ArticleId} does not exist.");
+                _ = await _catalogServiceClient.GetArticleNameAsync(a.ArticleId)
+                    ?? throw new ArgumentException($"Article with ID {a.ArticleId} does not exist.");
             }
 
-
-            using var transaction = await _purchaseRepository.BeginTransactionAsync();
+            using var tx = await _purchaseRepository.BeginTransactionAsync();
 
             try
             {
+                // 1) Create Purchase
                 var purchase = new Purchase
                 {
                     Date = dto.Date,
@@ -144,7 +142,7 @@ namespace PurchaseService.Business.Services
                     WarehouseId = dto.WarehouseId,
                     UserId = userId,
                     IsImportation = dto.IsImportation,
-                    IsDelivered = false, // se actualizará después si corresponde
+                    IsDelivered = false,
                     Articles = dto.Articles.Select(a => new Purchase_Article
                     {
                         ArticleId = a.ArticleId,
@@ -154,43 +152,78 @@ namespace PurchaseService.Business.Services
                 };
 
                 await _purchaseRepository.AddAsync(purchase);
-                await _purchaseRepository.SaveChangesAsync(); // Necesario para obtener el ID
+                await _purchaseRepository.SaveChangesAsync();      // ensure purchase.Id
 
-
-                var dispatchId = (int?)null;
-                // Hay despacho?
-                if (dto.Dispatch != null && dto.IsImportation)
+                // 2) Optional: create Dispatch (only for importations)
+                int? dispatchId = null;
+                if (dto.IsImportation && dto.Dispatch is not null)
                 {
-                    dispatchId = await RegisterDispatch(purchase.Id, dto.Dispatch.Date, dto.Dispatch.Origin, dto.Dispatch.Code);
+                    var dispatch = new Dispatch
+                    {
+                        PurchaseId = purchase.Id,
+                        Date = dto.Dispatch.Date,
+                        Origin = dto.Dispatch.Origin,
+                        Code = dto.Dispatch.Code
+                    };
+
+                    await _dispatchRepository.AddAsync(dispatch);
+                    await _purchaseRepository.SaveChangesAsync();  // ensure dispatch.Id
+                    dispatchId = dispatch.Id;
                 }
 
-                // registramos el stock ahora?
+                // 3) Optional: create Document via service (same DbContext/transaction)
+                if (dto.Document is not null)
+                {
+                    await _purchaseDocumentService.CreateAsync(
+                        purchase.Id,
+                        dto.Document,
+                        userId
+                    );
+                }
+
+                // 4) Stock impact (now or pending)
                 if (dto.RegisterStockNow)
                 {
-                    await UpdateStockConsolidated(userId, dto.WarehouseId.Value, dto.reference, dispatchId, dto.Articles);
+                    if (!dto.WarehouseId.HasValue)
+                        throw new ArgumentException("WarehouseId is required when RegisterStockNow = true.");
+
+                    // Register incoming stock
+                    await _stockServiceClient.RegisterPurchaseMovementsAsync(
+                        userId,
+                        dto.WarehouseId.Value,
+                        dto.Articles.Select(a => (a.ArticleId, a.Quantity)).ToList(),
+                        dto.reference,
+                        dispatchId
+                    );
 
                     purchase.IsDelivered = true;
                     await _purchaseRepository.SaveChangesAsync();
                 }
                 else
                 {
-
-                    await UpdateStockPending(purchase.Id, dto.Articles);
-
+                    // Register pending stock per article
+                    foreach (var item in dto.Articles)
+                    {
+                        await _stockServiceClient.RegisterPendingStockAsync(new PendingStockEntryCreateDTO
+                        {
+                            PurchaseId = purchase.Id,
+                            ArticleId = item.ArticleId,
+                            Quantity = item.Quantity
+                        });
+                    }
                 }
 
-
-                await transaction.CommitAsync();
-
+                await tx.CommitAsync();
                 return purchase.Id;
-
             }
             catch
             {
-                await transaction.RollbackAsync();
+                await tx.RollbackAsync();
                 throw;
             }
         }
+
+
         public async Task<IEnumerable<PurchaseDTO>> GetPendingStockAsync()
         {
             var purchases = await _purchaseRepository.GetPendingStockAsync();
