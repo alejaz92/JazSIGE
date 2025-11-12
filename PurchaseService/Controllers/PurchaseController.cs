@@ -122,4 +122,31 @@ public class PurchaseController : ControllerBase
             return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
         }
     }
+
+    [HttpPut("{id}/articles")]
+    public async Task<IActionResult> UpdateArticles(int id, [FromBody] IEnumerable<PurchaseArticleUpdateDTO> updates)
+    {
+        var userIdHeader = HttpContext.Request.Headers["X-UserId"].ToString();
+        if (!int.TryParse(userIdHeader, out int userId))
+            return Unauthorized(new { error = "Invalid or missing user authentication." });
+
+        try
+        {
+            await _purchaseService.UpdateArticlesAsync(id, updates, userId);
+            return NoContent();
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
+        }
+    }
+
 }

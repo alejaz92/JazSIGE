@@ -39,6 +39,7 @@ namespace PurchaseService.Infrastructure.Repositories
         public async Task<Purchase?> GetByIdAsync(int id) => await _context.Purchases
                 .Include(p => p.Articles)
                 .Include(p => p.Dispatch)
+                .Include(p => p.Documents)
                 .FirstOrDefaultAsync(p => p.Id == id);
         public async Task<IEnumerable<Purchase_Article>> GetByArticleIdAsync(int articleId) => await _context.PurchaseArticles
                 .Include(pa => pa.Purchase)
