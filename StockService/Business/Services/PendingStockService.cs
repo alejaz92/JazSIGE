@@ -11,20 +11,20 @@ namespace StockService.Business.Services
     public class PendingStockService : IPendingStockService
     {
         private readonly IPendingStockEntryRepository _pendingRepository;
-        private readonly ICommitedStockEntryRepository _commitedRepository;
+        private readonly ICommitedStockEntryRepository _committedRepository;
         private readonly IStockMovementRepository _movementRepository;
         private readonly IStockRepository _stockRepository;
         private readonly IStockByDispatchRepository _dispatchRepository;
 
         public PendingStockService(
             IPendingStockEntryRepository pendingRepository,
-            ICommitedStockEntryRepository commitedRepository,
+            ICommitedStockEntryRepository committedRepository,
             IStockMovementRepository movementRepository,
             IStockRepository stockRepository,
             IStockByDispatchRepository dispatchRepository)
         {
             _pendingRepository = pendingRepository;
-            _commitedRepository = commitedRepository;
+            _committedRepository = committedRepository;
             _movementRepository = movementRepository;
             _stockRepository = stockRepository;
             _dispatchRepository = dispatchRepository;
@@ -157,7 +157,7 @@ namespace StockService.Business.Services
                     }
                     else
                     {
-                        _pendingRepository.Add(new PendingStockEntry
+                        _pendingRepository.AddAsync(new PendingStockEntry
                         {
                             PurchaseId = dto.PurchaseId,
                             ArticleId = articleId,
@@ -204,7 +204,7 @@ namespace StockService.Business.Services
                 var onHand = await GetOnHandAsync(articleId); // TODO: wire actual on-hand provider
 
                 var pendingNow = await _pendingRepository.SumUnprocessedByArticleAsync(articleId);
-                var committedRemaining = await _committedRepo.SumRemainingByArticleAsync(articleId);
+                var committedRemaining = await _committedRepository.SumRemainingByArticleAsync(articleId);
 
                 // We don't have the "before" snapshot anymore after persist.
                 // Approximate: AvailableBefore = onHand + (pendingNow - delta) - committedRemaining
@@ -213,7 +213,7 @@ namespace StockService.Business.Services
 
                 if (availableAfter < 0)
                 {
-                    var fifo = await _committedRepo.ListRemainingByArticleAsync(articleId);
+                    var fifo = await _committedRepository.ListRemainingByArticleAsync(articleId);
                     var shortage = -availableAfter;
                     var implicated = new List<StockConflictSaleRefDTO>();
                     foreach (var (salesOrderId, remaining) in fifo)
@@ -221,7 +221,7 @@ namespace StockService.Business.Services
                         if (shortage <= 0) break;
                         implicated.Add(new StockConflictSaleRefDTO
                         {
-                            SalesOrderId = salesOrderId,
+                            SaleId = salesOrderId,
                             RemainingCommitted = remaining
                         });
                         shortage -= remaining;

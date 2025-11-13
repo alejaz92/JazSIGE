@@ -132,8 +132,11 @@ public class PurchaseController : ControllerBase
 
         try
         {
-            await _purchaseService.UpdateArticlesAsync(id, updates, userId);
-            return NoContent();
+            var result = await _purchaseService.UpdateArticlesAsync(id, updates, userId);
+            if (result != null)
+                return Ok(result);
+            else
+                return Ok(new { message = "Articles updated successfully (no conflicts detected)." });
         }
         catch (ArgumentException ex)
         {
@@ -148,5 +151,6 @@ public class PurchaseController : ControllerBase
             return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
         }
     }
+
 
 }

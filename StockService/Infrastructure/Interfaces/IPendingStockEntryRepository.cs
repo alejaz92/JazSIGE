@@ -9,6 +9,8 @@ namespace StockService.Infrastructure.Interfaces
         Task<decimal> GetTotalPendingStockByArticleIdAsync(int articleId);
         Task<List<PendingStockEntry>> GetUnprocessedByPurchaseArticleAsync(int purchaseId, int articleId);
         Task MarkAsProcessedAsync(int id);
+        void Remove(PendingStockEntry entry);
+        Task SaveChangesAsync();
         Task<decimal> SumUnprocessedByArticleAsync(int articleId);
     }
 }

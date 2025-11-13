@@ -97,6 +97,40 @@ namespace PurchaseService.Business.Services
             }
         }
 
+        public async Task<StockApplyAdjustmentResultDTO?> ApplyPendingAdjustmentsAsync(
+            int purchaseId,
+            int userId,
+            IEnumerable<PendingStockAdjustmentItemDTO> items)
+        {
+            var client = _httpClientFactory.CreateClient();
+
+            var token = _httpContextAccessor.HttpContext?.Request.Headers["Authorization"].ToString();
+            if (!string.IsNullOrEmpty(token))
+                client.DefaultRequestHeaders.Add("Authorization", token);
+
+            client.DefaultRequestHeaders.Add("X-UserId", userId.ToString());
+
+            var payload = new
+            {
+                PurchaseId = purchaseId,
+                UserId = userId,
+                Items = items
+            };
+
+            var url = $"{_stockBaseUrl.TrimEnd('/')}/purchases/{purchaseId}/apply-pending-adjustments";
+            var response = await client.PostAsJsonAsync(url, payload);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                throw new InvalidOperationException($"StockService error: {response.StatusCode} - {content}");
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<StockApplyAdjustmentResultDTO>();
+            return result;
+        }
+
+
 
     }
 }

@@ -2,6 +2,7 @@
 using StockService.Business.Interfaces;
 using StockService.Business.Models;
 using StockService.Business.Models.CommitedStock;
+using StockService.Business.Models.PendingStock;
 using System.Security.Claims;
 
 namespace StockService.Controllers;
@@ -268,6 +269,25 @@ public class StockController : ControllerBase
         {
             return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
         }
+    }
+
+    /// <summary>
+    /// Applies pending-stock adjustments for a purchase and returns any conflicts with committed sales.
+    /// Does NOT block the adjustment: purchase changes are already saved in Purchases.
+    /// </summary>
+    [HttpPost("purchases/{purchaseId}/apply-pending-adjustments")]
+    public async Task<IActionResult> ApplyPendingAdjustments(int purchaseId, [FromBody] PurchasePendingAdjustmentDTO dto)
+    {
+        if (dto is null || dto.Items is null || dto.Items.Count == 0)
+            return BadRequest(new { error = "Invalid payload." });
+
+        if (purchaseId != dto.PurchaseId)
+            return BadRequest(new { error = "Route and body PurchaseId mismatch." });
+
+        var result = await _pendingStockService.ApplyPurchasePendingAdjustmentsAsync(dto);
+
+        // 200 OK with conflict info (if any)
+        return Ok(result);
     }
 
 }

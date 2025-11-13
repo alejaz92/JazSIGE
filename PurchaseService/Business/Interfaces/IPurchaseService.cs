@@ -11,7 +11,7 @@ namespace PurchaseService.Business.Interfaces
         Task<IEnumerable<PurchaseDTO>> GetPendingStockAsync();
         Task<IEnumerable<ArticlePurchaseHistoryDTO>> GetPurchaseHistoryByArticleIdAsync(int articleId);
         Task RegisterStockFromPendingAsync(int purchaseId, int warehouseId, string reference, int userId, int? dispatchId);
-        Task UpdateArticlesAsync(int purchaseId, IEnumerable<PurchaseArticleUpdateDTO> updates, int userId);
+        Task<StockApplyAdjustmentResultDTO?> UpdateArticlesAsync(int purchaseId, IEnumerable<PurchaseArticleUpdateDTO> updates, int userId);
         //Task<int> RetryAllPendingStockAsync(int userId);
         //Task RetryStockUpdateAsync(int purchaseId, int userId);
     }

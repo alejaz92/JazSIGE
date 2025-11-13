@@ -55,5 +55,14 @@ namespace StockService.Infrastructure.Repositories
                 .OrderBy(p => p.CreatedAt)
                 .ToListAsync();
         }
+
+        // Allows the service to remove tracked entries with zero quantity.
+        public void Remove(PendingStockEntry entry) =>
+            // NOTE: entry is expected to be tracked by this DbContext
+            _context.PendingStockEntries.Remove(entry);
+
+        // Allows batching multiple in-memory changes before persisting.
+        public Task SaveChangesAsync() => _context.SaveChangesAsync();
+
     }
 }

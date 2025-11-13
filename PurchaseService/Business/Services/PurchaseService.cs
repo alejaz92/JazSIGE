@@ -327,27 +327,21 @@ namespace PurchaseService.Business.Services
             });
         }
 
-        public async Task UpdateArticlesAsync(int purchaseId, IEnumerable<PurchaseArticleUpdateDTO> updates, int userId)
+        public async Task<StockApplyAdjustmentResultDTO?> UpdateArticlesAsync(int purchaseId, IEnumerable<PurchaseArticleUpdateDTO> updates, int userId)
         {
             if (updates is null)
                 throw new ArgumentException("No article updates were provided.");
 
-            // Load purchase with related data
             var purchase = await _purchaseRepository.GetByIdAsync(purchaseId);
             if (purchase is null)
                 throw new ArgumentException($"Purchase with ID {purchaseId} not found.");
 
-            // Rule 1: For domestic purchases (IsImportation == false)
-            //   → block if invoice exists or stock has already been received (IsDelivered = true)
-            // Rule 2: For import purchases (IsImportation == true)
-            //   → block if dispatch exists (always before stock entry)
             var hasInvoice = await _purchaseDocumentRepository.ExistsInvoiceAsync(purchaseId, onlyActive: true);
 
             if (!purchase.IsImportation)
             {
                 if (hasInvoice)
                     throw new InvalidOperationException("Articles cannot be edited because the domestic purchase already has an invoice.");
-
                 if (purchase.IsDelivered)
                     throw new InvalidOperationException("Articles cannot be edited because the domestic purchase has already impacted stock (IsDelivered = true).");
             }
@@ -355,39 +349,30 @@ namespace PurchaseService.Business.Services
             {
                 if (purchase.Dispatch is not null)
                     throw new InvalidOperationException("Articles cannot be edited because the import purchase already has a dispatch.");
-
                 if (purchase.IsDelivered)
                     throw new InvalidOperationException("Articles cannot be edited because the import purchase has already impacted stock (IsDelivered = true).");
             }
 
-            // Validate updates and prepare a dictionary by ArticleId
             var updateDict = updates
                 .GroupBy(u => u.ArticleId)
-                .ToDictionary(g => g.Key, g =>
-                {
-                    var item = g.Last(); // Last entry wins if duplicates exist
-                    if (item.Quantity is not null && item.Quantity < 0)
-                        throw new ArgumentException($"Quantity cannot be negative for ArticleId {item.ArticleId}.");
-                    if (item.UnitCost is not null && item.UnitCost < 0)
-                        throw new ArgumentException($"UnitCost cannot be negative for ArticleId {item.ArticleId}.");
-                    return item;
-                });
+                .ToDictionary(g => g.Key, g => g.Last());
 
             if (updateDict.Count == 0)
                 throw new ArgumentException("No valid updates were detected.");
+
+            var adjustments = new List<PendingStockAdjustmentItemDTO>();
 
             using var tx = await _purchaseRepository.BeginTransactionAsync();
 
             try
             {
-                // Apply updates
                 foreach (var pa in purchase.Articles)
                 {
                     if (!updateDict.TryGetValue(pa.ArticleId, out var upd))
                         continue;
 
-                    var originalQty = pa.Quantity;
-                    var originalCost = pa.UnitCost;
+                    var oldQty = pa.Quantity;
+                    var oldCost = pa.UnitCost;
 
                     if (upd.Quantity is not null)
                         pa.Quantity = upd.Quantity.Value;
@@ -395,22 +380,16 @@ namespace PurchaseService.Business.Services
                     if (upd.UnitCost is not null)
                         pa.UnitCost = upd.UnitCost.Value;
 
-                    // === PENDING STOCK SYNC (placeholder) ==========================================
-                    // If this purchase registered "pending stock" in the Stock microservice
-                    // at creation time, we must synchronize the new quantity here.
-                    //
-                    // To be implemented when the Stock update logic is defined:
-                    //  - If only UnitCost changes → no stock update required.
-                    //  - If Quantity changes → adjust pending stock by article.
-                    //
-                    // Example:
-                    // await _stockServiceClient.UpdatePendingStockAsync(new PendingStockUpdateDTO {
-                    //     PurchaseId = purchase.Id,
-                    //     ArticleId = pa.ArticleId,
-                    //     OldQuantity = originalQty,
-                    //     NewQuantity = pa.Quantity
-                    // }, userId);
-                    // ===============================================================================
+                    // Add adjustment if quantity changed
+                    if (pa.Quantity != oldQty)
+                    {
+                        adjustments.Add(new PendingStockAdjustmentItemDTO
+                        {
+                            ArticleId = pa.ArticleId,
+                            OldQuantity = oldQty,
+                            NewQuantity = pa.Quantity
+                        });
+                    }
                 }
 
                 purchase.UpdatedAt = DateTime.UtcNow;
@@ -424,8 +403,16 @@ namespace PurchaseService.Business.Services
                 throw;
             }
 
+            // === STOCK SYNC AFTER COMMIT ======================================
+            if (adjustments.Count > 0)
+            {
+                var result = await _stockServiceClient.ApplyPendingAdjustmentsAsync(purchaseId, userId, adjustments);
+                return result;
+            }
 
+            return null;
         }
+
 
     }
 }
