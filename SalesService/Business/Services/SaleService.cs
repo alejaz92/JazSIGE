@@ -1130,6 +1130,65 @@ namespace SalesService.Business.Services
 
             await _accountingServiceClient.CoverInvoiceWithReceiptsAsync(request, ct);
         }
+        public async Task RegisterStockWarningsAsync(IEnumerable<SaleStockWarningInputDTO> warnings)
+        {
+            if (warnings == null) return;
+
+            var list = warnings.ToList();
+            if (!list.Any()) return;
+
+            var now = DateTime.UtcNow;
+
+            // Group by sale so we can update header flags once per sale
+            var warningsBySale = list.GroupBy(w => w.SaleId);
+
+            foreach (var group in warningsBySale)
+            {
+                var saleId = group.Key;
+
+                var sale = await _unitOfWork.SaleRepository.GetByIdAsync(saleId);
+                if (sale == null)
+                {
+                    // If sale does not exist (old id, deleted, etc.), we skip it.
+                    continue;
+                }
+
+                // Mark sale as having stock warnings and update timestamp
+                sale.HasStockWarning = true;
+                sale.StockWarningUpdatedAt = now;
+                _unitOfWork.SaleRepository.Update(sale);
+
+                foreach (var warning in group)
+                {
+                    // Check if there is already an active warning for this sale/article
+                    var existing = await _unitOfWork.SaleStockWarningRepository
+                        .GetActiveBySaleAndArticleAsync(saleId, warning.ArticleId);
+
+                    if (existing != null)
+                    {
+                        // Update snapshot and timestamp for an existing warning
+                        existing.ShortageSnapshot = warning.ShortageSnapshot;
+                        existing.CreatedAt = now;
+                    }
+                    else
+                    {
+                        // Create a new warning entry
+                        var newWarning = new SaleStockWarning
+                        {
+                            SaleId = saleId,
+                            ArticleId = warning.ArticleId,
+                            ShortageSnapshot = warning.ShortageSnapshot,
+                            IsResolved = false,
+                            CreatedAt = now
+                        };
+
+                        await _unitOfWork.SaleStockWarningRepository.AddAsync(newWarning);
+                    }
+                }
+            }
+
+            await _unitOfWork.SaveAsync();
+        }
 
 
 
