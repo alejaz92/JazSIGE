@@ -22,6 +22,9 @@ namespace SalesService.Infrastructure.Data
         public DbSet<Sale> Sales {  get; set; } 
         public DbSet<Sale_Article> Sale_Articles { get; set; }
 
+        // Stock warnings for sales
+        public DbSet<SaleStockWarning> SaleStockWarnings { get; set; } = null!;
+
         // Delivery Note
         public DbSet<DeliveryNote> DeliveryNotes { get; set; } = null!;
         public DbSet<DeliveryNote_Article> DeliveryNoteArticles { get; set; } = null!;
@@ -99,6 +102,18 @@ namespace SalesService.Infrastructure.Data
             modelBuilder.Entity<DeliveryNote_Article>()
                 .Property(a => a.Quantity)
                 .HasColumnType("decimal(18,4)");
+
+            // sale stock warnings
+            modelBuilder.Entity<Sale>()
+                .HasMany(s => s.StockWarnings)
+                .WithOne(w => w.Sale)
+                .HasForeignKey(w => w.SaleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<SaleStockWarning>()
+                .Property(w => w.ShortageSnapshot)
+                .HasColumnType("decimal(18,4)");
+
 
         }
     }

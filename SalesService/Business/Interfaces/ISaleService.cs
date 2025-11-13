@@ -20,5 +20,6 @@ namespace SalesService.Business.Interfaces
         Task<IReadOnlyList<SaleNoteSummaryDTO>> GetDebitNotesAsync(int saleId);
         Task<InvoiceBasicDTO> GetInvoiceAsync(int saleId);
         Task<InvoiceDetailDTO> GetInvoiceDetailAsync(int Id);
+        Task RegisterStockWarningsAsync(IEnumerable<SaleStockWarningInputDTO> warnings);
     }
 }

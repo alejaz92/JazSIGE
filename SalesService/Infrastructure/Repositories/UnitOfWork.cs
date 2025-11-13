@@ -16,6 +16,7 @@ namespace SalesService.Infrastructure.Repositories
 
         public IDeliveryNoteRepository DeliveryNoteRepository { get; }
         public IDeliveryNoteArticleRepository DeliveryNoteArticleRepository { get; }
+        public ISaleStockWarningRepository SaleStockWarningRepository { get; }
 
 
 
@@ -28,7 +29,8 @@ namespace SalesService.Infrastructure.Repositories
             ISaleRepository saleRepository,
             ISaleArticleRepository saleArticleRepository,
             IDeliveryNoteRepository deliveryNoteRepository,
-            IDeliveryNoteArticleRepository deliveryNoteArticleRepository
+            IDeliveryNoteArticleRepository deliveryNoteArticleRepository,
+            ISaleStockWarningRepository saleStockWarningRepository
             )
         {
             _context = context;
@@ -39,8 +41,7 @@ namespace SalesService.Infrastructure.Repositories
             SaleArticleRepository = saleArticleRepository;
             DeliveryNoteRepository = deliveryNoteRepository;
             DeliveryNoteArticleRepository = deliveryNoteArticleRepository;
-
-
+            SaleStockWarningRepository = saleStockWarningRepository;
         }
 
         public async Task SaveAsync() => await _context.SaveChangesAsync();

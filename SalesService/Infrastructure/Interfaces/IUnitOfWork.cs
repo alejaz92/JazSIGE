@@ -14,7 +14,7 @@ namespace SalesService.Infrastructure.Interfaces
         IDeliveryNoteRepository DeliveryNoteRepository { get; }
         IDeliveryNoteArticleRepository DeliveryNoteArticleRepository { get; }
 
-
+        ISaleStockWarningRepository SaleStockWarningRepository { get; }
 
         Task SaveAsync();
     }

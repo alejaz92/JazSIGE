@@ -260,5 +260,22 @@ namespace SalesService.Controllers
             return NoContent(); // 204
         }
 
+
+        // --------------------------------------------------------------
+        // Receives stock warnings from StockService and registers them.
+        // --------------------------------------------------------------
+        [HttpPost("stock-warnings")]
+        public async Task<IActionResult> RegisterStockWarnings([FromBody] IEnumerable<SaleStockWarningInputDTO> warnings)
+        {
+            if (warnings == null)
+            {
+                return BadRequest(new { error = "Invalid payload." });
+            }
+
+            await _saleService.RegisterStockWarningsAsync(warnings);
+
+            return Ok(new { message = "Stock warnings registered successfully." });
+        }
+
     }
 }
