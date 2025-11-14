@@ -11,5 +11,6 @@
         public decimal ExchangeRate { get; set; }
         public bool IsFullyDelivered { get; set; }
         public bool HasInvoice { get; set; }
+        public bool HasStockWarning { get; set; }
     }
 }

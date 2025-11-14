@@ -83,7 +83,8 @@ namespace SalesService.Business.Services
                     Total = Math.Round(subtotal + ivaTotal, 2),
                     ExchangeRate = sale.ExchangeRate,
                     HasInvoice = sale.HasInvoice,
-                    IsFullyDelivered = sale.IsFullyDelivered
+                    IsFullyDelivered = sale.IsFullyDelivered,
+                    HasStockWarning = sale.HasStockWarning
                 });
             }
 
@@ -161,6 +162,7 @@ namespace SalesService.Business.Services
                 ExchangeRate = sale.ExchangeRate,
                 Observations = sale.Observations,
                 IsFinalConsumer = sale.IsFinalConsumer,
+                HasStockWarning = sale.HasStockWarning,
 
                 CustomerId = customer.Id,
                 CustomerName = customer.CompanyName,

@@ -10,6 +10,7 @@ namespace SalesService.Business.Models.Sale
         public decimal ExchangeRate { get; set; }
         public string? Observations { get; set; }
         public bool IsFinalConsumer { get; set; }
+        public bool HasStockWarning { get; set; }
 
 
 
