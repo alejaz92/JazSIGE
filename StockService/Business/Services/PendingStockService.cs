@@ -1,6 +1,7 @@
 ﻿using AuthService.Infrastructure.Models;
 using StockService.Business.Interfaces;
 using StockService.Business.Models;
+using StockService.Business.Models.Clients;
 using StockService.Business.Models.CommitedStock;
 using StockService.Business.Models.PendingStock;
 using StockService.Infrastructure.Interfaces;
@@ -15,19 +16,22 @@ namespace StockService.Business.Services
         private readonly IStockMovementRepository _movementRepository;
         private readonly IStockRepository _stockRepository;
         private readonly IStockByDispatchRepository _dispatchRepository;
+        private readonly ISalesServiceClient _salesClient;
 
         public PendingStockService(
             IPendingStockEntryRepository pendingRepository,
             ICommitedStockEntryRepository committedRepository,
             IStockMovementRepository movementRepository,
             IStockRepository stockRepository,
-            IStockByDispatchRepository dispatchRepository)
+            IStockByDispatchRepository dispatchRepository,
+            ISalesServiceClient salesClient)
         {
             _pendingRepository = pendingRepository;
             _committedRepository = committedRepository;
             _movementRepository = movementRepository;
             _stockRepository = stockRepository;
             _dispatchRepository = dispatchRepository;
+            _salesClient = salesClient;
         }
 
         public async Task AddAsync(PendingStockEntryCreateDTO dto)
@@ -235,10 +239,15 @@ namespace StockService.Business.Services
                         ImplicatedSales = implicated
                     });
 
-                    // === SALES WARNING PLACEHOLDER =======================================
-                    // Here we should call Sales client to flag these SalesOrderIds.
-                    // await _salesClient.FlagStockWarningAsync(implicated.Select(x => x.SalesOrderId));
-                    // =====================================================================
+                    var warningsToSend = implicated.Select(x => new SaleStockWarningInputDTO
+                    {
+                        SaleId = x.SaleId,
+                        ArticleId = articleId,
+                        ShortageSnapshot = x.RemainingCommitted   // snapshot of shortage per affected sale
+                    }).ToList();
+
+                    await _salesClient.SendStockWarningsAsync(warningsToSend);
+
                 }
             }
 

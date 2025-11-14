@@ -77,4 +77,11 @@
         public string GrossIncome { get; set; }
         public DateTime DateOfIncorporation { get; set; }
     }
+
+    public class SaleStockWarningInputDTO
+    {
+        public int SaleId { get; set; }
+        public int ArticleId { get; set; }
+        public decimal ShortageSnapshot { get; set; }
+    }
 }
