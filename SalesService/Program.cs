@@ -67,6 +67,7 @@ builder.Services.AddScoped<ISaleRepository, SaleRepository>();
 builder.Services.AddScoped<ISaleArticleRepository, SaleArticleRepository>();
 builder.Services.AddScoped<IDeliveryNoteRepository, DeliveryNoteRepository>();
 builder.Services.AddScoped<IDeliveryNoteArticleRepository, DeliveryNoteArticleRepository>();
+builder.Services.AddScoped<ISaleStockWarningRepository, SaleStockWarningRepository>();
 
 //Services
 builder.Services.AddScoped<IArticlePriceListService, ArticlePriceListService>();
