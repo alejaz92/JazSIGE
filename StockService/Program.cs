@@ -73,6 +73,7 @@ builder.Services.AddScoped<IPendingStockService, PendingStockService>();
 builder.Services.AddScoped<ICommitedStockService, CommitedStockService>();
 builder.Services.AddScoped<IStockTransferService, StockTransferService>();
 builder.Services.AddScoped<IStockAvailabilityService, StockAvailabilityService>();
+builder.Services.AddScoped<ISalesServiceClient, SalesServiceClient>();  
 
 
 //inyect configuration
