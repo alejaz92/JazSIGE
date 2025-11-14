@@ -51,12 +51,14 @@ namespace StockService.Infrastructure.Repositories
         // Returns total remaining committed for an article (sum of (Quantity - Delivered))
         public async Task<decimal> SumRemainingByArticleAsync(int articleId)
         {
-            // NOTE: Remaining = Quantity - Delivered. Avoid negative due to rounding or edge cases.
+            // NOTE: Remaining = Quantity - Delivered. Negative values are clamped to zero.
             return await _context.CommitedStockEntries
                 .Where(c => c.ArticleId == articleId)
-                .Select(c => (decimal)Math.Max(0, (double)(c.Quantity - c.Delivered)))
-                .SumAsync();
+                .SumAsync(c => c.Quantity > c.Delivered
+                    ? c.Quantity - c.Delivered
+                    : 0);
         }
+
 
         // Returns FIFO list of commitments (Remaining > 0), ordered by CreatedAt or Id
         public async Task<List<(int SalesOrderId, decimal Remaining)>> ListRemainingByArticleAsync(int articleId)

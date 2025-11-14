@@ -47,7 +47,7 @@ namespace StockService.Business.Services
             if (!string.IsNullOrEmpty(token))
                 client.DefaultRequestHeaders.Add("Authorization", token);
 
-            var url = $"{_SalesBaseUrl}/stock-warnings";
+            var url = $"{_SalesBaseUrl}stock-warnings";
 
             var response = await client.PostAsJsonAsync(url, warnings);
 
