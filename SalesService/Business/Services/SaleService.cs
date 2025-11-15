@@ -92,7 +92,7 @@ namespace SalesService.Business.Services
         }
         public async Task<SaleDetailDTO?> GetByIdAsync(int id)
         {
-            var sale = await _unitOfWork.SaleRepository.GetIncludingAsync(id, s => s.Articles);
+            var sale = await _unitOfWork.SaleRepository.GetIncludingAsync(id, s => s.Articles, s => s.StockWarnings);
             if (sale == null) return null;
 
             var deliveryNotes = await _unitOfWork.DeliveryNoteRepository.FindIncludingAsync(
@@ -155,6 +155,20 @@ namespace SalesService.Business.Services
                 });
             }
 
+
+            var warningDTOs = new List<SaleStockWarningDTO>();
+
+            foreach (var warning in sale.StockWarnings)
+            {
+                warningDTOs.Add(new SaleStockWarningDTO
+                {
+                    ArticleId = warning.ArticleId,
+                    ShortageSnapshot = warning.ShortageSnapshot,
+                    IsResolved = warning.IsResolved,
+                    ResolvedAt = warning.ResolvedAt 
+                });
+            }
+
             return new SaleDetailDTO
             {
                 Id = sale.Id,
@@ -179,6 +193,7 @@ namespace SalesService.Business.Services
                 SellerName = $"{seller.FirstName} {seller.LastName}",
 
                 Articles = articleDTOs,
+                Warnings = warningDTOs,
                 DeliveryNotes = deliveryNotes.Select(dn => new DeliveryNoteDTO
                 {
                     Id = dn.Id,

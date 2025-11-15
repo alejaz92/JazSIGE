@@ -40,7 +40,9 @@ namespace SalesService.Business.Models.Sale
 
         //lists
         public List<SaleArticleDetailDTO> Articles { get; set; } = new();   
-        
+
+        public List<SaleStockWarningDTO> Warnings { get; set; } = new();
+
         public List<DeliveryNoteDTO> DeliveryNotes { get; set; } = new();
     }
 
