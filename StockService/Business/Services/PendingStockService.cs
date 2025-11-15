@@ -218,16 +218,23 @@ namespace StockService.Business.Services
                 if (availableAfter < 0)
                 {
                     var fifo = await _committedRepository.ListRemainingByArticleAsync(articleId);
-                    var shortage = -availableAfter;
+
+                    // Faltante global para este artículo:
+                    var totalShortage = -availableAfter;
+
+                    var shortage = totalShortage;
                     var implicated = new List<StockConflictSaleRefDTO>();
+
                     foreach (var (salesOrderId, remaining) in fifo)
                     {
                         if (shortage <= 0) break;
+
                         implicated.Add(new StockConflictSaleRefDTO
                         {
                             SaleId = salesOrderId,
                             RemainingCommitted = remaining
                         });
+
                         shortage -= remaining;
                     }
 
@@ -243,12 +250,15 @@ namespace StockService.Business.Services
                     {
                         SaleId = x.SaleId,
                         ArticleId = articleId,
-                        ShortageSnapshot = x.RemainingCommitted   // snapshot of shortage per affected sale
+
+                        // 👉 ahora guardamos el faltante global,
+                        // el mismo valor para todas las ventas implicadas.
+                        ShortageSnapshot = totalShortage
                     }).ToList();
 
                     await _salesClient.SendStockWarningsAsync(warningsToSend);
-
                 }
+
             }
 
             return result;

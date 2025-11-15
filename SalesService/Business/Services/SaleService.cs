@@ -1207,6 +1207,9 @@ namespace SalesService.Business.Services
             await _unitOfWork.SaveAsync();
         }
 
+        // update sale with warnings
+
+
 
 
         private async Task UpdateStockToCommited(int saleId, List<SaleArticleCreateDTO> articles, int? customerId, string customerName)

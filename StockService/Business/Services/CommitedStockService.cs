@@ -56,7 +56,7 @@ namespace StockService.Business.Services
         public async Task<RegisterCommitedStockOutputDTO> RegisterCommitedStockAsync(RegisterCommitedStockInputDTO dto, int userId)
         {
 
-            
+
 
             //create  RegisterCommitedStockOutputDTO
             var outputDto = new RegisterCommitedStockOutputDTO
@@ -67,7 +67,7 @@ namespace StockService.Business.Services
                 Dispatches = new List<RegisterCommitedStockDispatchOutputDTO>()
             };
 
-            if(!dto.IsQuick)
+            if (!dto.IsQuick)
             {
                 var commitedEntries = await _commitedStockEntryRepository.GetBySaleIdAsync(dto.SaleId);
 
@@ -121,9 +121,9 @@ namespace StockService.Business.Services
 
                     // check stock availability
                     var stockAvailable = await _stockService.GetStockAsync(entry.ArticleId, dto.WarehouseId);
-                    if (stockAvailable < entry.Quantity)                    
+                    if (stockAvailable < entry.Quantity)
                         throw new InvalidOperationException($"Insufficient stock for article {entry.ArticleId} in warehouse {dto.WarehouseId}. Available: {stockAvailable}, Required: {entry.Quantity}");
-                    
+
 
                     // create StockMovementCreateDTO and call _stockService.RegisterMovementAsync
                     var movementDto = new StockMovementCreateDTO
@@ -149,7 +149,7 @@ namespace StockService.Business.Services
                             ArticleId = entry.ArticleId,
                             Quantity = b.Quantity
                         });
-                    }                
+                    }
 
 
                 }
@@ -186,5 +186,25 @@ namespace StockService.Business.Services
 
             return result;
         }
+
+        // function to return commited stock entries with remaining quantity for an article
+
+        //public async Task<List<CommitedStockEntryDTO>> GetRemainingByArticleAsync(int articleId)
+        //{
+        //    var entries = await _commitedStockEntryRepository.GetRemainingByArticleAsync(articleId);
+        //    return entries.Select(e => new CommitedStockEntryDTO
+        //    {
+        //        Id = e.Id,
+        //        SaleId = e.SaleId,
+        //        IsFinalConsumer = e.IsFinalConsumer,
+        //        CustomerId = e.CustomerId,
+        //        CustomerName = e.CustomerName,
+        //        ArticleId = e.ArticleId,
+        //        Quantity = e.Quantity,
+        //        Delivered = e.Delivered,
+        //        Remaining = e.Remaining
+        //    }).ToList();
+
+        //}
     }
 }
