@@ -5,6 +5,7 @@ using SalesService.Business.Models.Clients;
 using SalesService.Business.Models.DeliveryNote;
 using SalesService.Business.Models.Sale;
 using SalesService.Business.Models.Sale.fiscalDocs;
+using System.Security.Claims;
 
 namespace SalesService.Controllers
 {
@@ -276,6 +277,21 @@ namespace SalesService.Controllers
 
             return Ok(new { message = "Stock warnings registered successfully." });
         }
+        [HttpPut("{saleId}/resolve-stock-warning")]
+        public async Task<ActionResult<SaleResolveStockWarningResultDTO>> ResolveWarning(
+            int saleId,
+            [FromBody] SaleResolveStockWarningDTO dto)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null)
+                return Unauthorized();
+
+            int userId = int.Parse(userIdClaim.Value);
+
+            var result = await _saleService.ResolveStockWarningAsync(saleId, dto, userId);
+            return Ok(result);
+        }
+
 
     }
 }

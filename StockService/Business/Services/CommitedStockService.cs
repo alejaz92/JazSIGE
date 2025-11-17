@@ -187,24 +187,27 @@ namespace StockService.Business.Services
             return result;
         }
 
-        // function to return commited stock entries with remaining quantity for an article
+        // function to update commited stock entry (only reduction of quantity is allowed) receives saleId, articleId and new quantity
+        public async Task UpdateCommitedStockEntryAsync(CommitedStockEntryUpdateDTO dto)
+        {
+            var existingEntries = await _commitedStockEntryRepository.GetBySaleIdAsync(dto.SaleId);
+            foreach (var articleUpdate in dto.Articles)
+            {
+                var existingEntry = existingEntries.FirstOrDefault(e => e.ArticleId == articleUpdate.ArticleId);
+                if (existingEntry != null)
+                {
+                    if (articleUpdate.NewQuantity < existingEntry.Quantity)
+                    {
+                        await _commitedStockEntryRepository.UpdateQuantityAsync(existingEntry.Id, articleUpdate.NewQuantity);
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException("Only reduction of quantity is allowed.");
+                    }
+                }
+                
+            }
 
-        //public async Task<List<CommitedStockEntryDTO>> GetRemainingByArticleAsync(int articleId)
-        //{
-        //    var entries = await _commitedStockEntryRepository.GetRemainingByArticleAsync(articleId);
-        //    return entries.Select(e => new CommitedStockEntryDTO
-        //    {
-        //        Id = e.Id,
-        //        SaleId = e.SaleId,
-        //        IsFinalConsumer = e.IsFinalConsumer,
-        //        CustomerId = e.CustomerId,
-        //        CustomerName = e.CustomerName,
-        //        ArticleId = e.ArticleId,
-        //        Quantity = e.Quantity,
-        //        Delivered = e.Delivered,
-        //        Remaining = e.Remaining
-        //    }).ToList();
-
-        //}
+        }
     }
 }

@@ -3,6 +3,7 @@ using StockService.Business.Interfaces;
 using StockService.Business.Models;
 using StockService.Business.Models.CommitedStock;
 using StockService.Business.Models.PendingStock;
+using StockService.Infrastructure.Models;
 using System.Security.Claims;
 
 namespace StockService.Controllers;
@@ -288,6 +289,26 @@ public class StockController : ControllerBase
 
         // 200 OK with conflict info (if any)
         return Ok(result);
+    }
+
+    // endpoint for UpdateCommitedStockEntryAsync
+
+    [HttpPut("commited-entry")]
+    public async Task<IActionResult> UpdateCommitedStockEntry( [FromBody] CommitedStockEntryUpdateDTO dto)
+    {
+        try
+        {
+            await _commitedStockService.UpdateCommitedStockEntryAsync(dto);
+            return Ok();
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
+        }
     }
 
 }

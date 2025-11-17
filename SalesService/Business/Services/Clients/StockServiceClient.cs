@@ -38,7 +38,8 @@ namespace SalesService.Business.Services.Clients
         }
 
         // register quick sale stock movement
-        public async Task RegisterQuickStockMovementAsync(StockMovementCreateDTO dto) {
+        public async Task RegisterQuickStockMovementAsync(StockMovementCreateDTO dto)
+        {
             var client = _httpClientFactory.CreateClient();
             var token = _httpContextAccessor.HttpContext?.Request.Headers["Authorization"].ToString();
             if (!string.IsNullOrEmpty(token))
@@ -93,5 +94,21 @@ namespace SalesService.Business.Services.Clients
 
         }
 
+        // commited stock entry update
+        public async Task UpdateCommitedStockEntryAsync(CommitedStockEntryUpdateDTO dto)
+        {
+            var client = _httpClientFactory.CreateClient();
+            var token = _httpContextAccessor.HttpContext?.Request.Headers["Authorization"].ToString();
+            if (!string.IsNullOrEmpty(token))
+                client.DefaultRequestHeaders.Add("Authorization", token);
+            var url = $"{_stockBaseUrl.TrimEnd('/')}/commited-entry";
+            var response = await client.PutAsJsonAsync(url, dto);
+            if (!response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                throw new InvalidOperationException($"StockService error: {response.StatusCode} - {content}");
+            }
+
+        }
     }
 }

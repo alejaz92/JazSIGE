@@ -73,5 +73,28 @@ namespace StockService.Infrastructure.Repositories
 
             return result.Select(x => (x.SaleId, x.Remaining)).ToList();
         }
+
+        // get by saleId and articleId
+        public async Task<CommitedStockEntry?> GetBySaleIdAndArticleIdAsync(int saleId, int articleId)
+        {
+            return await _context.CommitedStockEntries
+                .FirstOrDefaultAsync(c => c.SaleId == saleId && c.ArticleId == articleId);
+        }
+
+        // UpdateQuantityAsync
+        public async Task UpdateQuantityAsync(int id, decimal newQuantity)
+        {
+            var entry = await _context.CommitedStockEntries.FirstOrDefaultAsync(c => c.Id == id);
+            if (entry != null)
+            {
+                if (newQuantity < entry.Delivered)
+                {
+                    throw new ArgumentException("New quantity cannot be less than delivered quantity.");
+                }
+                entry.Quantity = newQuantity;
+                entry.UpdatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+            }
+        }
     }
 }

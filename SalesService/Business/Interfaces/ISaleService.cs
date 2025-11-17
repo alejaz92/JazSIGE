@@ -21,5 +21,6 @@ namespace SalesService.Business.Interfaces
         Task<InvoiceBasicDTO> GetInvoiceAsync(int saleId);
         Task<InvoiceDetailDTO> GetInvoiceDetailAsync(int Id);
         Task RegisterStockWarningsAsync(IEnumerable<SaleStockWarningInputDTO> warnings);
+        Task<SaleResolveStockWarningResultDTO> ResolveStockWarningAsync(int saleId, SaleResolveStockWarningDTO dto, int userId);
     }
 }

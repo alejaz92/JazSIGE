@@ -1206,8 +1206,170 @@ namespace SalesService.Business.Services
 
             await _unitOfWork.SaveAsync();
         }
+        public async Task<SaleResolveStockWarningResultDTO> ResolveStockWarningAsync(
+            int saleId,
+            SaleResolveStockWarningDTO dto,
+            int userId)
+        {
+            if (dto.Articles == null || dto.Articles.Count == 0)
+                throw new ArgumentException("No article modifications were provided.");
 
-        // update sale with warnings
+            // Traemos venta con artículos + warnings
+            var sale = await _unitOfWork.SaleRepository
+                .GetIncludingAsync(saleId, s => s.Articles, s => s.StockWarnings);
+
+            if (sale == null)
+                throw new KeyNotFoundException($"Sale {saleId} not found.");
+
+            if (!sale.HasStockWarning)
+                throw new InvalidOperationException("Sale has no active stock warnings.");
+
+            // 1) Detectamos artículo(s) afectados
+            // (En esta etapa asumimos que solo puede modificarse artículos con warning)
+            var warningsByArticle = sale.StockWarnings
+                .Where(w => !w.IsResolved)
+                .GroupBy(w => w.ArticleId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            // Armamos un diccionario rápido de los artículos actuales de la venta
+            var saleArticles = sale.Articles.ToDictionary(a => a.ArticleId, a => a);
+
+            // Empezamos transacción
+            using var tx = await _unitOfWork.SaleRepository.BeginTransactionAsync();
+            try
+            {
+                // 2) Aplicamos modificación de cantidades
+                decimal totalReductionForArticle(int articleId)
+                {
+                    decimal reduction = 0m;
+
+                    foreach (var item in dto.Articles.Where(x => x.ArticleId == articleId))
+                    {
+                        if (!saleArticles.TryGetValue(item.ArticleId, out var line))
+                            throw new Exception($"Article {item.ArticleId} not found in sale {saleId}.");
+
+                        if (item.Quantity > line.Quantity)
+                            throw new Exception($"Quantity cannot be increased for article {item.ArticleId}.");
+
+                        reduction += (line.Quantity - item.Quantity);
+                    }
+
+                    return reduction;
+                }
+
+                foreach (var mod in dto.Articles)
+                {
+                    var line = saleArticles[mod.ArticleId];
+
+                    if (mod.Quantity == 0)
+                    {
+                        await _unitOfWork.SaleArticleRepository.DeleteAsync(line.Id);
+                    }
+                    else if (mod.Quantity != line.Quantity)
+                    {
+                        line.Quantity = mod.Quantity;
+                        _unitOfWork.SaleArticleRepository.Update(line);
+                    }
+                }
+
+                await _unitOfWork.SaveAsync();
+
+                // 3) ¿Quedó la venta sin artículos?
+                var remainingLines = await _unitOfWork.SaleArticleRepository
+                    .FindAsync(a => a.SaleId == saleId);
+
+                if (!remainingLines.Any())
+                {
+                    await _unitOfWork.SaleRepository.DeleteAsync(saleId);
+                    await _unitOfWork.SaveAsync();
+                    await tx.CommitAsync();
+
+                    return new SaleResolveStockWarningResultDTO
+                    {
+                        IsCancelled = true,
+                        Sale = null
+                    };
+                }
+
+                // 4) Recalcular shortage NUEVO por artículo y actualizar TODOS los warnings
+                foreach (var articleGroup in warningsByArticle)
+                {
+                    int articleId = articleGroup.Key;
+
+                    // shortage global viejo (todos los warnings de ese artículo comparten el mismo)
+                    decimal oldShortage = articleGroup.Value.First().ShortageSnapshot;
+
+                    // Cuánto redujo el usuario en ESTA venta para ESTE artículo
+                    decimal reduction = totalReductionForArticle(articleId);
+
+                    decimal newShortage = oldShortage - reduction;
+                    if (newShortage < 0) newShortage = 0;
+
+                    // Actualizar warnings de este artículo en TODAS las ventas
+                    // (las warnings de otras ventas están en repos separado)
+                    var allWarningsOfArticle = await _unitOfWork.SaleStockWarningRepository
+                        .FindAsync(w => w.ArticleId == articleId && !w.IsResolved);
+
+                    foreach (var w in allWarningsOfArticle)
+                    {
+                        if (newShortage == 0)
+                        {
+                            // se resolvió completamente
+                            w.IsResolved = true;
+                            w.ResolvedAt = DateTime.UtcNow;
+                        }
+                        else
+                        {
+                            // actualizar shortage para todas
+                            w.ShortageSnapshot = newShortage;
+                        }
+
+                        _unitOfWork.SaleStockWarningRepository.Update(w);
+                    }
+
+                    // Actualizar flag en venta actual
+                    sale.HasStockWarning = newShortage > 0;
+                    sale.StockWarningUpdatedAt = DateTime.UtcNow;
+                    _unitOfWork.SaleRepository.Update(sale);
+                }
+
+                await _unitOfWork.SaveAsync();
+
+                // 5) Avisar a StockService (lo dejamos comentado)
+                
+                var payload = new CommitedStockEntryUpdateDTO
+                {
+                    SaleId = saleId,
+                    Articles = remainingLines.Select(l => new CommitedStockEntryArticleUpdateDTO
+                    {
+                        ArticleId = l.ArticleId,
+                        NewQuantity = l.Quantity
+                    }).ToList()
+                };
+
+                await _stockServiceClient.UpdateCommitedStockEntryAsync(payload);
+
+
+
+
+                await tx.CommitAsync();
+
+                // Recargar el detalle para devolverlo actualizado
+                var detail = await GetByIdAsync(saleId);
+
+                return new SaleResolveStockWarningResultDTO
+                {
+                    IsCancelled = false,
+                    Sale = detail
+                };
+            }
+            catch
+            {
+                await tx.RollbackAsync();
+                throw;
+            }
+        }
+
 
 
 
