@@ -160,13 +160,14 @@ namespace SalesService.Business.Services
 
             foreach (var warning in sale.StockWarnings)
             {
-                warningDTOs.Add(new SaleStockWarningDTO
-                {
-                    ArticleId = warning.ArticleId,
-                    ShortageSnapshot = warning.ShortageSnapshot,
-                    IsResolved = warning.IsResolved,
-                    ResolvedAt = warning.ResolvedAt 
-                });
+                if (warning.IsResolved!)
+                    warningDTOs.Add(new SaleStockWarningDTO
+                    {
+                        ArticleId = warning.ArticleId,
+                        ShortageSnapshot = warning.ShortageSnapshot,
+                        IsResolved = warning.IsResolved,
+                        ResolvedAt = warning.ResolvedAt 
+                    });
             }
 
             return new SaleDetailDTO
