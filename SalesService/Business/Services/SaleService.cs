@@ -1234,6 +1234,10 @@ namespace SalesService.Business.Services
             // Armamos un diccionario rápido de los artículos actuales de la venta
             var saleArticles = sale.Articles.ToDictionary(a => a.ArticleId, a => a);
 
+            // Snapshot de cantidades originales ANTES de modificar nada
+            var originalQuantities = sale.Articles
+                .ToDictionary(a => a.ArticleId, a => a.Quantity);
+
             // Empezamos transacción
             using var tx = await _unitOfWork.SaleRepository.BeginTransactionAsync();
             try
@@ -1245,17 +1249,18 @@ namespace SalesService.Business.Services
 
                     foreach (var item in dto.Articles.Where(x => x.ArticleId == articleId))
                     {
-                        if (!saleArticles.TryGetValue(item.ArticleId, out var line))
+                        if (!originalQuantities.TryGetValue(item.ArticleId, out var originalQty))
                             throw new Exception($"Article {item.ArticleId} not found in sale {saleId}.");
 
-                        if (item.Quantity > line.Quantity)
+                        if (item.Quantity > originalQty)
                             throw new Exception($"Quantity cannot be increased for article {item.ArticleId}.");
 
-                        reduction += (line.Quantity - item.Quantity);
+                        reduction += (originalQty - item.Quantity);
                     }
 
                     return reduction;
                 }
+
 
                 foreach (var mod in dto.Articles)
                 {
