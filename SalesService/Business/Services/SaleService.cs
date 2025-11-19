@@ -1206,10 +1206,7 @@ namespace SalesService.Business.Services
 
             await _unitOfWork.SaveAsync();
         }
-        public async Task<SaleResolveStockWarningResultDTO> ResolveStockWarningAsync(
-            int saleId,
-            SaleResolveStockWarningDTO dto,
-            int userId)
+        public async Task<SaleResolveStockWarningResultDTO> ResolveStockWarningAsync(int saleId, SaleResolveStockWarningDTO dto, int userId)
         {
             if (dto.Articles == null || dto.Articles.Count == 0)
                 throw new ArgumentException("No article modifications were provided.");
@@ -1374,8 +1371,6 @@ namespace SalesService.Business.Services
                 throw;
             }
         }
-
-
 
 
 

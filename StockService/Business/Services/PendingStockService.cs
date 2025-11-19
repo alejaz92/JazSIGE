@@ -222,12 +222,12 @@ namespace StockService.Business.Services
                     // Faltante global para este artículo:
                     var totalShortage = -availableAfter;
 
-                    var shortage = totalShortage;
+                    //var shortage = totalShortage;
                     var implicated = new List<StockConflictSaleRefDTO>();
 
                     foreach (var (salesOrderId, remaining) in fifo)
                     {
-                        if (shortage <= 0) break;
+                        //if (shortage <= 0) break;
 
                         implicated.Add(new StockConflictSaleRefDTO
                         {
@@ -235,7 +235,7 @@ namespace StockService.Business.Services
                             RemainingCommitted = remaining
                         });
 
-                        shortage -= remaining;
+                        //shortage -= remaining;
                     }
 
                     result.Conflicts.Add(new StockConflictPerArticleDTO
