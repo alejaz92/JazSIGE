@@ -1221,26 +1221,24 @@ namespace SalesService.Business.Services
             if (!sale.HasStockWarning)
                 throw new InvalidOperationException("Sale has no active stock warnings.");
 
-            // 1) Detectamos artículo(s) afectados
-            // (En esta etapa asumimos que solo puede modificarse artículos con warning)
+            // Warnings activos de ESTA venta agrupados por artículo
             var warningsByArticle = sale.StockWarnings
                 .Where(w => !w.IsResolved)
                 .GroupBy(w => w.ArticleId)
                 .ToDictionary(g => g.Key, g => g.ToList());
 
-            // Armamos un diccionario rápido de los artículos actuales de la venta
+            // Artículos actuales de la venta
             var saleArticles = sale.Articles.ToDictionary(a => a.ArticleId, a => a);
 
             // Snapshot de cantidades originales ANTES de modificar nada
             var originalQuantities = sale.Articles
                 .ToDictionary(a => a.ArticleId, a => a.Quantity);
 
-            // Empezamos transacción
             using var tx = await _unitOfWork.SaleRepository.BeginTransactionAsync();
             try
             {
-                // 2) Aplicamos modificación de cantidades
-                decimal totalReductionForArticle(int articleId)
+                // 1) función helper: cuánto reduce ESTA venta por artículo
+                decimal TotalReductionForArticle(int articleId)
                 {
                     decimal reduction = 0m;
 
@@ -1258,7 +1256,7 @@ namespace SalesService.Business.Services
                     return reduction;
                 }
 
-
+                // 2) Aplicar modificaciones de cantidades
                 foreach (var mod in dto.Articles)
                 {
                     var line = saleArticles[mod.ArticleId];
@@ -1293,52 +1291,75 @@ namespace SalesService.Business.Services
                     };
                 }
 
-                // 4) Recalcular shortage NUEVO por artículo y actualizar TODOS los warnings
+                // 4) Recalcular shortage por artículo y actualizar warnings
+                var affectedSaleIds = new HashSet<int> { saleId }; // siempre incluye la venta actual
                 foreach (var articleGroup in warningsByArticle)
                 {
                     int articleId = articleGroup.Key;
 
-                    // shortage global viejo (todos los warnings de ese artículo comparten el mismo)
+                    // shortage global viejo
                     decimal oldShortage = articleGroup.Value.First().ShortageSnapshot;
 
-                    // Cuánto redujo el usuario en ESTA venta para ESTE artículo
-                    decimal reduction = totalReductionForArticle(articleId);
+                    // reducción en ESTA venta para este artículo
+                    decimal reduction = TotalReductionForArticle(articleId);
+                    if (reduction <= 0)
+                        continue; // no cambió nada para este artículo
 
                     decimal newShortage = oldShortage - reduction;
                     if (newShortage < 0) newShortage = 0;
 
                     // Actualizar warnings de este artículo en TODAS las ventas
-                    // (las warnings de otras ventas están en repos separado)
                     var allWarningsOfArticle = await _unitOfWork.SaleStockWarningRepository
                         .FindAsync(w => w.ArticleId == articleId && !w.IsResolved);
 
                     foreach (var w in allWarningsOfArticle)
                     {
+                        affectedSaleIds.Add(w.SaleId);
+
                         if (newShortage == 0)
                         {
-                            // se resolvió completamente
                             w.IsResolved = true;
                             w.ResolvedAt = DateTime.UtcNow;
                         }
                         else
                         {
-                            // actualizar shortage para todas
                             w.ShortageSnapshot = newShortage;
                         }
 
                         _unitOfWork.SaleStockWarningRepository.Update(w);
                     }
-
-                    // Actualizar flag en venta actual
-                    sale.HasStockWarning = newShortage > 0;
-                    sale.StockWarningUpdatedAt = DateTime.UtcNow;
-                    _unitOfWork.SaleRepository.Update(sale);
                 }
 
                 await _unitOfWork.SaveAsync();
 
-                // 5) Avisar a StockService (lo dejamos comentado)
-                
+                // 5) Recalcular HasStockWarning para TODAS las ventas afectadas
+                var now = DateTime.UtcNow;
+                foreach (var affectedSaleId in affectedSaleIds)
+                {
+                    // ¿Quedan warnings activos para esta venta?
+                    var hasActiveWarnings = (await _unitOfWork.SaleStockWarningRepository
+                            .FindAsync(w => w.SaleId == affectedSaleId && !w.IsResolved))
+                        .Any();
+
+                    Sale saleToUpdate;
+                    if (affectedSaleId == sale.Id)
+                    {
+                        saleToUpdate = sale;
+                    }
+                    else
+                    {
+                        saleToUpdate = await _unitOfWork.SaleRepository.GetByIdAsync(affectedSaleId);
+                        if (saleToUpdate == null) continue;
+                    }
+
+                    saleToUpdate.HasStockWarning = hasActiveWarnings;
+                    saleToUpdate.StockWarningUpdatedAt = now;
+                    _unitOfWork.SaleRepository.Update(saleToUpdate);
+                }
+
+                await _unitOfWork.SaveAsync();
+
+                // 6) Llamado a StockService (lo tenías ya implementado, lo dejo igual)
                 var payload = new CommitedStockEntryUpdateDTO
                 {
                     SaleId = saleId,
@@ -1350,9 +1371,6 @@ namespace SalesService.Business.Services
                 };
 
                 await _stockServiceClient.UpdateCommitedStockEntryAsync(payload);
-
-
-
 
                 await tx.CommitAsync();
 
@@ -1371,6 +1389,7 @@ namespace SalesService.Business.Services
                 throw;
             }
         }
+
 
 
 
