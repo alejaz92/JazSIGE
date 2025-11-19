@@ -26,6 +26,7 @@ namespace PurchaseService.Infrastructure.Repositories
                 .Include(p => p.Articles)
                 .Include(p => p.Dispatch)
                 .OrderByDescending(p => p.Date)
+                .ThenByDescending(p => p.Id)
                 .ToListAsync();
         public async Task<IEnumerable<Purchase>> GetAllAsync(int pageNumber, int pageSize) => await _context.Purchases
                 .Include(p => p.Articles)
