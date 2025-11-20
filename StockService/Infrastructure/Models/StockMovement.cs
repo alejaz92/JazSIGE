@@ -18,5 +18,7 @@
         //Stock Transfer related properties
         public int? StockTransferId { get; set; }
         public StockTransfer? StockTransfer { get; set; }
+
+        public decimal? unitCost { get; set; }  
     }
 }

@@ -13,5 +13,7 @@ namespace StockService.Business.Models
         public int? DispatchId { get; set; }
 
         public int? StockTransferId { get; set; }
+
+        public decimal? UnitCost { get; set; }
     }
 }
