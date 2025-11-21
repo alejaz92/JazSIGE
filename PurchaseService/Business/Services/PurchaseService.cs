@@ -67,7 +67,7 @@ namespace PurchaseService.Business.Services
                 await _stockServiceClient.RegisterPurchaseMovementsAsync(
                     userId,
                     warehouseId,
-                    articles.Select(a => (a.ArticleId, a.Quantity)).ToList(),
+                    articles.Select(a => (a.ArticleId, a.Quantity, a.UnitCost)).ToList(),
                     reference,
                     dispatchId
                 );
