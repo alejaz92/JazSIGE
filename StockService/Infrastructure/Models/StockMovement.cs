@@ -19,6 +19,7 @@
         public int? StockTransferId { get; set; }
         public StockTransfer? StockTransfer { get; set; }
 
-        public decimal? unitCost { get; set; }  
-    }
+        public decimal? LastUnitCost { get; set; }  
+        public decimal? AvgUnitCost { get; set; }
+        }
 }
