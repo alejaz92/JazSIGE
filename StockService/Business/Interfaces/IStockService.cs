@@ -14,6 +14,7 @@ namespace StockService.Business.Interfaces
         //Task<decimal> GetStockSummaryByWarehouseAsync(int warehouseId);
         Task<List<DispatchStockDetailDTO>> RegisterMovementAsync(StockMovementCreateDTO dto, int userId);
         Task<IEnumerable<StockByWarehouseDTO>> GetStockByWarehouseAsync(int warehouseId);
+        Task<IEnumerable<ArticleCostsDTO>> GetArticleCostsAsync(int articleId);
         //Task<decimal> GetAvailableStockByArticleAsync(int articleId);
         //Task<decimal> GetAvailableStockByArticleAndWarehouseAsync(int articleId, int warehouseId);
     }

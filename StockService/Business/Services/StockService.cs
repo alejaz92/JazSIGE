@@ -295,6 +295,28 @@ namespace StockService.Business.Services
                 PageSize = pageSize
             };
         }
+
+        public async Task<IEnumerable<ArticleCostsDTO>> GetArticleCostsAsync(int articleId)
+        {
+            var movements = await _stockMovementRepository.GetByArticleAsync(articleId);
+            if (movements == null)
+                return Enumerable.Empty<ArticleCostsDTO>();
+
+            var purchaseMovements = movements.Where(m => m.MovementType == StockMovementType.Purchase);
+
+            var costs = purchaseMovements
+                .Select(m => new ArticleCostsDTO
+                {
+                    Date = m.Date,
+                    AvgCost = m.AvgUnitCost ?? 0m,
+                    LastCost = m.LastUnitCost ?? 0m
+                })
+                .OrderByDescending(c => c.Date)
+                .ToList();
+
+            return costs;
+        }
+
         private async Task UpdateStockByDispatchAsync(int articleId, int? dispatchId, decimal quantity)
         {
             var entry = await _stockByDispatchRepository.GetByArticleAndDispatchAsync(articleId, dispatchId);

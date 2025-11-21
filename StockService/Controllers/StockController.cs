@@ -311,4 +311,19 @@ public class StockController : ControllerBase
         }
     }
 
+    [HttpGet("{articleId}/costs")]
+    public async Task<ActionResult<IEnumerable<ArticleCostsDTO>>> GetArticleCosts(int articleId)
+    {
+        try
+        {
+            var costs = await _stockService.GetArticleCostsAsync(articleId);
+            return Ok(costs);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
+        }
+    }
+
+
 }
