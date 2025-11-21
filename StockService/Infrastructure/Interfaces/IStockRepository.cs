@@ -8,6 +8,7 @@ namespace StockService.Infrastructure.Interfaces
         Task<IEnumerable<Stock>> GetAllByArticleAsync(int articleId);
         Task<IEnumerable<Stock>> GetAllByWarehouseAsync(int warehouseId);
         Task<Stock?> GetByArticleAndwarehouseAsync(int articleId, int warehouseId);
+        Task<decimal> GetCurrentStockByArticleAsync(int articleId);
         Task UpdateAsync(Stock stock);
     }
 }

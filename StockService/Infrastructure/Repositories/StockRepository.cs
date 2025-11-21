@@ -15,6 +15,10 @@ namespace StockService.Infrastructure.Repositories
 
         public async Task<Stock?> GetByArticleAndwarehouseAsync(int articleId, int warehouseId) => await _context.Stocks
                 .FirstOrDefaultAsync(s => s.ArticleId == articleId && s.WarehouseId == warehouseId);
+
+        public async Task<decimal> GetCurrentStockByArticleAsync(int articleId) => await _context.Stocks
+                .Where(s => s.ArticleId == articleId)
+                .SumAsync(s => s.Quantity);
         public async Task AddAsync(Stock stock)
         {
             await _context.Stocks.AddAsync(stock);

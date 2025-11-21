@@ -65,7 +65,7 @@ namespace StockService.Business.Services
             decimal? newAvgCost = null;
             if (dto.MovementType == StockMovementType.Purchase)
             {
-                var currentStock = await _stockRepository.GetByArticleAndwarehouseAsync(dto.ArticleId, dto.ToWarehouseId.Value);
+                var currentStock = await _stockRepository.GetCurrentStockByArticleAsync(dto.ArticleId);
                 decimal currentAvgCost = 0m;
                 decimal currentQuantity = 0m;
                 if (currentStock != null)
@@ -75,7 +75,7 @@ namespace StockService.Business.Services
                     if (lastMovement != null && lastMovement.AvgUnitCost.HasValue)
                     {
                         currentAvgCost = lastMovement.AvgUnitCost.Value;
-                        currentQuantity = currentStock.Quantity;
+                        currentQuantity = currentStock;
                     }
                 }
                 newAvgCost = ((currentAvgCost * currentQuantity) + (dto.UnitCost.GetValueOrDefault() * dto.Quantity)) / (currentQuantity + dto.Quantity);

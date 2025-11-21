@@ -6,6 +6,7 @@ using StockService.Business.Models.CommitedStock;
 using StockService.Business.Models.PendingStock;
 using StockService.Infrastructure.Interfaces;
 using StockService.Infrastructure.Models;
+using StockService.Infrastructure.Repositories;
 
 namespace StockService.Business.Services
 {
@@ -65,11 +66,33 @@ namespace StockService.Business.Services
             var pendingEntries = await _pendingRepository.GetByPurchaseIdAsync(dto.PurchaseId);
             foreach (var entry in pendingEntries)
             {
+                // calculate avg cost
+                decimal? newAvgCost = null;
+                var currentStock = await _stockRepository.GetCurrentStockByArticleAsync(entry.ArticleId);
+
+                decimal currentAvgCost = 0m;
+                decimal currentQuantity = 0m;
+
+                if (currentStock != null)
+                {
+                    // get last stock movement to get average cost
+                    var lastMovement = await _movementRepository.GetLastByArticleAndMovementTypeAsync(entry.ArticleId, StockMovementType.Purchase);
+                    if (lastMovement != null && lastMovement.AvgUnitCost.HasValue)
+                    {
+                        currentAvgCost = lastMovement.AvgUnitCost.Value;
+                        currentQuantity = currentStock;
+                    }
+                }
+                newAvgCost = ((currentAvgCost * currentQuantity) + (entry.UnitCost * entry.Quantity)) / (currentQuantity + entry.Quantity);
+
+
                 // Create stock movement
                 var movement = new StockMovement
                 {
                     ArticleId = entry.ArticleId,
                     Quantity = entry.Quantity,
+                    LastUnitCost = entry.UnitCost,
+                    AvgUnitCost = newAvgCost,
                     MovementType = StockMovementType.Purchase,
                     FromWarehouseId = null,
                     ToWarehouseId = dto.WarehouseId,
