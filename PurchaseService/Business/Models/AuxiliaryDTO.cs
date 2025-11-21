@@ -13,6 +13,7 @@
     {
         public int ArticleId { get; set; }
         public decimal Quantity { get; set; }
+        public decimal UnitCost { get; set; }
         public int MovementType { get; set; }
         public int? FromWarehouseId { get; set; }
         public int? ToWarehouseId { get; set; }

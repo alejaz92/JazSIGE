@@ -46,6 +46,13 @@ namespace StockService.Infrastructure.Repositories
             return (items, totalCount);
         }
 
+        // get last by article and movement type
+        public async Task<StockMovement?> GetLastByArticleAndMovementTypeAsync(int articleId, StockMovementType movementType) => await _context.StockMovements
+                .Where(sm => sm.ArticleId == articleId && sm.MovementType == movementType)
+                .OrderByDescending(sm => sm.Date)
+                .FirstOrDefaultAsync();
+
+
     }
 
 

@@ -59,11 +59,36 @@ namespace StockService.Business.Services
                 }
             }
 
+            // if it is purchase, calculate average cost
+            // get current stock, last average cost and calculate new average cost
+
+            decimal? newAvgCost = null;
+            if (dto.MovementType == StockMovementType.Purchase)
+            {
+                var currentStock = await _stockRepository.GetByArticleAndwarehouseAsync(dto.ArticleId, dto.ToWarehouseId.Value);
+                decimal currentAvgCost = 0m;
+                decimal currentQuantity = 0m;
+                if (currentStock != null)
+                {
+                    // get last stock movement to get average cost
+                    var lastMovement = await _stockMovementRepository.GetLastByArticleAndMovementTypeAsync(dto.ArticleId, dto.MovementType);
+                    if (lastMovement != null && lastMovement.AvgUnitCost.HasValue)
+                    {
+                        currentAvgCost = lastMovement.AvgUnitCost.Value;
+                        currentQuantity = currentStock.Quantity;
+                    }
+                }
+                newAvgCost = ((currentAvgCost * currentQuantity) + (dto.UnitCost.GetValueOrDefault() * dto.Quantity)) / (currentQuantity + dto.Quantity);
+                
+            }
+
             var stockMovement = new StockMovement
             {
                 ArticleId = dto.ArticleId,
                 MovementType = dto.MovementType,
                 Quantity = dto.Quantity,
+                LastUnitCost = dto.UnitCost,
+                AvgUnitCost = newAvgCost,
                 Date = DateTime.UtcNow,
                 FromWarehouseId = dto.FromWarehouseId,
                 ToWarehouseId = dto.ToWarehouseId,

@@ -7,6 +7,7 @@ namespace StockService.Infrastructure.Interfaces
         Task AddAsync(StockMovement stockMovement);
         Task<IEnumerable<StockMovement>> GetAllAsync();
         Task<IEnumerable<StockMovement>> GetByArticleAsync(int articleId);
+        Task<StockMovement?> GetLastByArticleAndMovementTypeAsync(int articleId, StockMovementType movementType);
         Task<(IEnumerable<StockMovement> Items, int TotalCount)> GetPagedWithTotalAsync(int articleId, int page, int pageSize);
 
     }

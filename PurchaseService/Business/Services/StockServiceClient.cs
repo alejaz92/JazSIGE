@@ -19,7 +19,7 @@ namespace PurchaseService.Business.Services
             _stockBaseUrl = configuration["GatewayService:StockBaseUrl"];
         }
 
-        public async Task RegisterPurchaseMovementsAsync(int userId, int warehouseId, List<(int articleId, decimal quantity)> items, string reference, int? dispatchId)
+        public async Task RegisterPurchaseMovementsAsync(int userId, int warehouseId, List<(int articleId, decimal quantity, decimal unitCost)> items, string reference, int? dispatchId)
         {
             var client = _httpClientFactory.CreateClient();
 
@@ -37,6 +37,7 @@ namespace PurchaseService.Business.Services
                 {
                     ArticleId = item.articleId,
                     Quantity = item.quantity,
+                    UnitCost = item.unitCost,
                     MovementType = 1,
                     FromWarehouseId = null,
                     ToWarehouseId = warehouseId,
