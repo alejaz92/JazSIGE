@@ -299,6 +299,7 @@ namespace PurchaseService.Business.Services
             if (updateDict.Count == 0)
                 throw new ArgumentException("No valid updates were detected.");
 
+            // OJO: este DTO es el que usás para notificar al StockService
             var adjustments = new List<PendingStockAdjustmentItemDTO>();
 
             using var tx = await _purchaseRepository.BeginTransactionAsync();
@@ -319,14 +320,19 @@ namespace PurchaseService.Business.Services
                     if (upd.UnitCost is not null)
                         pa.UnitCost = upd.UnitCost.Value;
 
-                    // Add adjustment if quantity changed
-                    if (pa.Quantity != oldQty)
+                    var quantityChanged = pa.Quantity != oldQty;
+                    var costChanged = pa.UnitCost != oldCost;
+
+                    // Antes solo entraba si cambiaba la cantidad.
+                    // Ahora enviamos ajuste también si SOLO cambia el costo.
+                    if (quantityChanged || costChanged)
                     {
                         adjustments.Add(new PendingStockAdjustmentItemDTO
                         {
                             ArticleId = pa.ArticleId,
                             OldQuantity = oldQty,
                             NewQuantity = pa.Quantity,
+                            // NewUnitCost se manda siempre que haya cualquier cambio
                             NewUnitCost = pa.UnitCost
                         });
                     }
@@ -352,6 +358,7 @@ namespace PurchaseService.Business.Services
 
             return null;
         }
+
 
 
 
