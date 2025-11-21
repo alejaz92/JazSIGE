@@ -40,7 +40,8 @@ namespace StockService.Business.Services
             {
                 PurchaseId = dto.PurchaseId,
                 ArticleId = dto.ArticleId,
-                Quantity = dto.Quantity
+                Quantity = dto.Quantity,
+                UnitCost = dto.UnitCost
             };
 
             await _pendingRepository.AddAsync(entity);
@@ -133,6 +134,8 @@ namespace StockService.Business.Services
         public async Task<StockApplyAdjustmentResultDTO> ApplyPurchasePendingAdjustmentsAsync(PurchasePendingAdjustmentDTO dto)
         {
             var result = new StockApplyAdjustmentResultDTO { PurchaseId = dto.PurchaseId };
+
+            // 1) Deltas de cantidad por artículo
             var perArticleDelta = dto.Items
                 .GroupBy(i => i.ArticleId)
                 .ToDictionary(
@@ -140,78 +143,118 @@ namespace StockService.Business.Services
                     g => g.Sum(x => x.NewQuantity - x.OldQuantity)  // total delta for that article in this purchase
                 );
 
-            // 1) Apply adjustments in PendingStockEntries (FIFO within this purchase/article)
-            foreach (var kvp in perArticleDelta)
+            // 2) Nuevo costo por artículo (si se envió alguno no nulo)
+            var perArticleCost = dto.Items
+                .Where(i => i.NewUnitCost.HasValue)
+                .GroupBy(i => i.ArticleId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.First().NewUnitCost!.Value // asumimos mismo costo para todas las filas del artículo
+                );
+
+            // Conjunto total de artículos involucrados (por cantidad y/o costo)
+            var articleIds = new HashSet<int>(dto.Items.Select(i => i.ArticleId));
+
+            // 3) Aplicar ajustes en PendingStockEntries (FIFO dentro de esta compra/artículo)
+            foreach (var articleId in articleIds)
             {
-                var articleId = kvp.Key;
-                var delta = kvp.Value;
+                var delta = perArticleDelta.TryGetValue(articleId, out var d) ? d : 0m;
+                var hasCostChange = perArticleCost.TryGetValue(articleId, out var newCost);
 
-                if (delta == 0) continue;
-
+                // Traemos las pending actuales de esta compra/artículo
                 var entries = await _pendingRepository.GetUnprocessedByPurchaseArticleAsync(dto.PurchaseId, articleId);
 
-                if (delta > 0)
+                // --- Ajuste de cantidades ---
+                if (delta != 0)
                 {
-                    // Increase pending: append to last unprocessed entry or create a new one if needed
-                    if (entries.Count > 0)
+                    if (delta > 0)
                     {
-                        // simplest: add to the last entry
-                        var last = entries[^1];
-                        last.Quantity += delta;
+                        // Aumentar pending
+                        if (entries.Count > 0)
+                        {
+                            // Opción simple: sumar al último registro pendiente
+                            var last = entries[^1];
+                            last.Quantity += delta;
+                        }
+                        else
+                        {
+                            // No había pending para esta compra/artículo → crear nueva
+                            var entry = new PendingStockEntry
+                            {
+                                PurchaseId = dto.PurchaseId,
+                                ArticleId = articleId,
+                                Quantity = delta,
+                                IsProcessed = false,
+                                CreatedAt = DateTime.UtcNow,
+                                // Si hay nuevo costo para este artículo, lo usamos. Si no, 0 (caso raro).
+                                UnitCost = hasCostChange ? newCost : 0m
+                            };
+
+                            await _pendingRepository.AddAsync(entry);
+                        }
                     }
                     else
                     {
-                        _pendingRepository.AddAsync(new PendingStockEntry
+                        // Reducir pending: consumir FIFO
+                        var remainingToRemove = -delta;
+                        foreach (var e in entries)
                         {
-                            PurchaseId = dto.PurchaseId,
-                            ArticleId = articleId,
-                            Quantity = delta,
-                            IsProcessed = false,
-                            CreatedAt = DateTime.UtcNow
-                        });
+                            if (remainingToRemove <= 0) break;
+
+                            var take = Math.Min(e.Quantity, remainingToRemove);
+                            e.Quantity -= take;
+                            remainingToRemove -= take;
+                        }
+
+                        // Eliminar filas que quedaron en 0
+                        foreach (var e in entries.Where(x => x.Quantity == 0).ToList())
+                        {
+                            _pendingRepository.Remove(e);
+                        }
                     }
                 }
-                else
+
+                // --- Ajuste de costo ---
+                // Si vino NewUnitCost para este artículo:
+                if (hasCostChange)
                 {
-                    // Reduce pending: consume FIFO entries (only unprocessed of this purchase/article)
-                    var remainingToRemove = -delta;
-                    foreach (var e in entries)
-                    {
-                        if (remainingToRemove <= 0) break;
+                    // Volvemos a pedir las pending vivas (por si se creó/borro alguna)
+                    var entriesToUpdate = await _pendingRepository.GetUnprocessedByPurchaseArticleAsync(dto.PurchaseId, articleId);
 
-                        var take = Math.Min(e.Quantity, remainingToRemove);
-                        e.Quantity -= take;
-                        remainingToRemove -= take;
-                    }
-
-                    // Clean zero-quantity rows (optional)
-                    foreach (var e in entries.Where(x => x.Quantity == 0).ToList())
+                    if (entriesToUpdate.Count > 0)
                     {
-                        _pendingRepository.Remove(e);
+                        // Si todas ya tienen ese costo, no hace falta tocar nada
+                        var allAlreadySame = entriesToUpdate.All(e => e.UnitCost == newCost);
+
+                        if (!allAlreadySame)
+                        {
+                            foreach (var e in entriesToUpdate)
+                            {
+                                e.UnitCost = newCost;
+                            }
+                        }
                     }
                 }
+                // Si NO hay NewUnitCost para el artículo → no tocamos el UnitCost existente.
             }
 
-            // Persist changes before computing the conflict snapshot, so consumers get the final state
+            // Persistimos cambios en pending antes de calcular conflictos
             await _pendingRepository.SaveChangesAsync();
 
-            // 2) Compute conflicts per article AFTER applying deltas
+            // 4) Conflictos por artículo DESPUÉS de aplicar ajustes de pending (solo si cambió cantidad)
             foreach (var kvp in perArticleDelta)
             {
                 var articleId = kvp.Key;
                 var delta = kvp.Value;
-                if (delta == 0) continue;
+                if (delta == 0) continue;   // cambio solo de costo, no afecta disponibilidad
 
-                // Compute available BEFORE and AFTER for reporting clarity.
-                // NOTE: onHand access should come from your stock snapshot.
-                // Replace GetOnHandAsync with your real implementation.
+                // on-hand debería venir de tu snapshot real de stock
                 var onHand = await GetOnHandAsync(articleId); // TODO: wire actual on-hand provider
 
                 var pendingNow = await _pendingRepository.SumUnprocessedByArticleAsync(articleId);
                 var committedRemaining = await _committedRepository.SumRemainingByArticleAsync(articleId);
 
-                // We don't have the "before" snapshot anymore after persist.
-                // Approximate: AvailableBefore = onHand + (pendingNow - delta) - committedRemaining
+                // Aproximamos AvailableBefore (ya que persistimos antes)
                 var availableBefore = onHand + (pendingNow - delta) - committedRemaining;
                 var availableAfter = onHand + pendingNow - committedRemaining;
 
@@ -222,20 +265,15 @@ namespace StockService.Business.Services
                     // Faltante global para este artículo:
                     var totalShortage = -availableAfter;
 
-                    //var shortage = totalShortage;
                     var implicated = new List<StockConflictSaleRefDTO>();
 
                     foreach (var (salesOrderId, remaining) in fifo)
                     {
-                        //if (shortage <= 0) break;
-
                         implicated.Add(new StockConflictSaleRefDTO
                         {
                             SaleId = salesOrderId,
                             RemainingCommitted = remaining
                         });
-
-                        //shortage -= remaining;
                     }
 
                     result.Conflicts.Add(new StockConflictPerArticleDTO
@@ -250,15 +288,11 @@ namespace StockService.Business.Services
                     {
                         SaleId = x.SaleId,
                         ArticleId = articleId,
-
-                        // 👉 ahora guardamos el faltante global,
-                        // el mismo valor para todas las ventas implicadas.
                         ShortageSnapshot = totalShortage
                     }).ToList();
 
                     await _salesClient.SendStockWarningsAsync(warningsToSend);
                 }
-
             }
 
             return result;

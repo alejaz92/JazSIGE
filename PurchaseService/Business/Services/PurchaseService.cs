@@ -208,7 +208,8 @@ namespace PurchaseService.Business.Services
                         {
                             PurchaseId = purchase.Id,
                             ArticleId = item.ArticleId,
-                            Quantity = item.Quantity
+                            Quantity = item.Quantity,
+                            UnitCost = item.UnitCost
                         });
                     }
                 }
@@ -252,69 +253,7 @@ namespace PurchaseService.Business.Services
 
             await _purchaseRepository.SaveChangesAsync();
         }
-        private async Task<IEnumerable<PurchaseDTO>> MapToDTOListAsync(IEnumerable<Purchase> purchases)
-        {
-            var purchaseDTOs = new List<PurchaseDTO>();
-            foreach (var purchase in purchases)
-            {
-                var purchaseDTO = await MapToDTOAsync(purchase);
-                purchaseDTOs.Add(purchaseDTO);
-            }
-            return purchaseDTOs;
-        }
-        private async Task<PurchaseDTO> MapToDTOAsync(Purchase purchase)
-        {
-            var supplierName = await _catalogServiceClient.GetSupplierNameAsync(purchase.SupplierId) ?? "N/A";
-
-            var warehouseName = null as string;
-            if (purchase.WarehouseId != null)
-            {
-                warehouseName = await _catalogServiceClient.GetWarehouseNameAsync(purchase.WarehouseId.Value) ?? "N/A";
-            }
-
-            var userName = await _userServiceClient.GetUserNameAsync(purchase.UserId) ?? "N/A";
-
-            var articleDTOs = new List<PurchaseArticleDTO>();
-            foreach (var article in purchase.Articles)
-            {
-                var articleName = await _catalogServiceClient.GetArticleNameAsync(article.ArticleId) ?? "N/A";
-                articleDTOs.Add(new PurchaseArticleDTO
-                {
-                    ArticleId = article.ArticleId,
-                    ArticleName = articleName,
-                    Quantity = article.Quantity,
-                    UnitCost = article.UnitCost
-                });
-            }
-
-            var hasInvoice = await _purchaseDocumentRepository.ExistsInvoiceAsync(purchase.Id, onlyActive: true);
-
-
-            return new PurchaseDTO
-            {
-                Id = purchase.Id,
-                Date = purchase.Date,
-                SupplierId = purchase.SupplierId,
-                SupplierName = supplierName,
-                WarehouseId = purchase.WarehouseId,
-                WarehouseName = warehouseName,
-                UserId = purchase.UserId,
-                UserName = userName,
-                HasInvoice = hasInvoice,
-                //HasDispatch = purchase.Dispatch != null,
-                //StockUpdated = purchase.StockUpdated,
-                Articles = articleDTOs,
-                IsImportation = purchase.IsImportation,
-                IsDelivered = purchase.IsDelivered,
-                Dispatch = purchase.Dispatch != null ? new DispatchDTO
-                {
-                    Id = purchase.Dispatch.Id,
-                    Code = purchase.Dispatch.Code,
-                    Origin = purchase.Dispatch.Origin,
-                    Date = purchase.Dispatch.Date
-                } : null
-            };
-        }
+        
         public async Task<IEnumerable<ArticlePurchaseHistoryDTO>> GetPurchaseHistoryByArticleIdAsync(int articleId)
         {
             var records = await _purchaseRepository.GetByArticleIdAsync(articleId);
@@ -387,7 +326,8 @@ namespace PurchaseService.Business.Services
                         {
                             ArticleId = pa.ArticleId,
                             OldQuantity = oldQty,
-                            NewQuantity = pa.Quantity
+                            NewQuantity = pa.Quantity,
+                            NewUnitCost = pa.UnitCost
                         });
                     }
                 }
@@ -411,6 +351,75 @@ namespace PurchaseService.Business.Services
             }
 
             return null;
+        }
+
+
+
+
+
+
+        private async Task<IEnumerable<PurchaseDTO>> MapToDTOListAsync(IEnumerable<Purchase> purchases)
+        {
+            var purchaseDTOs = new List<PurchaseDTO>();
+            foreach (var purchase in purchases)
+            {
+                var purchaseDTO = await MapToDTOAsync(purchase);
+                purchaseDTOs.Add(purchaseDTO);
+            }
+            return purchaseDTOs;
+        }
+        private async Task<PurchaseDTO> MapToDTOAsync(Purchase purchase)
+        {
+            var supplierName = await _catalogServiceClient.GetSupplierNameAsync(purchase.SupplierId) ?? "N/A";
+
+            var warehouseName = null as string;
+            if (purchase.WarehouseId != null)
+            {
+                warehouseName = await _catalogServiceClient.GetWarehouseNameAsync(purchase.WarehouseId.Value) ?? "N/A";
+            }
+
+            var userName = await _userServiceClient.GetUserNameAsync(purchase.UserId) ?? "N/A";
+
+            var articleDTOs = new List<PurchaseArticleDTO>();
+            foreach (var article in purchase.Articles)
+            {
+                var articleName = await _catalogServiceClient.GetArticleNameAsync(article.ArticleId) ?? "N/A";
+                articleDTOs.Add(new PurchaseArticleDTO
+                {
+                    ArticleId = article.ArticleId,
+                    ArticleName = articleName,
+                    Quantity = article.Quantity,
+                    UnitCost = article.UnitCost
+                });
+            }
+
+            var hasInvoice = await _purchaseDocumentRepository.ExistsInvoiceAsync(purchase.Id, onlyActive: true);
+
+
+            return new PurchaseDTO
+            {
+                Id = purchase.Id,
+                Date = purchase.Date,
+                SupplierId = purchase.SupplierId,
+                SupplierName = supplierName,
+                WarehouseId = purchase.WarehouseId,
+                WarehouseName = warehouseName,
+                UserId = purchase.UserId,
+                UserName = userName,
+                HasInvoice = hasInvoice,
+                //HasDispatch = purchase.Dispatch != null,
+                //StockUpdated = purchase.StockUpdated,
+                Articles = articleDTOs,
+                IsImportation = purchase.IsImportation,
+                IsDelivered = purchase.IsDelivered,
+                Dispatch = purchase.Dispatch != null ? new DispatchDTO
+                {
+                    Id = purchase.Dispatch.Id,
+                    Code = purchase.Dispatch.Code,
+                    Origin = purchase.Dispatch.Origin,
+                    Date = purchase.Dispatch.Date
+                } : null
+            };
         }
 
 

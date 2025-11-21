@@ -5,6 +5,7 @@
         public int ArticleId { get; set; }
         public decimal OldQuantity { get; set; }
         public decimal NewQuantity { get; set; }
+        public decimal? NewUnitCost { get; set; }
     }
 
     public class StockConflictSaleRefDTO
