@@ -19,7 +19,7 @@ namespace AccountingService.Business.Services
             if (kind == LedgerDocumentKind.Receipt)
                 throw new InvalidOperationException("Receipts are local documents; do not ingest as external.");
 
-            var existing = await _uow.LedgerDocuments.GetByExternalRefAsync(externalRefId, kind);
+            var existing = await _uow.LedgerDocuments.GetByExternalRefAsync(externalRefId, kind, partyType);
             if (existing != null)
             {
                 // actualización mínima (si llegara a cambiar fecha/monto por corrección)

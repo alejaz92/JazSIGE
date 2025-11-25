@@ -10,9 +10,9 @@ namespace AccountingService.Infrastructure.Repositories
     {
         public LedgerDocumentRepository(AccountingDbContext ctx) : base(ctx) { }
 
-        public async Task<LedgerDocument?> GetByExternalRefAsync(int externalRefId, LedgerDocumentKind kind)
+        public async Task<LedgerDocument?> GetByExternalRefAsync(int externalRefId, LedgerDocumentKind kind, PartyType partyType)
         {
-            return await _db.FirstOrDefaultAsync(x => x.ExternalRefId == externalRefId && x.Kind == kind);
+            return await _db.FirstOrDefaultAsync(x => x.ExternalRefId == externalRefId && x.Kind == kind && x.PartyType == partyType);
         }
 
         public async Task<List<LedgerDocument>> GetPartyDocumentsAsync(PartyType partyType, int partyId)

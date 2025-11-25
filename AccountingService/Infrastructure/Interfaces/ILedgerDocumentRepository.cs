@@ -7,7 +7,7 @@ namespace JazSIGE.Accounting.Infrastructure.Interfaces
 {
     public interface ILedgerDocumentRepository : IGenericRepository<LedgerDocument>
     {
-        Task<LedgerDocument?> GetByExternalRefAsync(int externalRefId, LedgerDocumentKind kind);
+        Task<LedgerDocument?> GetByExternalRefAsync(int externalRefId, LedgerDocumentKind kind, PartyType partyType);
         Task<List<LedgerDocument>> GetPartyDocumentsAsync(PartyType partyType, int partyId);
 
         // Selectables (wizard recibo)
