@@ -1,5 +1,6 @@
 ﻿using PurchaseService.Business.Interfaces;
 using PurchaseService.Business.Models.Clients;
+using System.Diagnostics.Eventing.Reader;
 
 namespace PurchaseService.Business.Services
 {
@@ -36,6 +37,15 @@ namespace PurchaseService.Business.Services
             var resp = await client.PostAsJsonAsync(url, dto, ct);
             resp.EnsureSuccessStatusCode();
         }
+
+        // void document endpoint, receives  LedgerDocumentKind kind, int externalRefId, [FromQuery] PartyType partyType, CancellationToken ct
+        //public async Task VoidExternalAsync(AccountingExternalVoidDTO dto, CancellationToken ct = default)
+        //{
+        //    var client = CreateAuthorizedClient();
+        //    var url = $"{_accountingBaseUrl.TrimEnd('/')}/external-documents/void/{dto.Kind}/{dto.ExternalRefId}?partyType={dto.PartyType}";
+        //    var resp = await client.PutAsync(url, null, ct);
+        //    resp.EnsureSuccessStatusCode();
+        //}
 
     }
 }
