@@ -42,7 +42,7 @@ namespace PurchaseService.Business.Services
         public async Task VoidExternalAsync(string ledgerDocumentKind, int externalRefId, string partyType, CancellationToken ct = default)
         {
             var client = CreateAuthorizedClient();
-            var url = $"{_accountingBaseUrl.TrimEnd('/')}/external-documents/void/{ledgerDocumentKind}/{externalRefId}?partyType={partyType}";
+            var url = $"{_accountingBaseUrl.TrimEnd('/')}/external-documents/void/{ledgerDocumentKind}/{externalRefId}/{partyType}";
             var resp = await client.PutAsync(url, null, ct);
             resp.EnsureSuccessStatusCode();
         }
