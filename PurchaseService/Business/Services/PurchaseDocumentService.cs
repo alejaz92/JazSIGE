@@ -59,22 +59,28 @@ namespace PurchaseService.Business.Services
             var entity = PurchaseDocumentMapper.FromCreateDTO(dto, purchaseId);
             await _documentRepository.AddAsync(entity);
 
-            // 4) Hook a Cuentas Corrientes del Proveedor (pendiente)
-            // generar AccountingExternalUpsertDTO
-
-            var accountingPayload = new AccountingExternalUpsertDTO
+            // 4) Hook a Cuentas Corrientes del Proveedor
+            try
             {
-                PartyId = purchase.SupplierId,
-                Kind = dto.Type.ToString(),
-                ExternalRefId = entity.Id,
-                ExternalRefNumber = dto.Number,
-                DocumentDate = dto.Date,
-                Currency = dto.Currency,
-                FxRate = dto.FxRate,
-                AmountARS = dto.TotalAmount * dto.FxRate
-            };
-            
-            await _accountingServiceClient.UpsertExternalAsync(accountingPayload);
+                var accountingPayload = new AccountingExternalUpsertDTO
+                {
+                    PartyId = purchase.SupplierId,
+                    Kind = dto.Type.ToString(),
+                    ExternalRefId = entity.Id,
+                    ExternalRefNumber = dto.Number,
+                    DocumentDate = dto.Date,
+                    Currency = dto.Currency,
+                    FxRate = dto.FxRate,
+                    AmountARS = dto.TotalAmount * dto.FxRate
+                };
+
+                await _accountingServiceClient.UpsertExternalAsync(accountingPayload);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("Error notifying accounting.", ex);
+            }
+
 
 
             // 5) Retorno
