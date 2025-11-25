@@ -65,6 +65,7 @@ builder.Services.AddScoped<ICatalogServiceClient, CatalogServiceClient>();
 builder.Services.AddScoped<IStockServiceClient, StockServiceClient>();
 builder.Services.AddScoped<IPurchaseService, PurchaseService.Business.Services.PurchaseService>();
 builder.Services.AddScoped<IPurchaseDocumentService, PurchaseDocumentService>();
+builder.Services.AddScoped<IAccountingServiceClient, AccountingServiceClient>();
 
 //inyect configuration
 builder.Services.AddHttpClient();
