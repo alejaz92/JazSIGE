@@ -103,13 +103,10 @@ namespace PurchaseService.Business.Services
             if (string.IsNullOrWhiteSpace(dto.Reason))
                 throw new DomainException("CANCEL_REASON_REQUIRED", "Cancel reason is required.");
 
-            var purchase = await _purchaseRepository.GetByIdAsync(purchaseId);
-            if (purchase == null)
-                throw new DomainException("PURCHASE_NOT_FOUND", "Purchase not found.");
 
             var doc = await _documentRepository.GetByIdAsync(documentId);
             if (doc == null || doc.PurchaseId != purchaseId)
-                throw new DomainException("DOCUMENT_NOT_FOUND", "Document not found for this purchase.");
+                throw new DomainException("DOCUMENT_NOT_FOUND", "Document not found.");
 
             if (doc.IsCanceled)
                 return; // idempotente
