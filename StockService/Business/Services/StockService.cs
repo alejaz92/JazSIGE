@@ -308,6 +308,7 @@ namespace StockService.Business.Services
                 .Select(m => new ArticleCostsDTO
                 {
                     Date = m.Date,
+                    Quantity = m.Quantity,
                     AvgCost = m.AvgUnitCost ?? 0m,
                     LastCost = m.LastUnitCost ?? 0m
                 })
