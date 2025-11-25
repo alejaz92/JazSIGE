@@ -62,11 +62,11 @@ namespace AccountingService.Controllers
         }
 
         // endpoint to void external documents
-        [HttpPut("void/{kind}/{externalRefId}")]
+        [HttpPut("void/{kind}/{externalRefId}/{partyType}")]
         public async Task<ActionResult> VoidExternalDocument(
             LedgerDocumentKind kind,
             int externalRefId,
-            [FromQuery] PartyType partyType,
+            PartyType partyType,
             CancellationToken ct)
         {
             try
