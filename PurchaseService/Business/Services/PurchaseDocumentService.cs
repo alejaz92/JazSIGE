@@ -2,6 +2,7 @@
 using PurchaseService.Business.Interfaces;
 using PurchaseService.Business.Mapping;
 using PurchaseService.Business.Models;
+using PurchaseService.Business.Models.Clients;
 using PurchaseService.Infrastructure.Interfaces;
 using PurchaseService.Infrastructure.Models;
 
@@ -11,13 +12,16 @@ namespace PurchaseService.Business.Services
     {
         private readonly IPurchaseRepository _purchaseRepository;
         private readonly IPurchaseDocumentRepository _documentRepository;
+        private readonly IAccountingServiceClient _accountingServiceClient;
 
         public PurchaseDocumentService(
             IPurchaseRepository purchaseRepository,
-            IPurchaseDocumentRepository documentRepository)
+            IPurchaseDocumentRepository documentRepository,
+            IAccountingServiceClient accountingServiceClient)
         {
             _purchaseRepository = purchaseRepository;
             _documentRepository = documentRepository;
+            _accountingServiceClient = accountingServiceClient;
         }
 
         public async Task<PurchaseDocumentDTO> CreateAsync(int purchaseId, PurchaseDocumentCreateDTO dto, int currentUserId)
@@ -56,12 +60,22 @@ namespace PurchaseService.Business.Services
             await _documentRepository.AddAsync(entity);
 
             // 4) Hook a Cuentas Corrientes del Proveedor (pendiente)
-            // TODO: Llamar al SupplierAccountServiceClient.CreateSupplierLedgerDocumentAsync(...)
-            //       Payload esperado:
-            //       - SupplierId: purchase.SupplierId
-            //       - PurchaseId: purchase.Id
-            //       - Type/Number/Date/Currency/FxRate/TotalAmount/FileUrl
-            //       - CreatedBy: currentUserId
+            // generar AccountingExternalUpsertDTO
+
+            var accountingPayload = new AccountingExternalUpsertDTO
+            {
+                PartyId = purchase.SupplierId,
+                Kind = dto.Type.ToString(),
+                ExternalRefId = entity.Id,
+                ExternalRefNumber = dto.Number,
+                DocumentDate = dto.Date,
+                Currency = dto.Currency,
+                FxRate = dto.FxRate,
+                AmountARS = dto.TotalAmount * dto.FxRate
+            };
+            
+            await _accountingServiceClient.UpsertExternalAsync(accountingPayload);
+
 
             // 5) Retorno
             return PurchaseDocumentMapper.ToDTO(entity);
