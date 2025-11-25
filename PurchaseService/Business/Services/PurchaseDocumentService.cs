@@ -118,13 +118,14 @@ namespace PurchaseService.Business.Services
             await _documentRepository.UpdateAsync(doc);
 
             // Hook de cancelación (pendiente)
-            // TODO: Llamar al SupplierAccountServiceClient.CancelSupplierLedgerDocumentAsync(...)
-            //       Payload esperado:
-            //       - SupplierId: purchase.SupplierId
-            //       - PurchaseId: purchase.Id
-            //       - DocumentId: doc.Id
-            //       - Type/Number/Reason
-            //       - CanceledBy: currentUserId
+            try
+            {
+                await _accountingServiceClient.VoidExternalAsync(doc.Type.ToString(), doc.Id, "supplier");
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("Error notifying accounting of cancellation.", ex);
+            }
         }
     }
 }

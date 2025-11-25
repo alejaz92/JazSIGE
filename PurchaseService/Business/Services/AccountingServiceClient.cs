@@ -39,13 +39,13 @@ namespace PurchaseService.Business.Services
         }
 
         // void document endpoint, receives  LedgerDocumentKind kind, int externalRefId, [FromQuery] PartyType partyType, CancellationToken ct
-        //public async Task VoidExternalAsync(AccountingExternalVoidDTO dto, CancellationToken ct = default)
-        //{
-        //    var client = CreateAuthorizedClient();
-        //    var url = $"{_accountingBaseUrl.TrimEnd('/')}/external-documents/void/{dto.Kind}/{dto.ExternalRefId}?partyType={dto.PartyType}";
-        //    var resp = await client.PutAsync(url, null, ct);
-        //    resp.EnsureSuccessStatusCode();
-        //}
+        public async Task VoidExternalAsync(string ledgerDocumentKind, int externalRefId, string partyType, CancellationToken ct = default)
+        {
+            var client = CreateAuthorizedClient();
+            var url = $"{_accountingBaseUrl.TrimEnd('/')}/external-documents/void/{ledgerDocumentKind}/{externalRefId}?partyType={partyType}";
+            var resp = await client.PutAsync(url, null, ct);
+            resp.EnsureSuccessStatusCode();
+        }
 
     }
 }
