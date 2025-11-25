@@ -60,5 +60,33 @@ namespace AccountingService.Controllers
                 return StatusCode(500, new { message = "Unexpected error while ingesting document." });
             }
         }
+
+        // endpoint to void external documents
+        [HttpPut("void/{kind}/{externalRefId}")]
+        public async Task<ActionResult> VoidExternalDocument(
+            LedgerDocumentKind kind,
+            int externalRefId,
+            [FromQuery] PartyType partyType,
+            CancellationToken ct)
+        {
+            try
+            {
+                if (kind == LedgerDocumentKind.Receipt)
+                    return BadRequest("Receipts are local documents; cannot be voided here.");
+                await _ingestionService.CancelFiscalDocumentAsync(partyType, externalRefId, kind);
+                
+                return Ok();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error voiding external document");
+                return StatusCode(500, new { message = "Unexpected error while voiding document." });
+            }
+        }
+
     }
 }

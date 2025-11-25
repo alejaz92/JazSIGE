@@ -57,5 +57,19 @@ namespace AccountingService.Business.Services
             await _uow.SaveChangesAsync();
             return doc.Id;
         }
+
+        
+        public async Task CancelFiscalDocumentAsync(
+            PartyType partyType, int externalRefId, LedgerDocumentKind kind)
+        {
+            var existing = await _uow.LedgerDocuments.GetByExternalRefAsync(externalRefId, kind, partyType);
+            if (existing == null)
+                throw new InvalidOperationException("No se encontró el documento fiscal para cancelar.");
+            existing.Status = DocumentStatus.Voided;
+            existing.PendingARS = 0m; // al cancelar, no queda pendiente
+            existing.UpdatedAt = DateTime.UtcNow;
+            _uow.LedgerDocuments.Update(existing);
+            await _uow.SaveChangesAsync();
+        }
     }
 }
