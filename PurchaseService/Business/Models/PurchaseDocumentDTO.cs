@@ -1,4 +1,5 @@
-﻿using PurchaseService.Infrastructure.Models;
+﻿using PurchaseService.Business.Models.Clients;
+using PurchaseService.Infrastructure.Models;
 
 namespace PurchaseService.Business.Models
 {
@@ -23,5 +24,7 @@ namespace PurchaseService.Business.Models
 
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
+
+        public AllocationAdviceDTO? AllocationAdvice { get; set; }
     }
 }

@@ -47,5 +47,23 @@ namespace PurchaseService.Business.Services
             resp.EnsureSuccessStatusCode();
         }
 
+        public async Task<IReadOnlyList<ReceiptCreditDTO>> GetReceiptCreditsAsync(int partyId, CancellationToken ct = default)
+        {
+            var client = CreateAuthorizedClient();
+            var url = $"{_accountingBaseUrl.TrimEnd('/')}/supplier/{partyId}/receipt-credits";
+            var resp = await client.GetAsync(url, ct);
+            resp.EnsureSuccessStatusCode();
+            var data = await resp.Content.ReadFromJsonAsync<List<ReceiptCreditDTO>>(cancellationToken: ct);
+            return data ?? new List<ReceiptCreditDTO>();
+        }
+
+        public async Task CoverInvoiceWithReceiptsAsync(CoverInvoiceRequest dto, CancellationToken ct = default)
+        {
+            var client = CreateAuthorizedClient();
+            var url = $"{_accountingBaseUrl.TrimEnd('/')}/Allocations/cover-invoice";
+            var resp = await client.PostAsJsonAsync(url, dto, ct);
+            resp.EnsureSuccessStatusCode(); // 204 NoContent esperado
+        }
+
     }
 }

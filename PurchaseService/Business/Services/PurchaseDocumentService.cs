@@ -84,7 +84,9 @@ namespace PurchaseService.Business.Services
 
 
             // 5) Retorno
-            return PurchaseDocumentMapper.ToDTO(entity);
+            var document = PurchaseDocumentMapper.ToDTO(entity);
+            document.AllocationAdvice = await GetAllocationAdviceAsync(purchaseId, document, CancellationToken.None);
+            return document;
         }
 
         public async Task<IReadOnlyList<PurchaseDocumentDTO>> GetByPurchaseIdAsync(int purchaseId, bool onlyActive = false)
@@ -123,6 +125,31 @@ namespace PurchaseService.Business.Services
             {
                 throw new InvalidOperationException("Error notifying accounting of cancellation.", ex);
             }
+        }
+
+        private async Task<AllocationAdviceDTO?> GetAllocationAdviceAsync(int purchaseId, PurchaseDocumentDTO document, CancellationToken ct)
+        {
+            var purchase = await _purchaseRepository.GetByIdAsync(purchaseId);
+            if (purchase == null)
+                return null;
+
+            // Traer recibos con saldo (Accounting)
+            var receipts = await _accountingServiceClient.GetReceiptCreditsAsync(purchase.SupplierId, ct);
+            var totalCredit = receipts.Sum(r => r.PendingARS);
+
+
+            // Armado
+            // Si el total de recibos no cubre la factura, no ofrecemos imputación
+            if (totalCredit < document.TotalAmount)
+                return null;
+            return new AllocationAdviceDTO
+            {
+                CanCoverWithReceipts = true,
+                InvoiceExternalRefId = document.Id,     // el ExternalRefId que Accounting guardó para la factura
+                InvoicePendingARS = document.TotalAmount,
+                Candidates = receipts.ToList()
+            };
+
         }
     }
 }
