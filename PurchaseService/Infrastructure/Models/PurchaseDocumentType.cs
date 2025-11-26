@@ -3,7 +3,7 @@
     public enum PurchaseDocumentType
     {
         Invoice = 1,
-        CreditNote = 2,
-        DebitNote = 3
+        DebitNote = 2,
+        CreditNote = 3
     }
 }
