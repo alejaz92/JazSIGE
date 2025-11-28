@@ -107,16 +107,16 @@ public class PurchaseDocumentsController : ControllerBase
         }
     }
 
-    [HttpPost("{purchaseId}/invoice/{invoiceExternalRefId}/cover")]
+    [HttpPost("/{documentId}/cover")]
     public async Task<IActionResult> CoverInvoice(
             int purchaseId,
-            int invoiceExternalRefId,
+            int documentId,
             [FromBody] CoverInvoiceRequest request,
             CancellationToken ct = default)
     {
         // asegurar coherencia si el front no mandó el id en el body
         if (request.InvoiceExternalRefId == 0)
-            request.InvoiceExternalRefId = invoiceExternalRefId;
+            request.InvoiceExternalRefId = documentId;
 
         await _service.CoverInvoiceWithReceiptsAsync(purchaseId, request, ct);
         return NoContent(); // 204
