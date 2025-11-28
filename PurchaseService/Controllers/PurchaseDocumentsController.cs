@@ -107,18 +107,39 @@ public class PurchaseDocumentsController : ControllerBase
         }
     }
 
-    [HttpPost("/{documentId}/cover")]
-    public async Task<IActionResult> CoverInvoice(
-            int purchaseId,
-            int documentId,
-            [FromBody] CoverInvoiceRequest request,
-            CancellationToken ct = default)
-    {
-        // asegurar coherencia si el front no mandó el id en el body
-        if (request.InvoiceExternalRefId == 0)
-            request.InvoiceExternalRefId = documentId;
 
-        await _service.CoverInvoiceWithReceiptsAsync(purchaseId, request, ct);
-        return NoContent(); // 204
+    // endpoint to cover using CoverInvoiceWithReceiptsAsync from _service
+
+    // POST api/{purchaseId}/documents/cover-with-receipts
+    [HttpPost("cover")]
+    public async Task<IActionResult> CoverInvoiceWithReceipts(
+        [FromRoute] int purchaseId,
+        [FromBody] CoverInvoiceRequest request,
+        CancellationToken ct = default)
+    {
+        if (request == null)
+            return BadRequest(new { error = "Request body is required" });
+
+        try
+        {
+            await _service.CoverInvoiceWithReceiptsAsync(purchaseId, request, ct);
+            return Ok();
+        }
+        catch (DomainException ex) when (ex.Code == "PURCHASE_NOT_FOUND")
+        {
+            return NotFound(new { error = ex.Message, code = ex.Code });
+        }
+        catch (DomainException ex)
+        {
+            // Reglas de negocio distintas devuelven 400
+            return BadRequest(new { error = ex.Message, code = ex.Code });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
+        }
     }
+
+
+
 }
