@@ -151,5 +151,20 @@ namespace PurchaseService.Business.Services
             };
 
         }
+
+        public async Task CoverInvoiceWithReceiptsAsync(int purchaseId, CoverInvoiceRequest request, CancellationToken ct = default)
+        {
+            var purchase = await _purchaseRepository.GetByIdAsync(purchaseId);
+            if (purchase is null) throw new KeyNotFoundException($"Purchase {purchaseId} not found.");
+
+
+
+            if (request.PartyId != purchase.SupplierId)
+                throw new InvalidOperationException("Cover request party does not match purchase supplier.");
+
+            request.PartyType = "supplier";
+
+            await _accountingServiceClient.CoverInvoiceWithReceiptsAsync(request, ct);
+        }
     }
 }

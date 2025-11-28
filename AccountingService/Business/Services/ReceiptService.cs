@@ -104,7 +104,7 @@ namespace AccountingService.Business.Services
                 throw new InvalidOperationException("All selected documents must have positive pending balance.");
 
             // 1) Crear Receipt y obtener Id
-            var receiptNumber = await GenerateNextReceiptNumberAsync();
+            var receiptNumber = await GenerateNextReceiptNumberAsync(dto.PartyType);
 
             var receipt = new Receipt
             {
@@ -324,9 +324,12 @@ namespace AccountingService.Business.Services
         /// POS por defecto = 0001 (podés reemplazarlo por un valor de Company/Config).
         /// Maneja concurrencia a nivel aplicación; idealmente acompañar con índice único en DB.
         /// </summary>
-        private async Task<string> GenerateNextReceiptNumberAsync()
+        private async Task<string> GenerateNextReceiptNumberAsync(PartyType partyType)
         {
-            const int defaultPos = 1; // TODO: traer de configuración/empresa si corresponde
+            int defaultPos = 1; // TODO: traer de configuración/empresa si corresponde. por ahora 1 para clientes
+            if (partyType == PartyType.Supplier)
+                defaultPos = 2; // Ejemplo: POS diferente para proveedores
+
             string pos = defaultPos.ToString("0000");
 
             // Buscar el último ledger de tipo Recibo con ese POS y número formateado

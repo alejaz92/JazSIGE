@@ -1,6 +1,7 @@
 ﻿using PurchaseService.Business.Exceptions;
 using PurchaseService.Business.Interfaces;
 using PurchaseService.Business.Models;
+using PurchaseService.Business.Models.Clients;
 using PurchaseService.Infrastructure.Interfaces;
 using PurchaseService.Infrastructure.Models;
 using PurchaseService.Infrastructure.Repositories;
@@ -359,6 +360,7 @@ namespace PurchaseService.Business.Services
             return null;
         }
 
+        
 
 
 

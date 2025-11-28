@@ -2,6 +2,7 @@
 using PurchaseService.Business.Interfaces;
 using PurchaseService.Business.Models;
 using PurchaseService.Business.Exceptions;
+using PurchaseService.Business.Models.Clients;
 
 namespace PurchaseService.Controllers;
 
@@ -104,5 +105,20 @@ public class PurchaseDocumentsController : ControllerBase
         {
             return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
         }
+    }
+
+    [HttpPost("{purchaseId}/invoice/{invoiceExternalRefId}/cover")]
+    public async Task<IActionResult> CoverInvoice(
+            int purchaseId,
+            int invoiceExternalRefId,
+            [FromBody] CoverInvoiceRequest request,
+            CancellationToken ct = default)
+    {
+        // asegurar coherencia si el front no mandó el id en el body
+        if (request.InvoiceExternalRefId == 0)
+            request.InvoiceExternalRefId = invoiceExternalRefId;
+
+        await _service.CoverInvoiceWithReceiptsAsync(purchaseId, request, ct);
+        return NoContent(); // 204
     }
 }
