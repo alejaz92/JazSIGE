@@ -110,7 +110,7 @@ namespace PurchaseService.Business.Services
             return dispatch.Id;
         }
 
-        public async Task<int> CreateAsync(PurchaseCreateDTO dto, int userId)
+        public async Task<PurchaseDocumentDTO?> CreateAsync(PurchaseCreateDTO dto, int userId)
         {
             // --- External validations (keep existing rules) ---
             _ = await _catalogServiceClient.GetSupplierNameAsync(dto.SupplierId)
@@ -172,15 +172,19 @@ namespace PurchaseService.Business.Services
                     dispatchId = dispatch.Id;
                 }
 
+                var purchaseDocument = null as PurchaseDocumentDTO;
+
                 // 3) Optional: create Document via service (same DbContext/transaction)
                 if (dto.Document is not null)
                 {
-                    await _purchaseDocumentService.CreateAsync(
+                    purchaseDocument = await _purchaseDocumentService.CreateAsync(
                         purchase.Id,
                         dto.Document,
                         userId
                     );
                 }
+
+
 
                 // 4) Stock impact (now or pending)
                 if (dto.RegisterStockNow)
@@ -216,7 +220,7 @@ namespace PurchaseService.Business.Services
                 }
 
                 await tx.CommitAsync();
-                return purchase.Id;
+                return purchaseDocument;
             }
             catch
             {

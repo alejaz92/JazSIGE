@@ -46,6 +46,32 @@ public class PurchaseController : ControllerBase
         return Ok(purchase);
     }
 
+    //[HttpPost]
+    //public async Task<IActionResult> Create([FromBody] PurchaseCreateDTO dto)
+    //{
+    //    var userIdHeader = HttpContext.Request.Headers["X-UserId"].ToString();
+    //    if (!int.TryParse(userIdHeader, out int userId))
+    //        return Unauthorized(new { error = "Usuario no autenticado correctamente" });
+
+    //    try
+    //    {
+    //        var purchaseDocumentDTO = await _purchaseService.CreateAsync(dto, userId);
+    //        return CreatedAtAction(purchaseDocumentDTO);
+    //    }
+    //    catch (PartialSuccessException ex)
+    //    {
+    //        return StatusCode(500, new { error = ex.Message });
+    //    }
+    //    catch (ArgumentException ex)
+    //    {
+    //        return BadRequest(new { error = ex.Message });
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
+    //    }
+    //}
+
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] PurchaseCreateDTO dto)
     {
@@ -55,8 +81,10 @@ public class PurchaseController : ControllerBase
 
         try
         {
-            var id = await _purchaseService.CreateAsync(dto, userId);
-            return CreatedAtAction(nameof(GetById), new { id }, new { id });
+            var purchaseDocumentDTO = await _purchaseService.CreateAsync(dto, userId);
+            // Devolver 200 OK con el DTO (puede ser null). Si quieres 201 cuando se crea realmente,
+            // cambiar a Created(...) sólo cuando purchaseDocumentDTO != null.
+            return Ok(purchaseDocumentDTO);
         }
         catch (PartialSuccessException ex)
         {
@@ -71,6 +99,7 @@ public class PurchaseController : ControllerBase
             return StatusCode(500, new { error = "Unexpected error", detail = ex.Message });
         }
     }
+
 
     [HttpGet("pending-stock")]
     [Authorize(Roles = "Admin")]
