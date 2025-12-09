@@ -39,7 +39,7 @@ namespace PurchaseService.Business.Services
             // 2) Reglas por tipo
             if (dto.Type == PurchaseDocumentType.Invoice)
             {
-                var invoiceExists = await _documentRepository.ExistsInvoiceAsync(purchaseId, onlyActive: false);
+                var invoiceExists = await _documentRepository.ExistsInvoiceAsync(purchaseId, onlyActive: true);
                 if (invoiceExists)
                     throw new DomainException("INVOICE_ALREADY_EXISTS", "An invoice already exists for this purchase.");
             }
