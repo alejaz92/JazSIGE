@@ -87,16 +87,24 @@ namespace AuthService.Business.Services
         public async Task<List<UserDTO>> GetAllUsersAsync()
         {
             var users = await _userRepository.GetAllUsersAsync();
-            return users.Select(user => new UserDTO
+            var userDTOs = new List<UserDTO>();
+            foreach (var user in users)
             {
-                Id = user.Id,
-                Username = user.UserName,
-                Email = user.Email,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                IsActive = user.IsActive,
-                SalesCommission = user.SalesCommission
-            }).ToList();
+                var roles = await _userRepository.GetUserRolesAsync(user);
+                var isAdmin = roles.Contains("Admin");
+                userDTOs.Add(new UserDTO
+                {
+                    Id = user.Id,
+                    Username = user.UserName,
+                    Email = user.Email,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    IsActive = user.IsActive,
+                    SalesCommission = user.SalesCommission,
+                    IsAdmin = isAdmin
+                });
+            }
+            return userDTOs;
         }
 
         public async Task<UserDTO?> GetUserByIdAsync(int userId)
@@ -104,6 +112,10 @@ namespace AuthService.Business.Services
             var user = await _userRepository.GetUserByIdAsync(userId);
             if (user is null)
                 return null;
+            // get roles
+            var roles = await _userRepository.GetUserRolesAsync(user);
+            var isAdmin = roles.Contains("Admin");
+
             return new UserDTO
             {
                 Id = user.Id,
@@ -112,7 +124,8 @@ namespace AuthService.Business.Services
                 FirstName = user.FirstName,
                 LastName = user.LastName,
                 IsActive = user.IsActive,
-                SalesCommission = user.SalesCommission
+                SalesCommission = user.SalesCommission,
+                IsAdmin = isAdmin
             };
         }
 
