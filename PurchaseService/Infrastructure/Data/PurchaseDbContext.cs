@@ -69,10 +69,11 @@ namespace PurchaseService.Infrastructure.Data
 
             // ÚNICA FACTURA por compra (índice único filtrado por Type = Invoice)
             // Nota: el filtro usa el valor entero del enum (Invoice = 1).
+
             modelBuilder.Entity<PurchaseDocument>()
-                .HasIndex(d => d.PurchaseId)
+                .HasIndex(d => new { d.PurchaseId })
                 .IsUnique()
-                .HasFilter("[Type] = 1");
+                .HasFilter($"[Type] = {(int)PurchaseDocumentType.Invoice} AND [IsCanceled] = 0");
 
         }
     }
