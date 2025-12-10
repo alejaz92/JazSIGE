@@ -91,7 +91,10 @@ namespace AuthService.Business.Services
             foreach (var user in users)
             {
                 var roles = await _userRepository.GetUserRolesAsync(user);
-                var isAdmin = roles.Contains("Admin");
+                var role = "Seller";
+                if (roles.Contains("Admin"))
+                    role = "Admin";
+                
                 userDTOs.Add(new UserDTO
                 {
                     Id = user.Id,
@@ -101,7 +104,7 @@ namespace AuthService.Business.Services
                     LastName = user.LastName,
                     IsActive = user.IsActive,
                     SalesCommission = user.SalesCommission,
-                    IsAdmin = isAdmin
+                    Role = role
                 });
             }
             return userDTOs;
@@ -114,7 +117,9 @@ namespace AuthService.Business.Services
                 return null;
             // get roles
             var roles = await _userRepository.GetUserRolesAsync(user);
-            var isAdmin = roles.Contains("Admin");
+            var role = "Seller";
+            if (roles.Contains("Admin"))
+                role = "Admin";
 
             return new UserDTO
             {
@@ -125,7 +130,7 @@ namespace AuthService.Business.Services
                 LastName = user.LastName,
                 IsActive = user.IsActive,
                 SalesCommission = user.SalesCommission,
-                IsAdmin = isAdmin
+                Role = role
             };
         }
 
