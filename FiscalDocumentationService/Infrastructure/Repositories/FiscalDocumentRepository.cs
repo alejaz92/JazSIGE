@@ -16,7 +16,7 @@ namespace FiscalDocumentationService.Infrastructure.Repositories
         public async Task<FiscalDocument> CreateAsync(FiscalDocument document)
         {
             _context.FiscalDocuments.Add(document);
-            await _context.SaveChangesAsync();
+            
             return document;
         }
         public async Task<FiscalDocument?> GetByIdAsync(int id) => await _context.FiscalDocuments

@@ -25,6 +25,14 @@ namespace CompanyService.Controllers
             return Ok(companyInfo);
         }
 
+        [HttpGet("fiscal-settings")]
+        public async Task<ActionResult<CompanyFiscalSettingsDTO>> GetFiscalSettings()
+        {
+            var settings = await _service.GetFiscalSettingsAsync();
+            if (settings == null) return NotFound("Company info not found");
+            return Ok(settings);
+        }
+
         [HttpPut]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update([FromBody] CompanyInfoUpdateDTO dto)

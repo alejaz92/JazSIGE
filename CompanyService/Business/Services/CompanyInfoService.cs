@@ -89,5 +89,20 @@ namespace CompanyService.Business.Services
             await _repository.SaveChangesAsync();
         }
 
+        public async Task<CompanyFiscalSettingsDTO?> GetFiscalSettingsAsync()
+        {
+            var company = await _repository.GetAsync();
+            if (company == null) return null;
+
+            return new CompanyFiscalSettingsDTO
+            {
+                TaxId = company.TaxId,
+                ArcaEnabled = company.ArcaEnabled,
+                ArcaEnvironment = company.ArcaEnvironment,
+                ArcaPointOfSale = company.ArcaPointOfSale,
+                ArcaInvoiceTypesEnabled = company.ArcaInvoiceTypesEnabled
+            };
+        }
+
     }
 }

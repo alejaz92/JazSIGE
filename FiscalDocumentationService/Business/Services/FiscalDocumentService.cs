@@ -22,10 +22,7 @@ namespace FiscalDocumentationService.Business.Services
 
         public async Task<FiscalDocumentDTO> CreateAsync(FiscalDocumentCreateDTO dto)
         {
-            var invoiceNumber = GenerateInvoiceNumber();
-
-            // define type (invoice, credit note, debit note) based on dto.InvoiceType if 
-
+            // Define type (invoice, credit note, debit note) based on dto.InvoiceType
             var type = dto.InvoiceType switch
             {
                 1 => FiscalDocumentType.Invoice,       // A
@@ -42,6 +39,27 @@ namespace FiscalDocumentationService.Business.Services
                 53 => FiscalDocumentType.CreditNote,   // M
                 _ => throw new ArgumentException("Invalid Invoice Type")
             };
+
+            // 1) Idempotency (only for INVOICES)
+            // A SalesOrder should not generate multiple invoices by accident.
+            // Credit/Debit notes are allowed to be multiple, so we don't block those here.
+            if (type == FiscalDocumentType.Invoice)
+            {
+                var existingInvoices = await _unitOfWork.FiscalDocumentRepository
+                    .GetBySaleIdIdAsync(dto.SalesOrderId, FiscalDocumentType.Invoice);
+
+                var existing = existingInvoices
+                    .OrderByDescending(d => d.Date)
+                    .FirstOrDefault();
+
+                if (existing != null)
+                    return MapToDTO(existing);
+            }
+
+            // NOTE: For now we keep the dummy invoice number generation.
+            // Later, when we integrate WSFE, this will be replaced by:
+            // GetLastAuthorized(PointOfSale, InvoiceType) + 1
+            var invoiceNumber = GenerateInvoiceNumber();
 
             var document = new FiscalDocument
             {
@@ -74,33 +92,41 @@ namespace FiscalDocumentationService.Business.Services
                     VATId = i.VatId,
                     VATBase = i.VatBase,
                     VATAmount = i.VatAmount,
-                    DispatchCode = i.DispatchCode, // Optional dispatch code
+                    DispatchCode = i.DispatchCode,
                     Warranty = i.Warranty
                 }).ToList()
             };
 
-            // Armar solicitud ARCA
+            // Build ARCA request (still dummy client, but structure matters)
             var arcaRequest = BuildArcaRequest(document);
 
-            // Llamar cliente dummy ARCA
+            // Call dummy ARCA client
             var arcaResponse = await _arcaClient.AuthorizeAsync(arcaRequest);
 
-            // Aplicar CAE
+            // Apply CAE
             document.CAE = arcaResponse.cae;
             document.CAEExpiration = DateTime.ParseExact(arcaResponse.caeExpirationDate, "yyyyMMdd", null);
             document.DocumentNumber = $"{document.PointOfSale:0000}-{document.InvoiceFrom:00000000}";
-
-            //var qrUrl = GenerateAfipQrUrl(document, dto);
-         
-
 
             await _unitOfWork.FiscalDocumentRepository.CreateAsync(document);
             await _unitOfWork.SaveChangesAsync();
 
             return MapToDTO(document);
         }
+
         private ArcaRequestDTO BuildArcaRequest(FiscalDocument doc)
         {
+            // 2) VAT must be grouped by aliquot (VATId) - not one entry per item
+            var vatGrouped = doc.Items
+                .GroupBy(i => i.VATId)
+                .Select(g => new ArcaVAT
+                {
+                    id = g.Key,
+                    baseAmount = g.Sum(x => x.VATBase),
+                    amount = g.Sum(x => x.VATAmount)
+                })
+                .ToList();
+
             return new ArcaRequestDTO
             {
                 header = new ArcaHeader
@@ -113,7 +139,7 @@ namespace FiscalDocumentationService.Business.Services
                 {
                     new ArcaDetail
                     {
-                        concept = 1,
+                        concept = 1, // Products (for this company)
                         buyerDocumentType = doc.BuyerDocumentType,
                         buyerDocumentNumber = doc.BuyerDocumentNumber,
                         invoiceFrom = doc.InvoiceFrom,
@@ -125,30 +151,30 @@ namespace FiscalDocumentationService.Business.Services
                         nonTaxableAmount = doc.NonTaxableAmount,
                         exemptAmount = doc.ExemptAmount,
                         otherTaxesAmount = doc.OtherTaxesAmount,
-                        vat = doc.Items.Select(i => new ArcaVAT
-                        {
-                            id = i.VATId,
-                            baseAmount = i.VATBase,
-                            amount = i.VATAmount
-                        }).ToList()
+                        vat = vatGrouped
                     }
                 }
             };
         }
+
         private long GenerateInvoiceNumber()
         {
-            return DateTime.UtcNow.Ticks % 100_000_000;
+            // Dummy only. Will be replaced by WSFE next-number logic.
+            return DateTime.UtcNow.Ticks % 100000000;
         }
+
         public async Task<FiscalDocumentDTO?> GetByIdAsync(int id)
         {
             var doc = await _unitOfWork.FiscalDocumentRepository.GetByIdAsync(id);
             return doc == null ? null : MapToDTO(doc);
         }
+
         public async Task<FiscalDocumentDTO?> GetBySalesOrderIdAsync(int salesOrderId)
         {
             var doc = await _unitOfWork.FiscalDocumentRepository.GetBySalesOrderIdAsync(salesOrderId);
             return doc == null ? null : MapToDTO(doc);
         }
+
         public async Task<IReadOnlyList<FiscalDocumentDTO>> GetCreditNotesBySaleIdAsync(int saleId)
         {
             var docs = await _unitOfWork.FiscalDocumentRepository
@@ -156,6 +182,7 @@ namespace FiscalDocumentationService.Business.Services
 
             return docs.Select(MapToDTO).ToList();
         }
+
         public async Task<IReadOnlyList<FiscalDocumentDTO>> GetDebitNotesBySaleIdAsync(int saleId)
         {
             var docs = await _unitOfWork.FiscalDocumentRepository
@@ -164,10 +191,9 @@ namespace FiscalDocumentationService.Business.Services
             return docs.Select(MapToDTO).ToList();
         }
 
-
         private FiscalDocumentDTO MapToDTO(FiscalDocument doc)
         {
-            return new FiscalDocumentDTO
+            var dto = new FiscalDocumentDTO
             {
                 Id = doc.Id,
                 DocumentNumber = doc.DocumentNumber,
@@ -188,12 +214,6 @@ namespace FiscalDocumentationService.Business.Services
                 Currency = doc.Currency,
                 ExchangeRate = doc.ExchangeRate,
                 IssuerTaxId = doc.IssuerTaxId,
-                ArcaQrUrl = GenerateAfipQrUrl(doc, new FiscalDocumentCreateDTO
-                {
-                    IssuerTaxId = doc.IssuerTaxId,
-                    Currency = doc.Currency,
-                    ExchangeRate = doc.ExchangeRate
-                }),
                 Items = doc.Items.Select(i => new FiscalDocumentItemDTO
                 {
                     Sku = i.Sku,
@@ -203,37 +223,45 @@ namespace FiscalDocumentationService.Business.Services
                     VatId = i.VATId,
                     VatBase = i.VATBase,
                     VatAmount = i.VATAmount,
-                    DispatchCode = i.DispatchCode, // Optional dispatch code
+                    DispatchCode = i.DispatchCode,
                     Warranty = i.Warranty
                 }).ToList()
             };
+
+            dto.ArcaQrUrl = GenerateAfipQrUrl(doc, dto);
+
+            return dto;
         }
-        private string GenerateAfipQrUrl(FiscalDocument doc, FiscalDocumentCreateDTO dto)
+
+        private string GenerateAfipQrUrl(FiscalDocument doc, FiscalDocumentDTO dto)
         {
-            var qrData = new AfipQrData
+            var qrData = new QrData
             {
-                fecha = doc.Date.ToString("yyyyMMdd"),
-                cuit = dto.IssuerTaxId,
+                ver = 1,
+                fecha = doc.Date.ToString("yyyy-MM-dd"),
+                cuit = long.Parse(doc.IssuerTaxId),
                 ptoVta = doc.PointOfSale,
                 tipoCmp = doc.InvoiceType,
                 nroCmp = doc.InvoiceFrom,
                 importe = doc.TotalAmount,
-                moneda = dto.Currency,
-                ctz = dto.ExchangeRate,
+                moneda = doc.Currency,
+                ctz = doc.ExchangeRate,
                 tipoDocRec = doc.BuyerDocumentType,
                 nroDocRec = doc.BuyerDocumentNumber,
+                tipoCodAut = "E",
                 codAut = doc.CAE
             };
 
-            string json = JsonSerializer.Serialize(qrData);
-            string base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
+            var json = JsonSerializer.Serialize(qrData);
+            var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
             return $"https://www.afip.gob.ar/fe/qr/?p={base64}";
         }
-        private class AfipQrData
+
+        private class QrData
         {
-            public int ver { get; set; } = 1;
-            public string fecha { get; set; } = ""; // yyyyMMdd
-            public string cuit { get; set; }
+            public int ver { get; set; }
+            public string fecha { get; set; } = "";
+            public long cuit { get; set; }
             public int ptoVta { get; set; }
             public int tipoCmp { get; set; }
             public long nroCmp { get; set; }
@@ -245,8 +273,5 @@ namespace FiscalDocumentationService.Business.Services
             public string tipoCodAut { get; set; } = "E";
             public string codAut { get; set; } = "";
         }
-
-        
-
     }
 }
