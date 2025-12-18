@@ -2,7 +2,7 @@
 {
     public class FiscalDocumentCreateDTO
     {
-        public int PointOfSale { get; set; }
+
         public int InvoiceType { get; set; }
 
         public int BuyerDocumentType { get; set; }
@@ -21,7 +21,6 @@
 
         public string Currency { get; set; } = "PES"; // Default currency
         public decimal ExchangeRate { get; set; } = 1; // Default exchange rate
-        public string IssuerTaxId { get; set; }
     }
     public class FiscalDocumentItemDTO
     {

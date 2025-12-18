@@ -35,7 +35,26 @@
         public decimal ExchangeRate { get; set; } = 1; // Default exchange rate
         public string IssuerTaxId { get; set; }
 
-        
 
+
+        // testing check
+        public string EmissionProvider { get; set; } = "Dummy";
+        public string ArcaEnvironment { get; set; } = "Homologation";
+
+
+        // --- ARCA audit (minimum) ---
+        public string ArcaStatus { get; set; } = "NotSent";
+        public DateTime? ArcaLastInteractionAt { get; set; }
+
+        // correlation / trace
+        public Guid ArcaCorrelationId { get; set; } = Guid.NewGuid();
+
+        // store provider payloads (safe: no secrets)
+        public string? ArcaErrorsJson { get; set; } 
+        public string? ArcaObservationsJson { get; set; }
+
+        // Optional but very useful for debbuging
+        public string? ArcaRequestJson { get; set; }
+        public string? ArcaResponseJson { get; set; }
     }
 }

@@ -1,15 +1,17 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using System.Security.Claims;
+using FiscalDocumentationService.Business.Interfaces;
+using FiscalDocumentationService.Business.Interfaces.Clients;
+using FiscalDocumentationService.Business.Middlewares;
+using FiscalDocumentationService.Business.Options;
+using FiscalDocumentationService.Business.Services;
+using FiscalDocumentationService.Business.Services.Clients;
 using FiscalDocumentationService.Infrastructure.Data;
 using FiscalDocumentationService.Infrastructure.Interfaces;
 using FiscalDocumentationService.Infrastructure.Repositories;
-using FiscalDocumentationService.Business.Interfaces;
-using FiscalDocumentationService.Business.Services;
-using FiscalDocumentationService.Business.Interfaces.Clients;
-using FiscalDocumentationService.Business.Services.Clients;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -58,10 +60,19 @@ builder.Services.AddScoped<IFiscalDocumentRepository, FiscalDocumentRepository>(
 
 // Services
 builder.Services.AddScoped<IFiscalDocumentService, FiscalDocumentService>();
-builder.Services.AddScoped<IArcaServiceClient, ArcaServiceClient>();
+//builder.Services.AddScoped<IArcaServiceClient, ArcaServiceClient>();
+//builder.Services.AddScoped<ICompanyServiceClient, CompanyServiceClient>();
+//builder.Services.AddScoped<IArcaAuthClient, ArcaAuthClient>();
+builder.Services.AddScoped<IArcaAccessTicketCache, ArcaAccessTicketCache>();
+
+builder.Services.Configure<ArcaOptions>(builder.Configuration.GetSection("Arca"));
+builder.Services.AddSingleton(sp =>
+    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<ArcaOptions>>().Value);
 
 //inyect configuration
-builder.Services.AddHttpClient();
+builder.Services.AddHttpClient<ICompanyServiceClient, CompanyServiceClient>();
+builder.Services.AddHttpClient<IArcaServiceClient, ArcaServiceClient>();
+builder.Services.AddHttpClient<IArcaAuthClient, ArcaAuthClient>();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddControllers();
@@ -77,6 +88,7 @@ app.UseSwaggerUI(c =>
     c.RoutePrefix = string.Empty;  // Podés cambiar el prefijo o dejarlo vacío
 });
 
+app.UseMiddleware<ApiExceptionMiddleware>();
 app.UseCors("FrontendPolicy");
 app.UseHttpsRedirection();
 app.UseAuthentication();

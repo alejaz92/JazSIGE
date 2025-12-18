@@ -489,14 +489,10 @@ namespace SalesService.Business.Services
             else
                 invoiceType = 1; // Factura A
 
-            // get company info from CompanyInfo Service
-            var company = await _companyServiceClient.GetCompanyInfoAsync();
-            if (company == null)
-                throw new InvalidOperationException("Company information not found.");
+
 
             var fiscalRequest = new FiscalDocumentCreateDTO
             {
-                PointOfSale = 1,
                 InvoiceType = invoiceType,
                 BuyerDocumentType = buyerDocumentType,
                 BuyerDocumentNumber = long.Parse(sale.CustomerTaxId),
@@ -506,8 +502,7 @@ namespace SalesService.Business.Services
                 SalesOrderId = saleId,
                 Items = items,
                 Currency = "PES", // Default currency
-                ExchangeRate = 1,
-                IssuerTaxId = company.TaxId
+                ExchangeRate = 1
             };
 
             var result = await _fiscalServiceClient.CreateFiscalNoteAsync(fiscalRequest);
@@ -775,9 +770,6 @@ namespace SalesService.Business.Services
             if (string.IsNullOrWhiteSpace(sale.CustomerTaxId))
                 throw new InvalidOperationException("Customer TaxId is required.");
 
-            // 3) Emisor (empresa)
-            var company = await _companyServiceClient.GetCompanyInfoAsync()
-                          ?? throw new InvalidOperationException("Company information not found.");
 
             // 4) Validación por motivo + armado de Items/Importes
             var items = new List<FiscalDocumentItemDTO>();
@@ -875,7 +867,6 @@ namespace SalesService.Business.Services
             var request = new FiscalDocumentCreateDTO
             {
 
-                PointOfSale = baseInvoice.PointOfSale,
                 InvoiceType = invoiceType,
                 BuyerDocumentType = buyerDocumentType,
                 BuyerDocumentNumber = long.Parse(sale.CustomerTaxId),
@@ -885,8 +876,7 @@ namespace SalesService.Business.Services
                 SalesOrderId = saleId,
                 Items = items,
                 Currency = "PES", // Default currency
-                ExchangeRate = 1,
-                IssuerTaxId = company.TaxId
+                ExchangeRate = 1
             };
 
 
@@ -1004,9 +994,6 @@ namespace SalesService.Business.Services
             else
                 invoiceType = 2; // Nota de Debito A
 
-            // 3) Emisor (empresa)
-            var company = await _companyServiceClient.GetCompanyInfoAsync()
-                          ?? throw new InvalidOperationException("Company information not found.");
 
             // 4) Validaciones + cálculo de importes
             if (dto.NetAmount <= 0)
@@ -1050,7 +1037,6 @@ namespace SalesService.Business.Services
             // 5) Armar request al servicio Fiscal
             var request = new FiscalDocumentCreateDTO
             {
-                PointOfSale = baseInvoice.PointOfSale,
                 InvoiceType = invoiceType,
                 BuyerDocumentType = buyerDocumentType,
                 BuyerDocumentNumber = long.Parse(sale.CustomerTaxId),
@@ -1060,8 +1046,7 @@ namespace SalesService.Business.Services
                 SalesOrderId = saleId,
                 Items = items,
                 Currency = "PES", // Default currency
-                ExchangeRate = 1,
-                IssuerTaxId = company.TaxId
+                ExchangeRate = 1
             };
 
             var created = await _fiscalServiceClient.CreateFiscalNoteAsync(request);

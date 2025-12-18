@@ -6,6 +6,7 @@ using FiscalDocumentationService.Infrastructure.Interfaces;
 using FiscalDocumentationService.Infrastructure.Models;
 using System.Text;
 using System.Text.Json;
+using static FiscalDocumentationService.Business.Exceptions.FiscalDocumentationException;
 
 namespace FiscalDocumentationService.Business.Services
 {
@@ -13,15 +14,48 @@ namespace FiscalDocumentationService.Business.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IArcaServiceClient _arcaClient;
+        private readonly ICompanyServiceClient _companyClient;
 
-        public FiscalDocumentService(IUnitOfWork unitOfWork, IArcaServiceClient arcaClient)
+        public FiscalDocumentService(IUnitOfWork unitOfWork, IArcaServiceClient arcaClient, ICompanyServiceClient companyClient)
         {
             _unitOfWork = unitOfWork;
             _arcaClient = arcaClient;
+            _companyClient = companyClient;
         }
 
         public async Task<FiscalDocumentDTO> CreateAsync(FiscalDocumentCreateDTO dto)
         {
+            // get fiscal settings from company service
+            var companyFiscal = await _companyClient.GetCompanyFiscalSettingsAsync();
+            if (companyFiscal == null)
+                throw new FiscalConfigurationException("Company fiscal settings not found.");
+
+            // Safety gate: if ARCA is enabled, POS must be configured
+            if (companyFiscal.ArcaEnabled && companyFiscal.ArcaPointOfSale == null)
+                throw new FiscalConfigurationException("ARCA is enabled but PointOfSale is not configured in CompanyInfo.");
+
+            var useDummy = !companyFiscal.ArcaEnabled;
+
+            if (dto.Items == null || dto.Items.Count == 0)
+                throw new FiscalValidationException("At least one item is required.");
+
+            if (dto.TotalAmount <= 0)
+                throw new FiscalValidationException("TotalAmount must be greater than 0.");
+
+            if (dto.BuyerDocumentNumber <= 0)
+                throw new FiscalValidationException("BuyerDocumentNumber must be greater than 0.");
+
+
+            ValidateBuyerDataByInvoiceType(dto);
+
+
+            var calcTotal = dto.NetAmount + dto.VatAmount + dto.ExemptAmount + dto.NonTaxableAmount + dto.OtherTaxesAmount;
+            if (Math.Abs(calcTotal - dto.TotalAmount) > 0.01m)
+                throw new ArgumentException($"TotalAmount mismatch. Expected {calcTotal} but got {dto.TotalAmount}.");
+
+
+
+
             // Define type (invoice, credit note, debit note) based on dto.InvoiceType
             var type = dto.InvoiceType switch
             {
@@ -63,7 +97,8 @@ namespace FiscalDocumentationService.Business.Services
 
             var document = new FiscalDocument
             {
-                PointOfSale = dto.PointOfSale,
+                PointOfSale = companyFiscal.ArcaPointOfSale ?? 1,
+           
                 InvoiceType = dto.InvoiceType,
                 BuyerDocumentType = dto.BuyerDocumentType,
                 BuyerDocumentNumber = dto.BuyerDocumentNumber,
@@ -81,7 +116,7 @@ namespace FiscalDocumentationService.Business.Services
 
                 Currency = dto.Currency,
                 ExchangeRate = dto.ExchangeRate,
-                IssuerTaxId = dto.IssuerTaxId.Replace("-", ""),
+                IssuerTaxId = companyFiscal.TaxId.Replace("-", ""),
 
                 Items = dto.Items.Select(i => new FiscalDocumentItem
                 {
@@ -94,14 +129,27 @@ namespace FiscalDocumentationService.Business.Services
                     VATAmount = i.VatAmount,
                     DispatchCode = i.DispatchCode,
                     Warranty = i.Warranty
-                }).ToList()
+                }).ToList(),
+
+                EmissionProvider = "Dummy",
+                ArcaEnvironment = companyFiscal.ArcaEnvironment
             };
 
             // Build ARCA request (still dummy client, but structure matters)
             var arcaRequest = BuildArcaRequest(document);
 
-            // Call dummy ARCA client
-            var arcaResponse = await _arcaClient.AuthorizeAsync(arcaRequest);
+            ArcaResponseDTO arcaResponse;
+
+            if (useDummy)
+            {
+                arcaResponse = await _arcaClient.AuthorizeAsync(arcaRequest);
+            }
+            else
+            {
+                // TEMP: hasta que implementemos el real, igual llamamos al dummy
+                arcaResponse = await _arcaClient.AuthorizeAsync(arcaRequest);
+            }
+
 
             // Apply CAE
             document.CAE = arcaResponse.cae;
@@ -254,7 +302,7 @@ namespace FiscalDocumentationService.Business.Services
 
             var json = JsonSerializer.Serialize(qrData);
             var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
-            return $"https://www.afip.gob.ar/fe/qr/?p={base64}";
+            return $"https://www.arca.gob.ar/fe/qr/?p={base64}";
         }
 
         private class QrData
@@ -273,5 +321,35 @@ namespace FiscalDocumentationService.Business.Services
             public string tipoCodAut { get; set; } = "E";
             public string codAut { get; set; } = "";
         }
+
+        private void ValidateBuyerDataByInvoiceType(FiscalDocumentCreateDTO dto)
+        {
+            // Minimal safety rules (we can refine later with official ARCA doc type codes)
+
+            // Invoice A (code 1): requires CUIT as receiver in most real scenarios.
+            // We enforce: BuyerDocumentType must be "CUIT" and number must be 11 digits.
+            if (dto.InvoiceType == 1)
+            {
+                // CUIT must be 11 digits
+                if (dto.BuyerDocumentNumber < 10000000000 || dto.BuyerDocumentNumber > 99999999999)
+                    throw new FiscalValidationException("Factura A requires a valid 11-digit CUIT as buyer document number.");
+
+                // BuyerDocumentType must be set (we'll enforce exact ARCA code later via FEParamGetTiposDoc)
+                if (dto.BuyerDocumentType <= 0)
+                    throw new FiscalValidationException("Factura A requires a valid buyer document type.");
+            }
+
+
+            // Invoice B (code 6): can be DNI/CUIT/CF depending on rules and amounts.
+            // Minimal rule: document type must be > 0 and number > 0 (you already validate number > 0)
+            if (dto.InvoiceType == 6)
+            {
+                if (dto.BuyerDocumentType <= 0)
+                    throw new FiscalValidationException("Factura B requires a valid buyer document type.");
+            }
+        }
+
     }
+
+
 }

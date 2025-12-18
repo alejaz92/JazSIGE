@@ -4,6 +4,7 @@ using FiscalDocumentationService.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FiscalDocumentationService.Migrations
 {
     [DbContext(typeof(FiscalDocumentationDbContext))]
-    partial class FiscalDocumentationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251217185526_se agregaron campos de seguirdad en FiscalDocument")]
+    partial class seagregaroncamposdeseguirdadenFiscalDocument
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -77,31 +80,12 @@ namespace FiscalDocumentationService.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<Guid>("ArcaCorrelationId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<string>("ArcaEnvironment")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("ArcaErrorsJson")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("ArcaLastInteractionAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ArcaObservationsJson")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ArcaRequestJson")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ArcaResponseJson")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ArcaStatus")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int?>("ArcaPointOfSaleUsed")
+                        .HasColumnType("int");
 
                     b.Property<long>("BuyerDocumentNumber")
                         .HasColumnType("bigint");
