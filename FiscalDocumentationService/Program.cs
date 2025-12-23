@@ -63,7 +63,7 @@ builder.Services.AddScoped<IFiscalDocumentService, FiscalDocumentService>();
 //builder.Services.AddScoped<IArcaServiceClient, ArcaServiceClient>();
 //builder.Services.AddScoped<ICompanyServiceClient, CompanyServiceClient>();
 //builder.Services.AddScoped<IArcaAuthClient, ArcaAuthClient>();
-builder.Services.AddScoped<IArcaAccessTicketCache, ArcaAccessTicketCache>();
+builder.Services.AddSingleton<IArcaAccessTicketCache, ArcaAccessTicketCache>();
 
 builder.Services.Configure<ArcaOptions>(builder.Configuration.GetSection("Arca"));
 builder.Services.AddSingleton(sp =>

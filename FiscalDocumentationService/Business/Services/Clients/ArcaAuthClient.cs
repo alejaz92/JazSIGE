@@ -3,6 +3,7 @@ using FiscalDocumentationService.Business.Models.ARCA;
 using FiscalDocumentationService.Business.Options;
 using Microsoft.Extensions.Options;
 using System.Security;
+using System.Security.Cryptography;
 using System.Security.Cryptography.Pkcs;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -23,54 +24,81 @@ namespace FiscalDocumentationService.Business.Services.Clients
             _options = options.Value;
             _cache = cache;
         }
+
         public async Task<ArcaAccessTicket> GetAccessTicketAsync(string serviceName)
         {
-            // 1) Cache
+            // 1) Cache (fast path)
             var cached = _cache.Get(serviceName);
             if (cached != null && cached.IsValid())
                 return cached;
 
-            // 2) Validate config
-            if (string.IsNullOrWhiteSpace(_options.Certificate.PfxPath))
-                throw new InvalidOperationException("ARCA certificate path (Arca:Certificate:PfxPath) is not configured.");
+            // 2) Lock per serviceName (avoid concurrent TA requests)
+            var sem = _cache.GetLock(serviceName);
+            await sem.WaitAsync();
+            try
+            {
+                // 3) Double-check cache inside lock
+                cached = _cache.Get(serviceName);
+                if (cached != null && cached.IsValid())
+                    return cached;
 
-            if (!File.Exists(_options.Certificate.PfxPath))
-                throw new InvalidOperationException($"ARCA certificate file not found: {_options.Certificate.PfxPath}");
+                // 4) Validate config
+                if (string.IsNullOrWhiteSpace(_options.Certificate.PfxPath))
+                    throw new InvalidOperationException("ARCA certificate path (Arca:Certificate:PfxPath) is not configured.");
 
-            var wsaaUrl = ResolveWsaaUrl();
-            if (string.IsNullOrWhiteSpace(wsaaUrl))
-                throw new InvalidOperationException("ARCA WSAA URL is not configured.");
+                if (!File.Exists(_options.Certificate.PfxPath))
+                    throw new InvalidOperationException($"ARCA certificate file not found: {_options.Certificate.PfxPath}");
 
-            // 3) Build TRA XML
-            var traXml = BuildTraXml(serviceName);
+                var wsaaUrl = ResolveWsaaUrl();
+                if (string.IsNullOrWhiteSpace(wsaaUrl))
+                    throw new InvalidOperationException("ARCA WSAA URL is not configured.");
 
-            // 4) Sign TRA (CMS/PKCS#7) and base64 encode
-            var cmsBase64 = SignTraToCmsBase64(traXml, _options.Certificate.PfxPath, _options.Certificate.PfxPassword);
+                // 5) Build + sign
+                var traXml = BuildTraXml(serviceName);
+                var cmsBase64 = SignTraToCmsBase64(traXml, _options.Certificate.PfxPath, _options.Certificate.PfxPassword);
+                var soapEnvelope = BuildLoginCmsSoapEnvelope(cmsBase64);
 
-            // 5) Call WSAA LoginCms (SOAP)
-            var soapEnvelope = BuildLoginCmsSoapEnvelope(cmsBase64);
+                // 6) Call WSAA
+                var (ok, xml, status) = await PostLoginCmsAsync(wsaaUrl, soapEnvelope);
 
+                if (!ok)
+                {
+                    // alreadyAuthenticated: no tiene sentido reintentar con el MISMO request en paralelo.
+                    // Si pasa, es porque el TA existe en WSAA pero nosotros no lo tenemos (reinicio/cache vacío).
+                    if (xml.Contains("coe.alreadyAuthenticated", StringComparison.OrdinalIgnoreCase))
+                    {
+                        throw new ArcaDependencyException(
+                            "WSAA indica que ya existe un TA válido (coe.alreadyAuthenticated), " +
+                            "pero este servicio no lo tiene en cache (posible reinicio). " +
+                            "Esperá a que venza el TA o reiniciá el proceso cuando corresponda.");
+                    }
+
+                    throw new ArcaDependencyException($"WSAA LoginCms error {(int)status}: {xml}");
+                }
+
+                // 7) Parse + cache
+                var ltrXml = ExtractLoginCmsReturn(xml);
+                var ticket = ParseLoginTicketResponse(ltrXml);
+
+                _cache.Set(serviceName, ticket);
+                return ticket;
+            }
+            finally
+            {
+            known: sem.Release();
+            }
+        }
+
+        private async Task<(bool ok, string xml, System.Net.HttpStatusCode status)> PostLoginCmsAsync(string wsaaUrl, string soapEnvelope)
+        {
             using var content = new StringContent(soapEnvelope, Encoding.UTF8, "text/xml");
-            // SOAPAction header is not always required, but it doesn't hurt:
             content.Headers.Add("SOAPAction", "");
 
             var response = await _http.PostAsync(wsaaUrl, content);
             var responseXml = await response.Content.ReadAsStringAsync();
-
-            if (!response.IsSuccessStatusCode)
-                throw new ArcaDependencyException($"WSAA LoginCms error {(int)response.StatusCode}: {responseXml}");
-
-            // 6) Parse SOAP -> loginCmsReturn (it contains XML of loginTicketResponse)
-            var ltrXml = ExtractLoginCmsReturn(responseXml);
-
-            var ticket = ParseLoginTicketResponse(ltrXml);
-
-
-            // 7) Cache
-            _cache.Set(serviceName, ticket);
-
-            return ticket;
+            return (response.IsSuccessStatusCode, responseXml, response.StatusCode);
         }
+
 
 
         private string ResolveWsaaUrl()
@@ -110,29 +138,52 @@ namespace FiscalDocumentationService.Business.Services.Clients
         private static string SignTraToCmsBase64(string traXml, string pfxPath, string pfxPassword)
         {
             var cert = new X509Certificate2(
-                pfxPath,
-                pfxPassword,
-                X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.Exportable
-            );
+                            pfxPath,
+                            pfxPassword,
+                            X509KeyStorageFlags.UserKeySet |
+                            X509KeyStorageFlags.PersistKeySet |
+                            X509KeyStorageFlags.Exportable
+                        );
+
+            var rsa = cert.GetRSAPrivateKey();
+            if (rsa == null)
+                throw new InvalidOperationException("Private key not accessible (GetRSAPrivateKey returned null).");
+
+
+            var keySize = rsa.KeySize;
+            if (keySize < 2048) throw new InvalidOperationException($"RSA key too small: {keySize} bits.");
 
             if (!cert.HasPrivateKey)
                 throw new InvalidOperationException("The provided certificate does not have a private key.");
 
-            var data = Encoding.UTF8.GetBytes(traXml);
+            var utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+            var data = utf8NoBom.GetBytes(traXml);
+
 
             var contentInfo = new ContentInfo(data);
-            var signedCms = new SignedCms(contentInfo, detached: true);
+            var signedCms = new SignedCms(contentInfo, detached: false);
 
-            var signer = new CmsSigner(SubjectIdentifierType.IssuerAndSerialNumber, cert)
+            var signer = new CmsSigner(
+                SubjectIdentifierType.SubjectKeyIdentifier,
+                cert)
             {
-                IncludeOption = X509IncludeOption.EndCertOnly
+                IncludeOption = X509IncludeOption.EndCertOnly,
+                DigestAlgorithm = new Oid("1.3.14.3.2.26") // SHA-1
             };
+
+
+
+
+
 
             // You can add additional signed attributes if needed, but usually not required.
             signedCms.ComputeSignature(signer);
 
             var cms = signedCms.Encode();
-            return Convert.ToBase64String(cms);
+            var cmsBase64 = Convert.ToBase64String(cms); // sin InsertLineBreaks
+            return cmsBase64;
+
+
         }
 
         private static string BuildLoginCmsSoapEnvelope(string cmsBase64)

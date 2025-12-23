@@ -6,6 +6,7 @@ namespace FiscalDocumentationService.Business.Interfaces.Clients
     {
         void Clear(string serviceName);
         ArcaAccessTicket? Get(string serviceName);
+        SemaphoreSlim GetLock(string serviceName);
         void Set(string serviceName, ArcaAccessTicket ticket);
     }
 }
