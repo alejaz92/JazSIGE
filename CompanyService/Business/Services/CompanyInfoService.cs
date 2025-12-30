@@ -94,11 +94,18 @@ namespace CompanyService.Business.Services
             var company = await _repository.GetAsync();
             if (company == null) return null;
 
+
+            string env = company.ArcaEnvironment switch
+            {
+                Infrastructure.Models.ArcaEnvironment.Homologation => "Homologation",
+                Infrastructure.Models.ArcaEnvironment.Production => "Production",
+                _ => "Production"
+            };
             return new CompanyFiscalSettingsDTO
             {
                 TaxId = company.TaxId,
                 ArcaEnabled = company.ArcaEnabled,
-                ArcaEnvironment = company.ArcaEnvironment,
+                ArcaEnvironment = env,
                 ArcaPointOfSale = company.ArcaPointOfSale,
                 ArcaInvoiceTypesEnabled = company.ArcaInvoiceTypesEnabled
             };

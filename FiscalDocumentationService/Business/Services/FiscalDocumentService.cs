@@ -2,8 +2,10 @@
 using FiscalDocumentationService.Business.Interfaces.Clients;
 using FiscalDocumentationService.Business.Models;
 using FiscalDocumentationService.Business.Models.Arca;
+using FiscalDocumentationService.Business.Options;
 using FiscalDocumentationService.Infrastructure.Interfaces;
 using FiscalDocumentationService.Infrastructure.Models;
+using Microsoft.Extensions.Options;
 using System.Text;
 using System.Text.Json;
 using static FiscalDocumentationService.Business.Exceptions.FiscalDocumentationException;
@@ -15,12 +17,14 @@ namespace FiscalDocumentationService.Business.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IArcaServiceClient _arcaClient;
         private readonly ICompanyServiceClient _companyClient;
+        private readonly IOptions<ArcaOptions> _arcaOptions;
 
-        public FiscalDocumentService(IUnitOfWork unitOfWork, IArcaServiceClient arcaClient, ICompanyServiceClient companyClient)
+        public FiscalDocumentService(IUnitOfWork unitOfWork, IArcaServiceClient arcaClient, ICompanyServiceClient companyClient, IOptions<ArcaOptions> arcaOptions)
         {
             _unitOfWork = unitOfWork;
             _arcaClient = arcaClient;
             _companyClient = companyClient;
+            _arcaOptions = arcaOptions;
         }
 
         public async Task<FiscalDocumentDTO> CreateAsync(FiscalDocumentCreateDTO dto)
@@ -44,6 +48,8 @@ namespace FiscalDocumentationService.Business.Services
 
             if (dto.BuyerDocumentNumber <= 0)
                 throw new FiscalValidationException("BuyerDocumentNumber must be greater than 0.");
+
+
 
 
             ValidateBuyerDataByInvoiceType(dto);
@@ -95,6 +101,17 @@ namespace FiscalDocumentationService.Business.Services
             // GetLastAuthorized(PointOfSale, InvoiceType) + 1
             var invoiceNumber = GenerateInvoiceNumber();
 
+            var arcaEnv = (_arcaOptions.Value.Environment ?? "Homologation").Trim();
+
+            if (!string.IsNullOrWhiteSpace(companyFiscal.ArcaEnvironment) &&
+                !companyFiscal.ArcaEnvironment.Equals(arcaEnv, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    $"ARCA environment mismatch. Config='{arcaEnv}' CompanyService='{companyFiscal.ArcaEnvironment}'.");
+            }
+
+
+
             var document = new FiscalDocument
             {
                 PointOfSale = companyFiscal.ArcaPointOfSale ?? 1,
@@ -132,7 +149,7 @@ namespace FiscalDocumentationService.Business.Services
                 }).ToList(),
 
                 EmissionProvider = "Dummy",
-                ArcaEnvironment = companyFiscal.ArcaEnvironment
+                ArcaEnvironment = arcaEnv
             };
 
             // Build ARCA request (still dummy client, but structure matters)

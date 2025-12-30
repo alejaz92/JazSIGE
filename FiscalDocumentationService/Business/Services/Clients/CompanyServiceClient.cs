@@ -28,7 +28,7 @@ namespace FiscalDocumentationService.Business.Services.Clients
         public async Task<CompanyFiscalSettingsDTO?> GetCompanyFiscalSettingsAsync()
         {
             var client = CreateAuthorizedClient();
-            var response = await client.GetAsync($"{_companyBaseUrl}/fiscal-settings");
+            var response = await client.GetAsync($"{_companyBaseUrl}fiscal-settings");
             if (!response.IsSuccessStatusCode) return null;
             return await response.Content.ReadFromJsonAsync<CompanyFiscalSettingsDTO>();
         }

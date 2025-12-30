@@ -60,19 +60,18 @@ builder.Services.AddScoped<IFiscalDocumentRepository, FiscalDocumentRepository>(
 
 // Services
 builder.Services.AddScoped<IFiscalDocumentService, FiscalDocumentService>();
-//builder.Services.AddScoped<IArcaServiceClient, ArcaServiceClient>();
-//builder.Services.AddScoped<ICompanyServiceClient, CompanyServiceClient>();
-//builder.Services.AddScoped<IArcaAuthClient, ArcaAuthClient>();
 builder.Services.AddSingleton<IArcaAccessTicketCache, ArcaAccessTicketCache>();
 
 builder.Services.Configure<ArcaOptions>(builder.Configuration.GetSection("Arca"));
-builder.Services.AddSingleton(sp =>
-    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<ArcaOptions>>().Value);
+//builder.Services.AddSingleton(sp =>
+//    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<ArcaOptions>>().Value);
 
 //inyect configuration
-builder.Services.AddHttpClient<ICompanyServiceClient, CompanyServiceClient>();
+builder.Services.AddScoped<ICompanyServiceClient, CompanyServiceClient>();
 builder.Services.AddHttpClient<IArcaServiceClient, ArcaServiceClient>();
 builder.Services.AddHttpClient<IArcaAuthClient, ArcaAuthClient>();
+builder.Services.AddHttpClient<IArcaWsfeClient, ArcaWsfeClient>();
+
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddControllers();
