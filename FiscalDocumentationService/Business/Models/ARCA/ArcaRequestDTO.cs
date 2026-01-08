@@ -39,4 +39,38 @@
         public decimal baseAmount { get; set; }
         public decimal amount { get; set; }
     }
+
+    public record WsfeCaeRequest(
+        int PointOfSale,
+        int CbteType,
+        int Concept,
+        int DocType,
+        long DocNumber,
+        int ReceiverVatConditionId,
+        DateOnly CbteDate,
+        long CbteFrom,
+        long CbteTo,
+        string CurrencyId,
+        decimal CurrencyRate,
+        decimal TotalAmount,
+        decimal NetAmount,
+        decimal VatAmount,
+        decimal NotTaxedAmount,
+        decimal ExemptAmount,
+        decimal OtherTaxesAmount,
+        List<WsfeVatItem>? VatItems = null
+    );
+
+    public record WsfeVatItem(int VatId, decimal BaseAmount, decimal VatAmount);
+
+    public record CaeResponse(
+        string Result,          // "A" or "R"
+        string? Cae,
+        string? CaeDueDate,     // yyyyMMdd
+        List<WsfeError> Errors,
+        List<WsfeEvent> Events
+    );
+
+    public record WsfeError(string Code, string Msg);
+    public record WsfeEvent(string Code, string Msg);
 }

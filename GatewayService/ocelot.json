@@ -6,10 +6,10 @@
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
         {
-          //"Host": "auth-api-dev-gjbcdtb0bxffckha.brazilsouth-01.azurewebsites.net",
-          //"Port": 443
-          "Host": "localhost",
-          "Port": 7042
+          "Host": "auth-api-dev-gjbcdtb0bxffckha.brazilsouth-01.azurewebsites.net",
+          "Port": 443
+          //"Host": "localhost",
+          //"Port": 7042
         }
       ],
       "UpstreamPathTemplate": "/auth/{everything}",
@@ -150,10 +150,10 @@
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
         {
-          //"Host": "companyinfo-api-dev-amccbga3hbemapa5.centralus-01.azurewebsites.net",
-          //"Port": 443,
-          "Host": "localhost",
-          "Port": 7168
+          "Host": "companyinfo-api-dev-amccbga3hbemapa5.centralus-01.azurewebsites.net",
+          "Port": 443,
+          //"Host": "localhost",
+          //"Port": 7168
         }
       ],
       "UpstreamPathTemplate": "/companyinfo/{everything}",
@@ -172,10 +172,10 @@
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
         {
-          //"Host": "fiscal-api-dev-f6a2aaeyeta5hsen.centralus-01.azurewebsites.net",
-          //"Port": 443
-          "Host": "localhost",
-          "Port": 7036
+          "Host": "fiscal-api-dev-f6a2aaeyeta5hsen.centralus-01.azurewebsites.net",
+          "Port": 443
+          //"Host": "localhost",
+          //"Port": 7036
         }
       ],
       "UpstreamPathTemplate": "/Diagnostics/{everything}",
@@ -197,8 +197,8 @@
         {
           "Name": "Auth Service",
           "Version": "v1",
-          //"Url": "https://auth-api-dev-gjbcdtb0bxffckha.brazilsouth-01.azurewebsites.net/swagger/v1/swagger.json"
-          "Url": "https://localhost:7042/swagger/v1/swagger.json"
+          "Url": "https://auth-api-dev-gjbcdtb0bxffckha.brazilsouth-01.azurewebsites.net/swagger/v1/swagger.json"
+          //"Url": "https://localhost:7042/swagger/v1/swagger.json"
         }
       ]
     },
@@ -263,8 +263,8 @@
         {
           "Name": "CompanyService API",
           "Version": "v1",
-          //"Url": "https://companyinfo-api-dev-amccbga3hbemapa5.centralus-01.azurewebsites.net/swagger/v1/swagger.json",
-          "Url": "https://localhost:7168/swagger/v1/swagger.json"
+          "Url": "https://companyinfo-api-dev-amccbga3hbemapa5.centralus-01.azurewebsites.net/swagger/v1/swagger.json",
+          //"Url": "https://localhost:7168/swagger/v1/swagger.json"
         }
       ]
     },
@@ -274,8 +274,8 @@
         {
           "Name": "FiscalDocumentationService API",
           "Version": "v1",
-          //"Url": "https://fiscal-api-dev-f6a2aaeyeta5hsen.centralus-01.azurewebsites.net/swagger/v1/swagger.json"
-          "Url": "https://localhost:7036/swagger/v1/swagger.json"
+          "Url": "https://fiscal-api-dev-f6a2aaeyeta5hsen.centralus-01.azurewebsites.net/swagger/v1/swagger.json"
+          //"Url": "https://localhost:7036/swagger/v1/swagger.json"
         }
       ]
     }

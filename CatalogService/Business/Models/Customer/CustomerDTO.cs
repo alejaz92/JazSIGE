@@ -19,6 +19,7 @@
         public string Email { get; set; }
         public int IVATypeId { get; set; }
         public string IVAType { get; set; }
+        public int IVATypeArcaCode { get; set; }
         public int WarehouseId { get; set; }
         public string Warehouse { get; set; }
         public int TransportId { get; set; }

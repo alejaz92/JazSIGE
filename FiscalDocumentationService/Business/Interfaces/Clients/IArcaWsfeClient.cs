@@ -1,5 +1,7 @@
 ﻿
 
+using FiscalDocumentationService.Business.Models.Arca;
+
 namespace FiscalDocumentationService.Business.Interfaces.Clients
 {
     public interface IArcaWsfeClient
@@ -7,6 +9,8 @@ namespace FiscalDocumentationService.Business.Interfaces.Clients
         Task<WsfeDummyResult> DummyAsync(CancellationToken ct = default);
         Task<IReadOnlyList<WsfeCbteTypeItem>> GetInvoiceTypesAsync(long issuerCuit, CancellationToken ct = default);
         Task<long> GetLastAuthorizedAsync(long issuerCuit, int pointOfSale, int cbteType, CancellationToken ct = default);
+        Task<CaeResponse> RequestCaeAsync(long issuerCuit, WsfeCaeRequest req, CancellationToken ct = default);
+
     }
 
     public sealed class WsfeDummyResult

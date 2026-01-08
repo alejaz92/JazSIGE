@@ -68,6 +68,7 @@ namespace CatalogService.Business.Services
                 Email = entity.Email,
                 IVATypeId = entity.IVATypeId,
                 IVAType = entity.IVAType.Description,
+                IVATypeArcaCode = entity.IVAType.ArcaCode,
                 WarehouseId = entity.WarehouseId,
                 Warehouse = entity.Warehouse.Description,
                 TransportId = entity.TransportId,

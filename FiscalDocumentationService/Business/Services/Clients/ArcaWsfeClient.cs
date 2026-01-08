@@ -1,6 +1,8 @@
 ﻿using FiscalDocumentationService.Business.Interfaces.Clients;
+using FiscalDocumentationService.Business.Models.Arca;
 using FiscalDocumentationService.Business.Options;
 using Microsoft.Extensions.Options;
+using System.Globalization;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Xml.Linq;
@@ -118,7 +120,76 @@ $@"<?xml version=""1.0"" encoding=""utf-8""?>
             return ParseLastAuthorized(xml);
 
         }
-            
+        
+        public async Task<CaeResponse> RequestCaeAsync(long issuerCuit, WsfeCaeRequest req, CancellationToken ct = default)
+        {
+            EnsureEmissionAllowed();
+
+            var url = ResolveWsfeUrl();
+            var auth = await BuildAuthAsync(issuerCuit, ct);
+
+            var dateStr = req.CbteDate.ToString("yyyyMMdd");
+
+            ValidateCaeRequest(req);
+
+            var vatXml = BuildVatXml(req);
+
+            var soapEnvelope =
+        $@"<?xml version=""1.0"" encoding=""utf-8""?>
+<soapenv:Envelope xmlns:soapenv=""http://schemas.xmlsoap.org/soap/envelope/"" xmlns:ar=""http://ar.gov.afip.dif.FEV1/"">
+  <soapenv:Header/>
+  <soapenv:Body>
+    <ar:FECAESolicitar>
+      <ar:Auth>
+        <ar:Token>{SecurityElementEscape(auth.Token)}</ar:Token>
+        <ar:Sign>{SecurityElementEscape(auth.Sign)}</ar:Sign>
+        <ar:Cuit>{auth.Cuit}</ar:Cuit>
+      </ar:Auth>
+      <ar:FeCAEReq>
+        <ar:FeCabReq>
+          <ar:CantReg>1</ar:CantReg>
+          <ar:PtoVta>{req.PointOfSale}</ar:PtoVta>
+          <ar:CbteTipo>{req.CbteType}</ar:CbteTipo>
+        </ar:FeCabReq>
+        <ar:FeDetReq>
+          <ar:FECAEDetRequest>
+            <ar:Concepto>{req.Concept}</ar:Concepto>
+            <ar:DocTipo>{req.DocType}</ar:DocTipo>
+            <ar:DocNro>{req.DocNumber}</ar:DocNro>
+            <ar:CbteDesde>{req.CbteFrom}</ar:CbteDesde>
+            <ar:CbteHasta>{req.CbteTo}</ar:CbteHasta>
+            <ar:CbteFch>{dateStr}</ar:CbteFch>
+            <ar:ImpTotal>{FormatAmount(req.TotalAmount)}</ar:ImpTotal>
+            <ar:ImpTotConc>{FormatAmount(req.NotTaxedAmount)}</ar:ImpTotConc>
+            <ar:ImpNeto>{FormatAmount(req.NetAmount)}</ar:ImpNeto>
+            <ar:ImpOpEx>{FormatAmount(req.ExemptAmount)}</ar:ImpOpEx>
+            <ar:ImpIVA>{FormatAmount(req.VatAmount)}</ar:ImpIVA>
+            <ar:ImpTrib>{FormatAmount(req.OtherTaxesAmount)}</ar:ImpTrib>
+            <ar:MonId>{SecurityElementEscape(req.CurrencyId)}</ar:MonId>
+            <ar:MonCotiz>{FormatAmount(req.CurrencyRate)}</ar:MonCotiz>
+            <ar:CondicionIVAReceptorId>{req.ReceiverVatConditionId}</ar:CondicionIVAReceptorId>
+
+            {vatXml}
+          </ar:FECAEDetRequest>
+        </ar:FeDetReq>
+      </ar:FeCAEReq>
+    </ar:FECAESolicitar>
+  </soapenv:Body>
+</soapenv:Envelope>";
+
+            using var httpReq = new HttpRequestMessage(HttpMethod.Post, url);
+            httpReq.Content = new StringContent(soapEnvelope, Encoding.UTF8, "text/xml");
+            httpReq.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/xml"));
+            httpReq.Headers.Add("SOAPAction", "\"http://ar.gov.afip.dif.FEV1/FECAESolicitar\"");
+
+            using var resp = await _http.SendAsync(httpReq, ct);
+            var xml = await resp.Content.ReadAsStringAsync(ct);
+
+            if (!resp.IsSuccessStatusCode)
+                throw new Exception($"WSFE FECAESolicitar error {(int)resp.StatusCode}: {xml}");
+
+            return ParseCaeResponse(xml);
+        }
 
         // -------------------------
         // Helpers
@@ -235,6 +306,137 @@ $@"<?xml version=""1.0"" encoding=""utf-8""?>
 
             return last;
         }
+
+        private void EnsureEmissionAllowed()
+        {
+            var options = _arcaOptions.Value;
+            if (string.Equals(options.Environment, "Production", StringComparison.OrdinalIgnoreCase)
+                && !options.AllowProductionEmission)
+            {
+                throw new InvalidOperationException("Production emission is blocked by configuración (AllowProductionEmission=false).");
+            }
+        }
+
+        private static string BuildVatXml(WsfeCaeRequest req)
+        {
+            if (req.VatItems == null || req.VatItems.Count == 0)
+                return ""; // For B/C usually ok
+
+            var items = string.Join("", req.VatItems.Select(v =>
+        $@"<ar:AlicIva>
+  <ar:Id>{v.VatId}</ar:Id>
+  <ar:BaseImp>{FormatAmount(v.BaseAmount)}</ar:BaseImp>
+  <ar:Importe>{FormatAmount(v.VatAmount)}</ar:Importe>
+</ar:AlicIva>"));
+
+            return $@"<ar:Iva>{items}</ar:Iva>";
+        }
+
+        private static string FormatAmount(decimal value)
+            => value.ToString("0.00", CultureInfo.InvariantCulture);
+
+
+        private static CaeResponse ParseCaeResponse(string soapXml)
+        {
+            var x = XDocument.Parse(soapXml);
+
+            var resultNode = x.Descendants().FirstOrDefault(e => e.Name.LocalName == "FECAESolicitarResult");
+            if (resultNode == null)
+                throw new Exception("WSFE response does not contain FECAESolicitarResult.");
+
+            var det = resultNode.Descendants().FirstOrDefault(e => e.Name.LocalName == "FECAEDetResponse");
+
+            string result = det?.Descendants().FirstOrDefault(e => e.Name.LocalName == "Resultado")?.Value?.Trim() ?? "";
+            string? cae = det?.Descendants().FirstOrDefault(e => e.Name.LocalName == "CAE")?.Value?.Trim();
+            string? caeDue = det?.Descendants().FirstOrDefault(e => e.Name.LocalName == "CAEFchVto")?.Value?.Trim();
+
+            var errors = new List<WsfeError>();
+            var events = new List<WsfeEvent>();
+
+            // 1) Errors en nivel raíz (a veces están)
+            AppendErrors(resultNode, errors);
+
+            // 2) Errors en nivel detalle (muy común)
+            if (det != null) AppendErrors(det, errors);
+
+            // 3) Observaciones (MUY común para rechazos)
+            if (det != null) AppendObservations(det, errors);
+
+            // Events (pueden estar en raíz o detalle)
+            AppendEvents(resultNode, events);
+            if (det != null) AppendEvents(det, events);
+
+            return new CaeResponse(result, cae, caeDue, errors, events);
+        }
+
+        private static void AppendErrors(XElement parent, List<WsfeError> errors)
+        {
+            var errorsNode = parent.Descendants().FirstOrDefault(e => e.Name.LocalName == "Errors");
+            if (errorsNode == null) return;
+
+            foreach (var err in errorsNode.Descendants().Where(e => e.Name.LocalName == "Err"))
+            {
+                var code = err.Descendants().FirstOrDefault(e => e.Name.LocalName == "Code")?.Value ?? "";
+                var msg = err.Descendants().FirstOrDefault(e => e.Name.LocalName == "Msg")?.Value ?? "";
+                if (!string.IsNullOrWhiteSpace(code) || !string.IsNullOrWhiteSpace(msg))
+                    errors.Add(new WsfeError(code, msg));
+            }
+        }
+
+        private static void AppendObservations(XElement det, List<WsfeError> errors)
+        {
+            var obsNode = det.Descendants().FirstOrDefault(e => e.Name.LocalName == "Observaciones");
+            if (obsNode == null) return;
+
+            foreach (var obs in obsNode.Descendants().Where(e => e.Name.LocalName == "Obs"))
+            {
+                var code = obs.Descendants().FirstOrDefault(e => e.Name.LocalName == "Code")?.Value ?? "";
+                var msg = obs.Descendants().FirstOrDefault(e => e.Name.LocalName == "Msg")?.Value ?? "";
+                if (!string.IsNullOrWhiteSpace(code) || !string.IsNullOrWhiteSpace(msg))
+                    errors.Add(new WsfeError(code, msg));
+            }
+        }
+
+        private static void AppendEvents(XElement parent, List<WsfeEvent> events)
+        {
+            var eventsNode = parent.Descendants().FirstOrDefault(e => e.Name.LocalName == "Events");
+            if (eventsNode == null) return;
+
+            foreach (var ev in eventsNode.Descendants().Where(e => e.Name.LocalName == "Evt"))
+            {
+                var code = ev.Descendants().FirstOrDefault(e => e.Name.LocalName == "Code")?.Value ?? "";
+                var msg = ev.Descendants().FirstOrDefault(e => e.Name.LocalName == "Msg")?.Value ?? "";
+                if (!string.IsNullOrWhiteSpace(code) || !string.IsNullOrWhiteSpace(msg))
+                    events.Add(new WsfeEvent(code, msg));
+            }
+        }
+
+        private static void ValidateCaeRequest(WsfeCaeRequest req)
+        {
+            // Regla de totales: ImpTotal = ImpTotConc + ImpNeto + ImpOpEx + ImpTrib + ImpIVA
+            var expectedTotal =
+                req.NotTaxedAmount +
+                req.NetAmount +
+                req.ExemptAmount +
+                req.OtherTaxesAmount +
+                req.VatAmount;
+
+            if (decimal.Round(req.TotalAmount, 2) != decimal.Round(expectedTotal, 2))
+                throw new Exception($"Invalid totals. Total={req.TotalAmount:0.00} Expected={expectedTotal:0.00}");
+
+            // Si hay neto gravado, IVA debe estar informado
+            if (req.NetAmount > 0)
+            {
+                if (req.VatItems == null || req.VatItems.Count == 0)
+                    throw new Exception("VatItems is required when NetAmount > 0.");
+
+                var sumVat = req.VatItems.Sum(x => x.VatAmount);
+                if (decimal.Round(sumVat, 2) != decimal.Round(req.VatAmount, 2))
+                    throw new Exception($"VatAmount mismatch. VatAmount={req.VatAmount:0.00} Sum(VatItems)={sumVat:0.00}");
+            }
+        }
+
+
     }
 
 

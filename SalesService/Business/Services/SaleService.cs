@@ -395,7 +395,8 @@ namespace SalesService.Business.Services
                 Province = "N/A",
                 Country = "N/A",
                 SellCondition = "N/A",
-                IVAType = "N/A"
+                IVAType = "N/A", 
+                IVATypeArcaCode= 5
             };
 
             if (!sale.IsFinalConsumer)
