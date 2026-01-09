@@ -19,6 +19,7 @@
 
         public int BuyerDocumentType { get; set; }
         public long BuyerDocumentNumber { get; set; }
+        public int ReceiverVatConditionId { get; set; } 
 
         public decimal NetAmount { get; set; }
         public decimal VATAmount { get; set; }

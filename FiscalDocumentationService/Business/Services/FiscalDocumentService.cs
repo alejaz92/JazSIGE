@@ -3,11 +3,13 @@ using FiscalDocumentationService.Business.Interfaces.Clients;
 using FiscalDocumentationService.Business.Models;
 using FiscalDocumentationService.Business.Models.Arca;
 using FiscalDocumentationService.Business.Options;
+using FiscalDocumentationService.Business.Services.Clients;
 using FiscalDocumentationService.Infrastructure.Interfaces;
 using FiscalDocumentationService.Infrastructure.Models;
 using Microsoft.Extensions.Options;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using static FiscalDocumentationService.Business.Exceptions.FiscalDocumentationException;
 
 namespace FiscalDocumentationService.Business.Services
@@ -18,28 +20,38 @@ namespace FiscalDocumentationService.Business.Services
         private readonly IArcaServiceClient _arcaClient;
         private readonly ICompanyServiceClient _companyClient;
         private readonly IOptions<ArcaOptions> _arcaOptions;
+        private readonly IArcaWsfeClient _arcaWsfeClient;
 
-        public FiscalDocumentService(IUnitOfWork unitOfWork, IArcaServiceClient arcaClient, ICompanyServiceClient companyClient, IOptions<ArcaOptions> arcaOptions)
+        public FiscalDocumentService(IUnitOfWork unitOfWork, IArcaServiceClient arcaClient, ICompanyServiceClient companyClient, 
+            IOptions<ArcaOptions> arcaOptions, IArcaWsfeClient arcaWsfeClient)
         {
             _unitOfWork = unitOfWork;
             _arcaClient = arcaClient;
             _companyClient = companyClient;
             _arcaOptions = arcaOptions;
+            _arcaWsfeClient = arcaWsfeClient;
         }
 
         public async Task<FiscalDocumentDTO> CreateAsync(FiscalDocumentCreateDTO dto)
         {
-            // get fiscal settings from company service
+            // 1) Company fiscal settings
             var companyFiscal = await _companyClient.GetCompanyFiscalSettingsAsync();
             if (companyFiscal == null)
                 throw new FiscalConfigurationException("Company fiscal settings not found.");
 
-            // Safety gate: if ARCA is enabled, POS must be configured
             if (companyFiscal.ArcaEnabled && companyFiscal.ArcaPointOfSale == null)
                 throw new FiscalConfigurationException("ARCA is enabled but PointOfSale is not configured in CompanyInfo.");
 
-            var useDummy = !companyFiscal.ArcaEnabled;
+            // Guard: environment match (config vs CompanyService)
+            var arcaEnv = (_arcaOptions.Value.Environment ?? "Homologation").Trim();
+            if (!string.IsNullOrWhiteSpace(companyFiscal.ArcaEnvironment) &&
+                !companyFiscal.ArcaEnvironment.Equals(arcaEnv, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    $"ARCA environment mismatch. Config='{arcaEnv}' CompanyService='{companyFiscal.ArcaEnvironment}'.");
+            }
 
+            // 2) Validations (your existing ones)
             if (dto.Items == null || dto.Items.Count == 0)
                 throw new FiscalValidationException("At least one item is required.");
 
@@ -49,40 +61,31 @@ namespace FiscalDocumentationService.Business.Services
             if (dto.BuyerDocumentNumber <= 0)
                 throw new FiscalValidationException("BuyerDocumentNumber must be greater than 0.");
 
-
-
-
             ValidateBuyerDataByInvoiceType(dto);
-
 
             var calcTotal = dto.NetAmount + dto.VatAmount + dto.ExemptAmount + dto.NonTaxableAmount + dto.OtherTaxesAmount;
             if (Math.Abs(calcTotal - dto.TotalAmount) > 0.01m)
                 throw new ArgumentException($"TotalAmount mismatch. Expected {calcTotal} but got {dto.TotalAmount}.");
 
-
-
-
-            // Define type (invoice, credit note, debit note) based on dto.InvoiceType
+            // 3) Type mapping (as you already do)
             var type = dto.InvoiceType switch
             {
-                1 => FiscalDocumentType.Invoice,       // A
-                6 => FiscalDocumentType.Invoice,       // B
-                11 => FiscalDocumentType.Invoice,      // C
-                51 => FiscalDocumentType.Invoice,      // M
-                2 => FiscalDocumentType.DebitNote,     // A
-                7 => FiscalDocumentType.DebitNote,     // B
-                12 => FiscalDocumentType.DebitNote,    // C
-                52 => FiscalDocumentType.DebitNote,    // M
-                3 => FiscalDocumentType.CreditNote,    // A
-                8 => FiscalDocumentType.CreditNote,    // B
-                13 => FiscalDocumentType.CreditNote,   // C
-                53 => FiscalDocumentType.CreditNote,   // M
+                1 => FiscalDocumentType.Invoice,
+                6 => FiscalDocumentType.Invoice,
+                11 => FiscalDocumentType.Invoice,
+                51 => FiscalDocumentType.Invoice,
+                2 => FiscalDocumentType.DebitNote,
+                7 => FiscalDocumentType.DebitNote,
+                12 => FiscalDocumentType.DebitNote,
+                52 => FiscalDocumentType.DebitNote,
+                3 => FiscalDocumentType.CreditNote,
+                8 => FiscalDocumentType.CreditNote,
+                13 => FiscalDocumentType.CreditNote,
+                53 => FiscalDocumentType.CreditNote,
                 _ => throw new ArgumentException("Invalid Invoice Type")
             };
 
-            // 1) Idempotency (only for INVOICES)
-            // A SalesOrder should not generate multiple invoices by accident.
-            // Credit/Debit notes are allowed to be multiple, so we don't block those here.
+            // 4) Idempotency (only invoices)
             if (type == FiscalDocumentType.Invoice)
             {
                 var existingInvoices = await _unitOfWork.FiscalDocumentRepository
@@ -96,44 +99,43 @@ namespace FiscalDocumentationService.Business.Services
                     return MapToDTO(existing);
             }
 
-            // NOTE: For now we keep the dummy invoice number generation.
-            // Later, when we integrate WSFE, this will be replaced by:
-            // GetLastAuthorized(PointOfSale, InvoiceType) + 1
-            var invoiceNumber = GenerateInvoiceNumber();
+            // 5) Issuer CUIT digits
+            var issuerCuitDigits = Regex.Replace(companyFiscal.TaxId ?? "", @"\D", "");
+            if (!long.TryParse(issuerCuitDigits, out var issuerCuit))
+                throw new FiscalConfigurationException($"Invalid Company TaxId format: '{companyFiscal.TaxId}'");
 
-            var arcaEnv = (_arcaOptions.Value.Environment ?? "Homologation").Trim();
-
-            if (!string.IsNullOrWhiteSpace(companyFiscal.ArcaEnvironment) &&
-                !companyFiscal.ArcaEnvironment.Equals(arcaEnv, StringComparison.OrdinalIgnoreCase))
-            {
-                throw new InvalidOperationException(
-                    $"ARCA environment mismatch. Config='{arcaEnv}' CompanyService='{companyFiscal.ArcaEnvironment}'.");
-            }
-
-
-
+            // 6) Create doc in Pending first (audit-friendly)
             var document = new FiscalDocument
             {
                 PointOfSale = companyFiscal.ArcaPointOfSale ?? 1,
-           
+
                 InvoiceType = dto.InvoiceType,
                 BuyerDocumentType = dto.BuyerDocumentType,
                 BuyerDocumentNumber = dto.BuyerDocumentNumber,
-                InvoiceFrom = invoiceNumber,
-                InvoiceTo = invoiceNumber,
+
+                // Numbers will be set later (dummy or WSFE next)
+                InvoiceFrom = 0,
+                InvoiceTo = 0,
+
                 Date = DateTime.Now,
                 Type = type,
+
                 NetAmount = dto.NetAmount,
                 VATAmount = dto.VatAmount,
                 ExemptAmount = dto.ExemptAmount,
                 NonTaxableAmount = dto.NonTaxableAmount,
                 OtherTaxesAmount = dto.OtherTaxesAmount,
                 TotalAmount = dto.TotalAmount,
+
                 SalesOrderId = dto.SalesOrderId,
 
                 Currency = dto.Currency,
                 ExchangeRate = dto.ExchangeRate,
-                IssuerTaxId = companyFiscal.TaxId.Replace("-", ""),
+                IssuerTaxId = issuerCuitDigits,
+
+                // IMPORTANT: this must exist in your DTO or be derived.
+                // If your DTO field name differs, replace here:
+                ReceiverVatConditionId = dto.ReceiverVatConditionId,
 
                 Items = dto.Items.Select(i => new FiscalDocumentItem
                 {
@@ -148,35 +150,140 @@ namespace FiscalDocumentationService.Business.Services
                     Warranty = i.Warranty
                 }).ToList(),
 
-                EmissionProvider = "Dummy",
-                ArcaEnvironment = arcaEnv
+                EmissionProvider = companyFiscal.ArcaEnabled ? "WSFE" : "Dummy",
+                ArcaEnvironment = arcaEnv,
+
+                ArcaStatus = "Pending",
+                ArcaLastInteractionAt = DateTime.UtcNow,
+                ArcaCorrelationId = Guid.NewGuid()
             };
-
-            // Build ARCA request (still dummy client, but structure matters)
-            var arcaRequest = BuildArcaRequest(document);
-
-            ArcaResponseDTO arcaResponse;
-
-            if (useDummy)
-            {
-                arcaResponse = await _arcaClient.AuthorizeAsync(arcaRequest);
-            }
-            else
-            {
-                // TEMP: hasta que implementemos el real, igual llamamos al dummy
-                arcaResponse = await _arcaClient.AuthorizeAsync(arcaRequest);
-            }
-
-
-            // Apply CAE
-            document.CAE = arcaResponse.cae;
-            document.CAEExpiration = DateTime.ParseExact(arcaResponse.caeExpirationDate, "yyyyMMdd", null);
-            document.DocumentNumber = $"{document.PointOfSale:0000}-{document.InvoiceFrom:00000000}";
 
             await _unitOfWork.FiscalDocumentRepository.CreateAsync(document);
             await _unitOfWork.SaveChangesAsync();
 
+            // 7) Emit (Dummy or WSFE)
+            if (!companyFiscal.ArcaEnabled)
+            {
+                // Keep your current dummy flow (as-is)
+                var invoiceNumber = GenerateInvoiceNumber();
+                document.InvoiceFrom = invoiceNumber;
+                document.InvoiceTo = invoiceNumber;
+
+                var arcaRequest = BuildArcaRequest(document);
+
+                document.ArcaRequestJson = JsonSerializer.Serialize(arcaRequest);
+                document.ArcaLastInteractionAt = DateTime.UtcNow;
+
+                var arcaResponse = await _arcaClient.AuthorizeAsync(arcaRequest);
+
+                document.ArcaResponseJson = JsonSerializer.Serialize(arcaResponse);
+
+                document.CAE = arcaResponse.cae;
+                document.CAEExpiration = DateTime.ParseExact(arcaResponse.caeExpirationDate, "yyyyMMdd", null);
+                document.DocumentNumber = $"{document.PointOfSale:0000}-{document.InvoiceFrom:00000000}";
+                document.ArcaStatus = "Authorized";
+            }
+            else
+            {
+                // --- Real WSFE flow ---
+                document.ArcaLastInteractionAt = DateTime.UtcNow;
+
+                // 7.1) Next number from WSFE
+                var last = await _arcaWsfeClient.GetLastAuthorizedAsync(
+                    issuerCuit,
+                    document.PointOfSale,
+                    document.InvoiceType);
+
+                var next = last + 1;
+                document.InvoiceFrom = next;
+                document.InvoiceTo = next;
+                document.DocumentNumber = $"{document.PointOfSale:0000}-{next:00000000}";
+
+                // 7.2) Map to WsfeCaeRequest
+                var wsfeReq = BuildWsfeCaeRequest(document);
+
+                document.ArcaRequestJson = JsonSerializer.Serialize(wsfeReq);
+
+                // 7.3) Request CAE
+                var caeResp = await _arcaWsfeClient.RequestCaeAsync(issuerCuit, wsfeReq);
+
+                document.ArcaResponseJson = JsonSerializer.Serialize(caeResp);
+
+                // 7.4) Apply response
+                document.ArcaLastInteractionAt = DateTime.UtcNow;
+
+                if (caeResp.Errors != null && caeResp.Errors.Count > 0)
+                    document.ArcaErrorsJson = JsonSerializer.Serialize(caeResp.Errors);
+
+                if (caeResp.Events != null && caeResp.Events.Count > 0)
+                    document.ArcaObservationsJson = JsonSerializer.Serialize(caeResp.Events);
+
+                if (string.Equals(caeResp.Result, "A", StringComparison.OrdinalIgnoreCase))
+                {
+                    document.ArcaStatus = "Authorized";
+
+                    document.CAE = caeResp.Cae ?? "";
+                    if (!string.IsNullOrWhiteSpace(caeResp.CaeDueDate))
+                    {
+                        document.CAEExpiration = DateTime.ParseExact(caeResp.CaeDueDate, "yyyyMMdd", null);
+                    }
+                }
+                else
+                {
+                    // "R" (Rejected) or other
+                    document.ArcaStatus = "Rejected";
+                }
+            }
+
+            await _unitOfWork.SaveChangesAsync();
             return MapToDTO(document);
+        }
+
+
+
+        private WsfeCaeRequest BuildWsfeCaeRequest(FiscalDocument doc)
+        {
+            // Concept: 1 = Products (tu caso)
+            const int concept = 1;
+
+            // DateOnly required by WsfeCaeRequest
+            var cbteDate = DateOnly.FromDateTime(doc.Date);
+
+            // VAT items must be grouped by aliquot (same as you did in dummy BuildArcaRequest)
+            var vatItems = doc.Items
+                .GroupBy(i => i.VATId)
+                .Select(g => new WsfeVatItem(
+                    VatId: g.Key,
+                    BaseAmount: g.Sum(x => x.VATBase),
+                    VatAmount: g.Sum(x => x.VATAmount)
+                ))
+                .ToList();
+
+            // WSFE rule in your client: if NetAmount > 0 then VatItems must exist and sum must match VatAmount.
+            // If NetAmount == 0, we send empty list to avoid unnecessary IVA node.
+            if (doc.NetAmount <= 0)
+                vatItems = new List<WsfeVatItem>();
+
+            return new WsfeCaeRequest(
+                PointOfSale: doc.PointOfSale,
+                CbteType: doc.InvoiceType,
+                Concept: concept,
+                DocType: doc.BuyerDocumentType,
+                DocNumber: doc.BuyerDocumentNumber,
+                CbteDate: cbteDate,
+                CbteFrom: doc.InvoiceFrom,
+                CbteTo: doc.InvoiceTo,
+                CurrencyId: doc.Currency,
+                CurrencyRate: doc.ExchangeRate,
+                TotalAmount: doc.TotalAmount,
+                NetAmount: doc.NetAmount,
+                VatAmount: doc.VATAmount,
+                NotTaxedAmount: doc.NonTaxableAmount,
+                ExemptAmount: doc.ExemptAmount,
+                OtherTaxesAmount: doc.OtherTaxesAmount,
+                VatItems: vatItems,
+                ReceiverVatConditionId: doc.ReceiverVatConditionId
+            );
         }
 
         private ArcaRequestDTO BuildArcaRequest(FiscalDocument doc)

@@ -497,6 +497,7 @@ namespace SalesService.Business.Services
                 InvoiceType = invoiceType,
                 BuyerDocumentType = buyerDocumentType,
                 BuyerDocumentNumber = long.Parse(sale.CustomerTaxId),
+                ReceiverVatConditionId = customer.IVATypeArcaCode,
                 NetAmount = Math.Round(netAmount, 2),
                 VatAmount = Math.Round(vatAmount, 2),
                 TotalAmount = Math.Round(netAmount + vatAmount, 2),
@@ -693,7 +694,8 @@ namespace SalesService.Business.Services
                 Province = "N/A",
                 Country = "N/A",
                 SellCondition = "N/A",
-                IVAType = "N/A"
+                IVAType = "N/A",
+                IVATypeArcaCode = 5
             };
 
             if (!sale.IsFinalConsumer)
@@ -871,6 +873,7 @@ namespace SalesService.Business.Services
                 InvoiceType = invoiceType,
                 BuyerDocumentType = buyerDocumentType,
                 BuyerDocumentNumber = long.Parse(sale.CustomerTaxId),
+                ReceiverVatConditionId = customer.IVATypeArcaCode,
                 NetAmount = netAmount,
                 VatAmount = vatAmount,
                 TotalAmount = totalAmount,
@@ -976,7 +979,8 @@ namespace SalesService.Business.Services
                 Province = "N/A",
                 Country = "N/A",
                 SellCondition = "N/A",
-                IVAType = "N/A"
+                IVAType = "N/A",
+                IVATypeArcaCode = 5
             };
 
             if (!sale.IsFinalConsumer)
@@ -1041,6 +1045,7 @@ namespace SalesService.Business.Services
                 InvoiceType = invoiceType,
                 BuyerDocumentType = buyerDocumentType,
                 BuyerDocumentNumber = long.Parse(sale.CustomerTaxId),
+                ReceiverVatConditionId = customer.IVATypeArcaCode,
                 NetAmount = netAmount,
                 VatAmount = vatAmount,
                 TotalAmount = totalAmount,
