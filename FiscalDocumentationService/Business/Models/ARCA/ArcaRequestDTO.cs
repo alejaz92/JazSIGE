@@ -58,7 +58,11 @@
         decimal NotTaxedAmount,
         decimal ExemptAmount,
         decimal OtherTaxesAmount,
-        List<WsfeVatItem>? VatItems = null
+        List<WsfeVatItem>? VatItems = null,
+        // Campos de referencia para notas de débito y crédito
+        int? ReferencedCbteType = null,
+        int? ReferencedPointOfSale = null,
+        long? ReferencedCbteNumber = null
     );
 
     public record WsfeVatItem(int VatId, decimal BaseAmount, decimal VatAmount);

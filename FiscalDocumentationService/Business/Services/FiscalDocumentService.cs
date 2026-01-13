@@ -1,5 +1,6 @@
 ﻿using FiscalDocumentationService.Business.Interfaces;
 using FiscalDocumentationService.Business.Interfaces.Clients;
+using FiscalDocumentationService.Business.Interfaces.Clients.Dummy;
 using FiscalDocumentationService.Business.Models;
 using FiscalDocumentationService.Business.Models.Arca;
 using FiscalDocumentationService.Business.Options;
@@ -17,16 +18,16 @@ namespace FiscalDocumentationService.Business.Services
     public class FiscalDocumentService : IFiscalDocumentService
     {
         private readonly IUnitOfWork _unitOfWork;
-        private readonly IArcaServiceClient _arcaClient;
+        private readonly IDummyArcaServiceClient _dummyArcaClient;
         private readonly ICompanyServiceClient _companyClient;
         private readonly IOptions<ArcaOptions> _arcaOptions;
         private readonly IArcaWsfeClient _arcaWsfeClient;
 
-        public FiscalDocumentService(IUnitOfWork unitOfWork, IArcaServiceClient arcaClient, ICompanyServiceClient companyClient, 
+        public FiscalDocumentService(IUnitOfWork unitOfWork, IDummyArcaServiceClient dummyArcaClient, ICompanyServiceClient companyClient, 
             IOptions<ArcaOptions> arcaOptions, IArcaWsfeClient arcaWsfeClient)
         {
             _unitOfWork = unitOfWork;
-            _arcaClient = arcaClient;
+            _dummyArcaClient = dummyArcaClient;
             _companyClient = companyClient;
             _arcaOptions = arcaOptions;
             _arcaWsfeClient = arcaWsfeClient;
@@ -85,6 +86,17 @@ namespace FiscalDocumentationService.Business.Services
                 _ => throw new ArgumentException("Invalid Invoice Type")
             };
 
+            // 3.1) Validate reference fields for credit/debit notes
+            if (type == FiscalDocumentType.CreditNote || type == FiscalDocumentType.DebitNote)
+            {
+                if (!dto.ReferencedInvoiceType.HasValue)
+                    throw new FiscalValidationException($"{type} requires ReferencedInvoiceType (tipo de comprobante referenciado).");
+                if (!dto.ReferencedPointOfSale.HasValue)
+                    throw new FiscalValidationException($"{type} requires ReferencedPointOfSale (punto de venta del comprobante referenciado).");
+                if (!dto.ReferencedInvoiceNumber.HasValue || dto.ReferencedInvoiceNumber <= 0)
+                    throw new FiscalValidationException($"{type} requires ReferencedInvoiceNumber (número del comprobante referenciado).");
+            }
+
             // 4) Idempotency (only invoices)
             if (type == FiscalDocumentType.Invoice)
             {
@@ -137,6 +149,11 @@ namespace FiscalDocumentationService.Business.Services
                 // If your DTO field name differs, replace here:
                 ReceiverVatConditionId = dto.ReceiverVatConditionId,
 
+                // Referencia a factura original (para notas de débito y crédito)
+                ReferencedInvoiceType = dto.ReferencedInvoiceType,
+                ReferencedPointOfSale = dto.ReferencedPointOfSale,
+                ReferencedInvoiceNumber = dto.ReferencedInvoiceNumber,
+
                 Items = dto.Items.Select(i => new FiscalDocumentItem
                 {
                     Sku = i.Sku,
@@ -164,7 +181,7 @@ namespace FiscalDocumentationService.Business.Services
             // 7) Emit (Dummy or WSFE)
             if (!companyFiscal.ArcaEnabled)
             {
-                // Keep your current dummy flow (as-is)
+                // Dummy flow: simulates ARCA authorization without contacting ARCA
                 var invoiceNumber = GenerateInvoiceNumber();
                 document.InvoiceFrom = invoiceNumber;
                 document.InvoiceTo = invoiceNumber;
@@ -174,7 +191,7 @@ namespace FiscalDocumentationService.Business.Services
                 document.ArcaRequestJson = JsonSerializer.Serialize(arcaRequest);
                 document.ArcaLastInteractionAt = DateTime.UtcNow;
 
-                var arcaResponse = await _arcaClient.AuthorizeAsync(arcaRequest);
+                var arcaResponse = await _dummyArcaClient.AuthorizeAsync(arcaRequest);
 
                 document.ArcaResponseJson = JsonSerializer.Serialize(arcaResponse);
 
@@ -282,7 +299,11 @@ namespace FiscalDocumentationService.Business.Services
                 ExemptAmount: doc.ExemptAmount,
                 OtherTaxesAmount: doc.OtherTaxesAmount,
                 VatItems: vatItems,
-                ReceiverVatConditionId: doc.ReceiverVatConditionId
+                ReceiverVatConditionId: doc.ReceiverVatConditionId,
+                // Campos de referencia para notas de débito y crédito
+                ReferencedCbteType: doc.ReferencedInvoiceType,
+                ReferencedPointOfSale: doc.ReferencedPointOfSale,
+                ReferencedCbteNumber: doc.ReferencedInvoiceNumber
             );
         }
 
@@ -386,6 +407,9 @@ namespace FiscalDocumentationService.Business.Services
                 Currency = doc.Currency,
                 ExchangeRate = doc.ExchangeRate,
                 IssuerTaxId = doc.IssuerTaxId,
+                ReferencedInvoiceType = doc.ReferencedInvoiceType,
+                ReferencedPointOfSale = doc.ReferencedPointOfSale,
+                ReferencedInvoiceNumber = doc.ReferencedInvoiceNumber,
                 Items = doc.Items.Select(i => new FiscalDocumentItemDTO
                 {
                     Sku = i.Sku,

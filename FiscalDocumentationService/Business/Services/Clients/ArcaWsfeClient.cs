@@ -133,6 +133,7 @@ $@"<?xml version=""1.0"" encoding=""utf-8""?>
             ValidateCaeRequest(req);
 
             var vatXml = BuildVatXml(req);
+            var referenceXml = BuildReferenceXml(req);
 
             var soapEnvelope =
         $@"<?xml version=""1.0"" encoding=""utf-8""?>
@@ -157,7 +158,7 @@ $@"<?xml version=""1.0"" encoding=""utf-8""?>
             <ar:DocTipo>{req.DocType}</ar:DocTipo>
             <ar:DocNro>{req.DocNumber}</ar:DocNro>
             <ar:CbteDesde>{req.CbteFrom}</ar:CbteDesde>
-            <ar:CbteHasta>{req.CbteTo}</ar:CbteHasta>
+            <ar:CbteHasta>{req.CbteTo}</ar:CbteTo>
             <ar:CbteFch>{dateStr}</ar:CbteFch>
             <ar:ImpTotal>{FormatAmount(req.TotalAmount)}</ar:ImpTotal>
             <ar:ImpTotConc>{FormatAmount(req.NotTaxedAmount)}</ar:ImpTotConc>
@@ -170,6 +171,7 @@ $@"<?xml version=""1.0"" encoding=""utf-8""?>
             <ar:CondicionIVAReceptorId>{req.ReceiverVatConditionId}</ar:CondicionIVAReceptorId>
 
             {vatXml}
+            {referenceXml}
           </ar:FECAEDetRequest>
         </ar:FeDetReq>
       </ar:FeCAEReq>
@@ -330,6 +332,26 @@ $@"<?xml version=""1.0"" encoding=""utf-8""?>
 </ar:AlicIva>"));
 
             return $@"<ar:Iva>{items}</ar:Iva>";
+        }
+
+        private static string BuildReferenceXml(WsfeCaeRequest req)
+        {
+            // Campos de referencia solo para notas de débito (2, 7, 12, 52) y crédito (3, 8, 13, 53)
+            // Tipos de comprobante: 1,6,11,51 = Facturas; 2,7,12,52 = Notas de Débito; 3,8,13,53 = Notas de Crédito
+            var isNote = req.CbteType == 2 || req.CbteType == 7 || req.CbteType == 12 || req.CbteType == 52 ||
+                         req.CbteType == 3 || req.CbteType == 8 || req.CbteType == 13 || req.CbteType == 53;
+
+            if (!isNote || !req.ReferencedCbteType.HasValue || !req.ReferencedPointOfSale.HasValue || !req.ReferencedCbteNumber.HasValue)
+                return "";
+
+            return $@"
+            <ar:CbtesAsoc>
+              <ar:CbteAsoc>
+                <ar:Tipo>{req.ReferencedCbteType.Value}</ar:Tipo>
+                <ar:PtoVta>{req.ReferencedPointOfSale.Value}</ar:PtoVta>
+                <ar:Nro>{req.ReferencedCbteNumber.Value}</ar:Nro>
+              </ar:CbteAsoc>
+            </ar:CbtesAsoc>";
         }
 
         private static string FormatAmount(decimal value)

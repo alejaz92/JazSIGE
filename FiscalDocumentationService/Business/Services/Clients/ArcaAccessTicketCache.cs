@@ -1,5 +1,5 @@
 ﻿using FiscalDocumentationService.Business.Interfaces.Clients;
-using FiscalDocumentationService.Business.Models.ARCA;
+using FiscalDocumentationService.Business.Models.Arca;
 using System.Collections.Concurrent;
 using System.Threading;
 

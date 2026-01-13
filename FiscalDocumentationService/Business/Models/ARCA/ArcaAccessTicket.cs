@@ -1,4 +1,4 @@
-﻿namespace FiscalDocumentationService.Business.Models.ARCA
+﻿namespace FiscalDocumentationService.Business.Models.Arca
 {
     public class ArcaAccessTicket
     {

@@ -1,9 +1,14 @@
-﻿using FiscalDocumentationService.Business.Interfaces.Clients;
+using FiscalDocumentationService.Business.Interfaces.Clients.Dummy;
 using FiscalDocumentationService.Business.Models.Arca;
 
-namespace FiscalDocumentationService.Business.Services.Clients
+namespace FiscalDocumentationService.Business.Services.Clients.Dummy
 {
-    public class ArcaServiceClient : IArcaServiceClient
+    /// <summary>
+    /// Dummy implementation of ARCA service client that simulates invoice authorization.
+    /// This service does not contact ARCA and always returns an approved response with a random CAE.
+    /// Use this for development and testing purposes only.
+    /// </summary>
+    public class DummyArcaServiceClient : IDummyArcaServiceClient
     {
         public Task<ArcaResponseDTO> AuthorizeAsync(ArcaRequestDTO request)
         {

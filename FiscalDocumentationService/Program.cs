@@ -1,9 +1,11 @@
 using FiscalDocumentationService.Business.Interfaces;
 using FiscalDocumentationService.Business.Interfaces.Clients;
+using FiscalDocumentationService.Business.Interfaces.Clients.Dummy;
 using FiscalDocumentationService.Business.Middlewares;
 using FiscalDocumentationService.Business.Options;
 using FiscalDocumentationService.Business.Services;
 using FiscalDocumentationService.Business.Services.Clients;
+using FiscalDocumentationService.Business.Services.Clients.Dummy;
 using FiscalDocumentationService.Infrastructure.Data;
 using FiscalDocumentationService.Infrastructure.Interfaces;
 using FiscalDocumentationService.Infrastructure.Repositories;
@@ -54,23 +56,40 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Repositories y UoW
+// ============================================
+// Database & Repositories
+// ============================================
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IFiscalDocumentRepository, FiscalDocumentRepository>();
 
-// Services
+// ============================================
+// Business Services
+// ============================================
 builder.Services.AddScoped<IFiscalDocumentService, FiscalDocumentService>();
+
+// ============================================
+// ARCA Configuration
+// ============================================
+builder.Services.Configure<ArcaOptions>(builder.Configuration.GetSection("Arca"));
 builder.Services.AddSingleton<IArcaAccessTicketCache, ArcaAccessTicketCache>();
 
-builder.Services.Configure<ArcaOptions>(builder.Configuration.GetSection("Arca"));
-//builder.Services.AddSingleton(sp =>
-//    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<ArcaOptions>>().Value);
-
-//inyect configuration
+// ============================================
+// External Service Clients
+// ============================================
 builder.Services.AddScoped<ICompanyServiceClient, CompanyServiceClient>();
-builder.Services.AddHttpClient<IArcaServiceClient, ArcaServiceClient>();
+
+// ============================================
+// ARCA Integration Clients (Real Implementation)
+// ============================================
 builder.Services.AddHttpClient<IArcaAuthClient, ArcaAuthClient>();
 builder.Services.AddHttpClient<IArcaWsfeClient, ArcaWsfeClient>();
+
+// ============================================
+// Dummy/Mock Services (for Development/Testing)
+// ============================================
+// Dummy ARCA service that simulates authorization without contacting ARCA
+// Use this when ArcaEnabled is false in company fiscal settings
+builder.Services.AddScoped<IDummyArcaServiceClient, DummyArcaServiceClient>();
 
 
 builder.Services.AddHttpContextAccessor();
@@ -84,7 +103,7 @@ app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "FiscalDocumentationService v1");
-    c.RoutePrefix = string.Empty;  // Podés cambiar el prefijo o dejarlo vacío
+    c.RoutePrefix = string.Empty;  // Podï¿½s cambiar el prefijo o dejarlo vacï¿½o
 });
 
 app.UseMiddleware<ApiExceptionMiddleware>();

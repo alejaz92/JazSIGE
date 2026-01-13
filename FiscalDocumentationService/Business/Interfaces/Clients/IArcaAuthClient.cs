@@ -1,4 +1,4 @@
-﻿using FiscalDocumentationService.Business.Models.ARCA;
+﻿using FiscalDocumentationService.Business.Models.Arca;
 
 namespace FiscalDocumentationService.Business.Interfaces.Clients
 {

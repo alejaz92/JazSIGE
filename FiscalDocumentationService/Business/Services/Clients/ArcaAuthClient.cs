@@ -1,5 +1,5 @@
 ﻿using FiscalDocumentationService.Business.Interfaces.Clients;
-using FiscalDocumentationService.Business.Models.ARCA;
+using FiscalDocumentationService.Business.Models.Arca;
 using FiscalDocumentationService.Business.Options;
 using Microsoft.Extensions.Options;
 using System.Security;

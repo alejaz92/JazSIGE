@@ -29,6 +29,11 @@
         public decimal ExchangeRate { get; set; } 
         public string IssuerTaxId { get; set; }
 
+        // Referencia a factura original (para notas de débito y crédito)
+        public int? ReferencedInvoiceType { get; set; }
+        public int? ReferencedPointOfSale { get; set; }
+        public long? ReferencedInvoiceNumber { get; set; }
+
         public string ArcaQrUrl { get; set; } = string.Empty;
     }
 }
