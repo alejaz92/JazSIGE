@@ -168,7 +168,7 @@
       }
     },
     {
-      "DownstreamPathTemplate": "/api/Diagnostics/{everything}",
+      "DownstreamPathTemplate": "/api/FiscalDocument/{everything}",
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
         {
@@ -178,7 +178,7 @@
           //"Port": 7036
         }
       ],
-      "UpstreamPathTemplate": "/Diagnostics/{everything}",
+      "UpstreamPathTemplate": "/FiscalDocument/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST" ],
       "AddHeadersToRequest": {
         "Authorization": "{Headers.Authorization}"
