@@ -449,10 +449,10 @@ namespace SalesService.Business.Services
                         Sku = articleInfo.SKU,
                         Description = articleInfo.Description + "- Marca: " + articleInfo.Brand,
                         UnitPrice = priceWithDiscount,
-                        Quantity = (int)article.Quantity,
+                        Quantity = (int)i.Quantity,
                         VatBase = baseAmount,
                         VatAmount = iva,
-                        VatId = (int)(article.IVAPercent == 21 ? 5 : 4), // Dummy ejemplo
+                        VatId = (int)(article.IVAPercent ==21 ?5 :4), // Dummy ejemplo
                         DispatchCode = i.DispatchCode,
                         Warranty = articleInfo.Warranty
 
