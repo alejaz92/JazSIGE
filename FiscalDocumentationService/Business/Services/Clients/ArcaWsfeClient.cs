@@ -158,7 +158,7 @@ $@"<?xml version=""1.0"" encoding=""utf-8""?>
             <ar:DocTipo>{req.DocType}</ar:DocTipo>
             <ar:DocNro>{req.DocNumber}</ar:DocNro>
             <ar:CbteDesde>{req.CbteFrom}</ar:CbteDesde>
-            <ar:CbteHasta>{req.CbteTo}</ar:CbteTo>
+            <ar:CbteHasta>{req.CbteTo}</ar:CbteHasta>
             <ar:CbteFch>{dateStr}</ar:CbteFch>
             <ar:ImpTotal>{FormatAmount(req.TotalAmount)}</ar:ImpTotal>
             <ar:ImpTotConc>{FormatAmount(req.NotTaxedAmount)}</ar:ImpTotConc>

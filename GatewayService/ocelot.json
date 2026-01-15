@@ -151,7 +151,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "companyinfo-api-dev-amccbga3hbemapa5.centralus-01.azurewebsites.net",
-          "Port": 443,
+          "Port": 443
           //"Host": "localhost",
           //"Port": 7168
         }
