@@ -27,6 +27,7 @@ namespace CatalogService.Business.Services
             {
                 Id = entity.Id,
                 Description = entity.Description,
+                ArcaCode = entity.ArcaCode,
                 IsActive = entity.IsActive
             };
         }
@@ -35,13 +36,15 @@ namespace CatalogService.Business.Services
         {
             return new IVAType
             {
-                Description = dto.Description
+                Description = dto.Description,
+                ArcaCode = dto.ArcaCode
             };
         }
 
         protected override void UpdateDomain(IVAType entity, IVATypeCreateDTO dto)
         {
             entity.Description = dto.Description;
+            entity.ArcaCode = dto.ArcaCode;
         }
 
         public async Task<bool> IsIVATypeDescriptionUnique(string Description)
@@ -50,13 +53,26 @@ namespace CatalogService.Business.Services
             return !ivatypes.Any();
         }
 
+        public async Task<bool> IsIVATypeArcaCodeUnique(int arcaCode)
+        {
+            var ivatypes = await _repository.FindAsync(b => b.ArcaCode == arcaCode);
+            return !ivatypes.Any();
+        }
+
         public override async Task<string?> ValidateBeforeSave(IVATypeCreateDTO model)
         {
             if (string.IsNullOrWhiteSpace(model.Description))
                 return "IVA Type description is mandatory.";
-            var isUnique = await IsIVATypeDescriptionUnique(model.Description);
-            if (!isUnique)
+
+            if (model.ArcaCode <= 0)
+                return "ArcaCode must be a positive integer.";
+
+            if (!await IsIVATypeDescriptionUnique(model.Description))
                 return "IVA Type description already exists";
+
+            if (!await IsIVATypeArcaCodeUnique(model.ArcaCode))
+                return "IVA Type ArcaCode already exists";
+
             return null;
         }
 

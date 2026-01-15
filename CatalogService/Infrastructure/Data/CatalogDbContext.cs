@@ -111,11 +111,45 @@ namespace CatalogService.Infrastructure.Data
 
 
 
+            modelBuilder.Entity<IVAType>(entity =>
+            {
+                entity.Property(x => x.Description)
+                    .IsRequired()
+                    .HasMaxLength(100);
+
+                entity.Property(x => x.ArcaCode)
+                    .IsRequired();
+
+                entity.HasIndex(x => x.Description).IsUnique();
+                entity.HasIndex(x => x.ArcaCode).IsUnique();
+
+                // Seed fijo (valores ARCA/AFIP)
+                var seedDate = new DateTime(2026, 1, 15, 0, 0, 0, DateTimeKind.Utc);
+
+                entity.HasData(
+                    new IVAType { Id = 1, Description = "IVA Responsable Inscripto", ArcaCode = 1, IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+                    new IVAType { Id = 2, Description = "IVA Sujeto Exento", ArcaCode = 4, IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+                    new IVAType { Id = 3, Description = "Consumidor Final", ArcaCode = 5, IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+                    new IVAType { Id = 4, Description = "Responsable Monotributo", ArcaCode = 6, IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+                    new IVAType { Id = 5, Description = "Sujeto No Categorizado", ArcaCode = 7, IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+                    new IVAType { Id = 6, Description = "Proveedor del Exterior", ArcaCode = 8, IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+                    new IVAType { Id = 7, Description = "Cliente del Exterior", ArcaCode = 9, IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+                    new IVAType { Id = 8, Description = "IVA Liberado – Ley 19.640", ArcaCode = 10, IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+                    new IVAType { Id = 9, Description = "Monotributista Social", ArcaCode = 13, IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+                    new IVAType { Id = 10, Description = "IVA No Alcanzado", ArcaCode = 15, IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate },
+                    new IVAType { Id = 11, Description = "Monotributo Trabajador Independiente Promovido", ArcaCode = 16, IsActive = true, CreatedAt = seedDate, UpdatedAt = seedDate }
+                );
+            });
+
+
 
             // precision
             modelBuilder.Entity<Article>()
                 .Property(a => a.IVAPercentage)
                 .HasPrecision(18, 2); // Ajustá la precisión según necesidad
+
+
+
         }
     }
 }
