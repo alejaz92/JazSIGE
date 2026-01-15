@@ -6,18 +6,31 @@ using System.Security.Claims;
 using CompanyService.Infrastructure.Data;
 using CompanyService.Infrastructure.Interfaces;
 using CompanyService.Infrastructure.Repositories;
+using CompanyService.Infrastructure.Middleware;
 using CompanyService.Business.Interfaces;
 using CompanyService.Business.Services;
+using Microsoft.AspNetCore.Mvc;
 
-
-
+/// <summary>
+/// Company Service - Microservice for managing company information
+/// Provides company data for invoicing and business process configurations
+/// </summary>
 var builder = WebApplication.CreateBuilder(args);
 
-// DB
-builder.Services.AddDbContext<CompanyDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+// ============================================================================
+// Database Configuration
+// ============================================================================
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrEmpty(connectionString))
+    throw new InvalidOperationException("Database connection string is not configured");
 
+builder.Services.AddDbContext<CompanyDbContext>(options =>
+    options.UseSqlServer(connectionString));
+
+// ============================================================================
 // CORS Configuration
+// ============================================================================
+// Configure CORS policy to allow requests from specified origins
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendPolicy", policy =>
@@ -29,10 +42,14 @@ builder.Services.AddCors(options =>
     });
 });
 
-// test433
+// ============================================================================
+// JWT Authentication Configuration
+// ============================================================================
+var jwtKey = builder.Configuration["Jwt:Key"];
+if (string.IsNullOrEmpty(jwtKey))
+    throw new InvalidOperationException("JWT Key is not configured");
 
-// JWT
-var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]);
+var key = Encoding.UTF8.GetBytes(jwtKey);
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -50,41 +67,78 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// Swagger Configuration
+// ============================================================================
+// Swagger/OpenAPI Configuration
+// ============================================================================
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Repositories
+// ============================================================================
+// Dependency Injection - Repositories
+// ============================================================================
 builder.Services.AddScoped<ICompanyInfoRepository, CompanyInfoRepository>();
 
-
-//Services
+// ============================================================================
+// Dependency Injection - Business Services
+// ============================================================================
 builder.Services.AddScoped<ICompanyInfoService, CompanyInfoService>();
 builder.Services.AddScoped<ICatalogServiceClient, CatalogServiceClient>();
 
-
-//inyect configuration
+// ============================================================================
+// HTTP Client Configuration
+// ============================================================================
+// Configure HTTP client factory for external service calls
 builder.Services.AddHttpClient();
-//builder.Services.Configure<AuthServiceSettings>(builder.Configuration.GetSection("AuthService"));
 builder.Services.AddHttpContextAccessor();
 
-// Controllers
-builder.Services.AddControllers();
+// ============================================================================
+// Controllers Configuration
+// ============================================================================
+// Configure API behavior to return consistent validation error responses
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState
+                .Where(x => x.Value?.Errors.Count > 0)
+                .ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => kvp.Value!.Errors.Select(e => e.ErrorMessage).ToArray()
+                );
+
+            return new BadRequestObjectResult(new
+            {
+                message = "Validation failed",
+                errors = errors
+            });
+        };
+    });
 
 var app = builder.Build();
 
-app.UseSwagger();
-app.UseSwaggerUI(c =>
+// ============================================================================
+// Middleware Pipeline Configuration
+// ============================================================================
+
+// Swagger UI (only in development environment)
+if (app.Environment.IsDevelopment())
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "PurchaseService v1");
-    c.RoutePrefix = string.Empty;  // Podés cambiar el prefijo o dejarlo vacío
-});
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "CompanyService v1");
+        c.RoutePrefix = string.Empty;
+    });
+}
 
 app.UseStaticFiles();
-
-
-app.UseCors("AllowAll");
 app.UseHttpsRedirection();
+
+// Global Exception Handler - Must be early in pipeline to catch all errors
+app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
+
+app.UseCors("FrontendPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
 
