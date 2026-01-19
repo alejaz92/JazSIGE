@@ -42,12 +42,34 @@ namespace FiscalDocumentationService.Business.Services.Clients
                 if (cached != null && cached.IsValid())
                     return cached;
 
-                // 4) Validate config
-                if (string.IsNullOrWhiteSpace(_options.Certificate.PfxPath))
-                    throw new InvalidOperationException("ARCA certificate path (Arca:Certificate:PfxPath) is not configured.");
+                //// 4) Validate config
+                //if (string.IsNullOrWhiteSpace(_options.Certificate.PfxPath))
+                //    throw new InvalidOperationException("ARCA certificate path (Arca:Certificate:PfxPath) is not configured.");
 
-                if (!File.Exists(_options.Certificate.PfxPath))
+                //if (!File.Exists(_options.Certificate.PfxPath))
+                //    throw new InvalidOperationException($"ARCA certificate file not found: {_options.Certificate.PfxPath}");
+
+                // 4) Validate config
+                var hasBase64 = !string.IsNullOrWhiteSpace(_options.Certificate.PfxBase64);
+                var hasPath = !string.IsNullOrWhiteSpace(_options.Certificate.PfxPath);
+
+                if (!hasBase64 && !hasPath)
+                {
+                    throw new InvalidOperationException(
+                        "ARCA certificate is not configured. Configure Arca:Certificate:PfxBase64 (recommended for Azure) " +
+                        "or Arca:Certificate:PfxPath (local dev).");
+                }
+
+                if (!string.IsNullOrWhiteSpace(_options.Certificate.PfxPassword) == false)
+                {
+                    throw new InvalidOperationException("ARCA certificate password (Arca:Certificate:PfxPassword) is not configured.");
+                }
+
+                if (!hasBase64 && hasPath && !File.Exists(_options.Certificate.PfxPath))
+                {
                     throw new InvalidOperationException($"ARCA certificate file not found: {_options.Certificate.PfxPath}");
+                }
+
 
                 var wsaaUrl = ResolveWsaaUrl();
                 if (string.IsNullOrWhiteSpace(wsaaUrl))
@@ -55,7 +77,8 @@ namespace FiscalDocumentationService.Business.Services.Clients
 
                 // 5) Build + sign
                 var traXml = BuildTraXml(serviceName);
-                var cmsBase64 = SignTraToCmsBase64(traXml, _options.Certificate.PfxPath, _options.Certificate.PfxPassword);
+                var cmsBase64 = SignTraToCmsBase64(traXml, _options.Certificate);
+
                 var soapEnvelope = BuildLoginCmsSoapEnvelope(cmsBase64);
 
                 // 6) Call WSAA
@@ -135,20 +158,13 @@ namespace FiscalDocumentationService.Business.Services.Clients
             return doc.Declaration + doc.ToString(SaveOptions.DisableFormatting);
         }
 
-        private static string SignTraToCmsBase64(string traXml, string pfxPath, string pfxPassword)
+        private static string SignTraToCmsBase64(string traXml, CertificateOptions certOptions)
         {
-            var cert = new X509Certificate2(
-                            pfxPath,
-                            pfxPassword,
-                            X509KeyStorageFlags.UserKeySet |
-                            X509KeyStorageFlags.PersistKeySet |
-                            X509KeyStorageFlags.Exportable
-                        );
+            var cert = LoadCertificate(certOptions);
 
             var rsa = cert.GetRSAPrivateKey();
             if (rsa == null)
                 throw new InvalidOperationException("Private key not accessible (GetRSAPrivateKey returned null).");
-
 
             var keySize = rsa.KeySize;
             if (keySize < 2048) throw new InvalidOperationException($"RSA key too small: {keySize} bits.");
@@ -159,32 +175,41 @@ namespace FiscalDocumentationService.Business.Services.Clients
             var utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
             var data = utf8NoBom.GetBytes(traXml);
 
-
             var contentInfo = new ContentInfo(data);
             var signedCms = new SignedCms(contentInfo, detached: false);
 
-            var signer = new CmsSigner(
-                SubjectIdentifierType.SubjectKeyIdentifier,
-                cert)
+            var signer = new CmsSigner(SubjectIdentifierType.SubjectKeyIdentifier, cert)
             {
                 IncludeOption = X509IncludeOption.EndCertOnly,
-                DigestAlgorithm = new Oid("1.3.14.3.2.26") // SHA-1
+                DigestAlgorithm = new Oid("1.3.14.3.2.26") // SHA-1 (required by WSAA)
             };
 
-
-
-
-
-
-            // You can add additional signed attributes if needed, but usually not required.
             signedCms.ComputeSignature(signer);
 
             var cms = signedCms.Encode();
-            var cmsBase64 = Convert.ToBase64String(cms); // sin InsertLineBreaks
-            return cmsBase64;
-
-
+            return Convert.ToBase64String(cms);
         }
+
+        private static X509Certificate2 LoadCertificate(CertificateOptions certOptions)
+        {
+            // Prefer Base64 (Azure / Key Vault)
+            if (!string.IsNullOrWhiteSpace(certOptions.PfxBase64))
+            {
+                var bytes = Convert.FromBase64String(certOptions.PfxBase64);
+
+                // EphemeralKeySet funciona bien en App Service (Linux) y evita escribir key material en disco
+                return new X509Certificate2(bytes, certOptions.PfxPassword, X509KeyStorageFlags.EphemeralKeySet);
+            }
+
+            // Fallback: local dev path
+            return new X509Certificate2(
+                certOptions.PfxPath,
+                certOptions.PfxPassword,
+                X509KeyStorageFlags.EphemeralKeySet
+            );
+        }
+
+
 
         private static string BuildLoginCmsSoapEnvelope(string cmsBase64)
         {

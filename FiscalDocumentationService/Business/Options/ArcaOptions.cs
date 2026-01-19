@@ -26,5 +26,7 @@
     {
         public string PfxPath { get; set; } = string.Empty;
         public string PfxPassword { get; set; } = string.Empty;
+
+        public string PfxBase64 { get; set; } = string.Empty;
     }
 }
