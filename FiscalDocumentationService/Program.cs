@@ -76,7 +76,13 @@ builder.Services.AddSingleton<IArcaAccessTicketCache, ArcaAccessTicketCache>();
 // ============================================
 // External Service Clients
 // ============================================
-builder.Services.AddScoped<ICompanyServiceClient, CompanyServiceClient>();
+// builder.Services.AddScoped<ICompanyServiceClient, CompanyServiceClient>();
+builder.Services.AddHttpClient<ICompanyServiceClient, CompanyServiceClient>(client =>
+{
+    var baseUrl = builder.Configuration["GatewayService:CompanyBaseUrl"];
+    client.BaseAddress = new Uri(baseUrl!);
+});
+
 
 // ============================================
 // ARCA Integration Clients (Real Implementation)
