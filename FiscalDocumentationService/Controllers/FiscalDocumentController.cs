@@ -1,4 +1,5 @@
-﻿using FiscalDocumentationService.Business.Interfaces;
+﻿using FiscalDocumentationService.Business.Exceptions;
+using FiscalDocumentationService.Business.Interfaces;
 using FiscalDocumentationService.Business.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -21,9 +22,22 @@ namespace FiscalDocumentationService.Controllers
         [HttpPost]
         public async Task<ActionResult<FiscalDocumentDTO>> Create([FromBody] FiscalDocumentCreateDTO dto)
         {
-            var result = await _fiscalDocumentService.CreateAsync(dto);
-            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+            try
+            {
+                var result = await _fiscalDocumentService.CreateAsync(dto);
+
+                // ✅ opcional: si por algún motivo llega con CAE vacío, no devuelvas 201
+                if (string.IsNullOrWhiteSpace(result.Cae))
+                    return BadRequest(new { message = "Document was created but ARCA did not authorize it (CAE is empty)." });
+
+                return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+            }
+            catch (FiscalDocumentationException ex) // tu base exception
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
+
 
         [HttpGet("{id}")]
         public async Task<ActionResult<FiscalDocumentDTO>> GetById(int id)

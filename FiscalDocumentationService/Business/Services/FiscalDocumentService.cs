@@ -235,6 +235,18 @@ namespace FiscalDocumentationService.Business.Services
                 if (caeResp.Events != null && caeResp.Events.Count > 0)
                     document.ArcaObservationsJson = JsonSerializer.Serialize(caeResp.Events);
 
+                if (!string.Equals(caeResp.Result, "A", StringComparison.OrdinalIgnoreCase) ||
+                    string.IsNullOrWhiteSpace(caeResp.Cae))
+                {
+                    document.ArcaStatus = "Rejected";
+                    await _unitOfWork.SaveChangesAsync();
+
+                    throw new FiscalValidationException(
+                        "ARCA rejected the document: " +
+                        string.Join(" | ", (caeResp.Errors ?? new()).Select(e => $"{e.Code}: {e.Msg}"))
+                    );
+                }
+
                 if (string.Equals(caeResp.Result, "A", StringComparison.OrdinalIgnoreCase))
                 {
                     document.ArcaStatus = "Authorized";
