@@ -2,6 +2,7 @@
 using FiscalDocumentationService.Business.Models.Arca;
 using FiscalDocumentationService.Business.Models.Clients;
 using FiscalDocumentationService.Business.Models.Diagnostics;
+using FiscalDocumentationService.Business.Services.Clients;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -41,11 +42,12 @@ namespace FiscalDocumentationService.Controllers
         {
             var ticket = await _arcaAuth.GetAccessTicketAsync("wsfe");
 
+            // NO devolvemos token/sign por seguridad
             return Ok(new
             {
-                tokenLength = ticket.Token.Length,
-                signLength = ticket.Sign.Length,
-                expiresAtUtc = ticket.ExpirationTimeUtc
+                ok = ticket != null,
+                expirationTimeUtc = ticket.ExpirationTimeUtc,
+                expiresInMinutes = Math.Round((ticket.ExpirationTimeUtc - DateTime.UtcNow).TotalMinutes, 2)
             });
         }
 
@@ -193,6 +195,8 @@ namespace FiscalDocumentationService.Controllers
                 errors = resp.Errors
             });
         }
+
+
 
     }
 }

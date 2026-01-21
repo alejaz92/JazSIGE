@@ -4,6 +4,7 @@ using FiscalDocumentationService.Business.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using static FiscalDocumentationService.Business.Exceptions.FiscalDocumentationException;
 
 namespace FiscalDocumentationService.Controllers
 {
@@ -25,18 +26,14 @@ namespace FiscalDocumentationService.Controllers
             try
             {
                 var result = await _fiscalDocumentService.CreateAsync(dto);
-
-                // ✅ opcional: si por algún motivo llega con CAE vacío, no devuelvas 201
-                if (string.IsNullOrWhiteSpace(result.Cae))
-                    return BadRequest(new { message = "Document was created but ARCA did not authorize it (CAE is empty)." });
-
                 return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
             }
-            catch (FiscalDocumentationException ex) // tu base exception
+            catch (FiscalValidationException ex)
             {
                 return BadRequest(new { message = ex.Message });
             }
         }
+
 
 
         [HttpGet("{id}")]

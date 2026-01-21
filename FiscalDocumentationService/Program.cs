@@ -81,8 +81,22 @@ builder.Services.AddScoped<ICompanyServiceClient, CompanyServiceClient>();
 // ============================================
 // ARCA Integration Clients (Real Implementation)
 // ============================================
-builder.Services.AddHttpClient<IArcaAuthClient, ArcaAuthClient>();
 builder.Services.AddHttpClient<IArcaWsfeClient, ArcaWsfeClient>();
+
+// ============================================
+// Integration client for ARCA Auth Service Function
+// ============================================
+builder.Services.AddHttpClient<IArcaAuthClient, ArcaAuthClient>((sp, client) =>
+{
+    var opts = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<ArcaOptions>>().Value;
+
+    if (string.IsNullOrWhiteSpace(opts.WsaaFunction?.BaseUrl))
+        throw new InvalidOperationException("Arca:WsaaFunction:BaseUrl missing.");
+
+    client.BaseAddress = new Uri(opts.WsaaFunction.BaseUrl.TrimEnd('/'));
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+
 
 // ============================================
 // Dummy/Mock Services (for Development/Testing)
