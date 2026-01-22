@@ -5,7 +5,6 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
-// test41
 
 // Configura logging detallado
 builder.Logging.ClearProviders();
@@ -13,7 +12,6 @@ builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 builder.Logging.AddAzureWebAppDiagnostics();
 
-// test deploy
 
 // Configuración
 builder.Configuration

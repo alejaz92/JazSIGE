@@ -5,7 +5,6 @@ using SalesService.Business.Models.DeliveryNote;
 using SalesService.Business.Models.Sale;
 using SalesService.Business.Models.Sale.accounting;
 using SalesService.Business.Models.Sale.fiscalDocs;
-using SalesService.Business.Services.Clients;
 using SalesService.Infrastructure.Interfaces;
 using SalesService.Infrastructure.Models.Sale;
 
