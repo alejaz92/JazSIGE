@@ -13,6 +13,7 @@ builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 builder.Logging.AddAzureWebAppDiagnostics();
 
+// test deploy
 
 // Configuración
 builder.Configuration
