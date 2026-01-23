@@ -508,6 +508,7 @@ namespace SalesService.Business.Services
 
             var result = await _fiscalServiceClient.CreateFiscalNoteAsync(fiscalRequest);
 
+
             // ---> Notificar a Accounting (solo clientes; no consumidor final)
             if (!sale.IsFinalConsumer && sale.CustomerId.HasValue)
             {
