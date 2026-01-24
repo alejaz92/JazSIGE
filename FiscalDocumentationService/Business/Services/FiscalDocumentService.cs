@@ -35,7 +35,7 @@ namespace FiscalDocumentationService.Business.Services
 
         public async Task<FiscalDocumentDTO> CreateAsync(FiscalDocumentCreateDTO dto)
         {
-            // 1) Company fiscal settings
+            // Step 1: Retrieve company fiscal settings to determine ARCA configuration
             var companyFiscal = await _companyClient.GetCompanyFiscalSettingsAsync();
             if (companyFiscal == null)
                 throw new FiscalConfigurationException("Company fiscal settings not found.");
@@ -43,7 +43,7 @@ namespace FiscalDocumentationService.Business.Services
             if (companyFiscal.ArcaEnabled && companyFiscal.ArcaPointOfSale == null)
                 throw new FiscalConfigurationException("ARCA is enabled but PointOfSale is not configured in CompanyInfo.");
 
-            // Guard: environment match (config vs CompanyService)
+            // Step 2: Validate environment consistency between local config and company service
             var arcaEnv = (_arcaOptions.Value.Environment ?? "Homologation").Trim();
             if (!string.IsNullOrWhiteSpace(companyFiscal.ArcaEnvironment) &&
                 !companyFiscal.ArcaEnvironment.Equals(arcaEnv, StringComparison.OrdinalIgnoreCase))
@@ -52,7 +52,7 @@ namespace FiscalDocumentationService.Business.Services
                     $"ARCA environment mismatch. Config='{arcaEnv}' CompanyService='{companyFiscal.ArcaEnvironment}'.");
             }
 
-            // 2) Validations (your existing ones)
+            // Step 3: Validate document items and totals
             if (dto.Items == null || dto.Items.Count == 0)
                 throw new FiscalValidationException("At least one item is required.");
 
@@ -64,11 +64,12 @@ namespace FiscalDocumentationService.Business.Services
 
             ValidateBuyerDataByInvoiceType(dto);
 
+            // Verify total amount matches sum of components
             var calcTotal = dto.NetAmount + dto.VatAmount + dto.ExemptAmount + dto.NonTaxableAmount + dto.OtherTaxesAmount;
             if (Math.Abs(calcTotal - dto.TotalAmount) > 0.01m)
                 throw new ArgumentException($"TotalAmount mismatch. Expected {calcTotal} but got {dto.TotalAmount}.");
 
-            // 3) Type mapping (as you already do)
+            // Step 4: Map invoice type code to document type enum
             var type = dto.InvoiceType switch
             {
                 1 => FiscalDocumentType.Invoice,
@@ -86,7 +87,7 @@ namespace FiscalDocumentationService.Business.Services
                 _ => throw new ArgumentException("Invalid Invoice Type")
             };
 
-            // 3.1) Validate reference fields for credit/debit notes
+            // Step 5: Validate referenced document fields for credit/debit notes
             if (type == FiscalDocumentType.CreditNote || type == FiscalDocumentType.DebitNote)
             {
                 if (!dto.ReferencedInvoiceType.HasValue)
@@ -97,7 +98,7 @@ namespace FiscalDocumentationService.Business.Services
                     throw new FiscalValidationException($"{type} requires ReferencedInvoiceNumber (número del comprobante referenciado).");
             }
 
-            // 4) Idempotency (only invoices)
+            // Step 6: Implement idempotency for invoices - return existing if already present
             if (type == FiscalDocumentType.Invoice)
             {
                 var existingInvoices = await _unitOfWork.FiscalDocumentRepository
@@ -111,12 +112,12 @@ namespace FiscalDocumentationService.Business.Services
                     return MapToDTO(existing);
             }
 
-            // 5) Issuer CUIT digits
+            // Step 7: Extract and validate issuer CUIT (remove non-numeric characters)
             var issuerCuitDigits = Regex.Replace(companyFiscal.TaxId ?? "", @"\D", "");
             if (!long.TryParse(issuerCuitDigits, out var issuerCuit))
                 throw new FiscalConfigurationException($"Invalid Company TaxId format: '{companyFiscal.TaxId}'");
 
-            // 6) Create doc in Pending first (audit-friendly)
+            // Step 8: Create document entity in Pending status (audit-friendly)
             var document = new FiscalDocument
             {
                 PointOfSale = companyFiscal.ArcaPointOfSale ?? 1,
@@ -125,7 +126,7 @@ namespace FiscalDocumentationService.Business.Services
                 BuyerDocumentType = dto.BuyerDocumentType,
                 BuyerDocumentNumber = dto.BuyerDocumentNumber,
 
-                // Numbers will be set later (dummy or WSFE next)
+                // Invoice numbers will be assigned later (by dummy or WSFE)
                 InvoiceFrom = 0,
                 InvoiceTo = 0,
 
@@ -145,11 +146,9 @@ namespace FiscalDocumentationService.Business.Services
                 ExchangeRate = dto.ExchangeRate,
                 IssuerTaxId = issuerCuitDigits,
 
-                // IMPORTANT: this must exist in your DTO or be derived.
-                // If your DTO field name differs, replace here:
                 ReceiverVatConditionId = dto.ReceiverVatConditionId,
 
-                // Referencia a factura original (para notas de débito y crédito)
+                // Reference fields for credit/debit notes
                 ReferencedInvoiceType = dto.ReferencedInvoiceType,
                 ReferencedPointOfSale = dto.ReferencedPointOfSale,
                 ReferencedInvoiceNumber = dto.ReferencedInvoiceNumber,
@@ -178,10 +177,10 @@ namespace FiscalDocumentationService.Business.Services
             await _unitOfWork.FiscalDocumentRepository.CreateAsync(document);
             await _unitOfWork.SaveChangesAsync();
 
-            // 7) Emit (Dummy or WSFE)
+            // Step 9: Process document through ARCA (Dummy or Real WSFE)
             if (!companyFiscal.ArcaEnabled)
             {
-                // Dummy flow: simulates ARCA authorization without contacting ARCA
+                // Dummy flow: simulates ARCA authorization without actual contacting ARCA
                 var invoiceNumber = GenerateInvoiceNumber();
                 document.InvoiceFrom = invoiceNumber;
                 document.InvoiceTo = invoiceNumber;
@@ -202,10 +201,10 @@ namespace FiscalDocumentationService.Business.Services
             }
             else
             {
-                // --- Real WSFE flow ---
+                // Real WSFE flow: contact actual ARCA service
                 document.ArcaLastInteractionAt = DateTime.UtcNow;
 
-                // 7.1) Next number from WSFE
+                // 9.1) Get next available invoice number from WSFE
                 var last = await _arcaWsfeClient.GetLastAuthorizedAsync(
                     issuerCuit,
                     document.PointOfSale,
@@ -216,17 +215,17 @@ namespace FiscalDocumentationService.Business.Services
                 document.InvoiceTo = next;
                 document.DocumentNumber = $"{document.PointOfSale:0000}-{next:00000000}";
 
-                // 7.2) Map to WsfeCaeRequest
+                // 9.2) Build WSFE CAE request
                 var wsfeReq = BuildWsfeCaeRequest(document);
 
                 document.ArcaRequestJson = JsonSerializer.Serialize(wsfeReq);
 
-                // 7.3) Request CAE
+                // 9.3) Submit CAE request to WSFE
                 var caeResp = await _arcaWsfeClient.RequestCaeAsync(issuerCuit, wsfeReq);
 
                 document.ArcaResponseJson = JsonSerializer.Serialize(caeResp);
 
-                // 7.4) Apply response
+                // 9.4) Process WSFE response
                 document.ArcaLastInteractionAt = DateTime.UtcNow;
 
                 if (caeResp.Errors != null && caeResp.Errors.Count > 0)
@@ -235,6 +234,7 @@ namespace FiscalDocumentationService.Business.Services
                 if (caeResp.Events != null && caeResp.Events.Count > 0)
                     document.ArcaObservationsJson = JsonSerializer.Serialize(caeResp.Events);
 
+                // Check if ARCA approved or rejected the document
                 if (!string.Equals(caeResp.Result, "A", StringComparison.OrdinalIgnoreCase) ||
                     string.IsNullOrWhiteSpace(caeResp.Cae))
                 {
@@ -247,6 +247,7 @@ namespace FiscalDocumentationService.Business.Services
                     );
                 }
 
+                // Document was approved (Result = "A")
                 if (string.Equals(caeResp.Result, "A", StringComparison.OrdinalIgnoreCase))
                 {
                     document.ArcaStatus = "Authorized";
@@ -259,7 +260,7 @@ namespace FiscalDocumentationService.Business.Services
                 }
                 else
                 {
-                    // "R" (Rejected) or other
+                    // Other result codes (Rejected, etc.)
                     document.ArcaStatus = "Rejected";
                 }
             }
@@ -270,15 +271,20 @@ namespace FiscalDocumentationService.Business.Services
 
 
 
+        /// <summary>
+        /// Builds a WSFE (Web Service de Facturación Electrónica) CAE request from a FiscalDocument.
+        /// This request is sent to ARCA to obtain authorization (CAE - Código de Autorización Electrónica).
+        /// </summary>
         private WsfeCaeRequest BuildWsfeCaeRequest(FiscalDocument doc)
         {
-            // Concept: 1 = Products (tu caso)
+            // Concept code: 1 = Products (fixed for this company)
             const int concept = 1;
 
-            // DateOnly required by WsfeCaeRequest
+            // Convert date to DateOnly (WSFE requirement)
             var cbteDate = DateOnly.FromDateTime(doc.Date);
 
-            // VAT items must be grouped by aliquot (same as you did in dummy BuildArcaRequest)
+            // Group VAT items by rate (VATId) - WSFE requires aggregated amounts by rate
+            // This prevents duplicates and ensures correct structure
             var vatItems = doc.Items
                 .GroupBy(i => i.VATId)
                 .Select(g => new WsfeVatItem(
@@ -288,8 +294,8 @@ namespace FiscalDocumentationService.Business.Services
                 ))
                 .ToList();
 
-            // WSFE rule in your client: if NetAmount > 0 then VatItems must exist and sum must match VatAmount.
-            // If NetAmount == 0, we send empty list to avoid unnecessary IVA node.
+            // WSFE validation rule: if NetAmount > 0, VatItems must exist and sum correctly
+            // If NetAmount == 0, send empty list to avoid unnecessary IVA nodes
             if (doc.NetAmount <= 0)
                 vatItems = new List<WsfeVatItem>();
 
@@ -312,16 +318,21 @@ namespace FiscalDocumentationService.Business.Services
                 OtherTaxesAmount: doc.OtherTaxesAmount,
                 VatItems: vatItems,
                 ReceiverVatConditionId: doc.ReceiverVatConditionId,
-                // Campos de referencia para notas de débito y crédito
+                // Reference fields for credit/debit notes
                 ReferencedCbteType: doc.ReferencedInvoiceType,
                 ReferencedPointOfSale: doc.ReferencedPointOfSale,
                 ReferencedCbteNumber: doc.ReferencedInvoiceNumber
             );
         }
 
+        /// <summary>
+        /// Builds an ARCA request DTO for the dummy authorization flow.
+        /// Used when ARCA is disabled to simulate authorization without contacting ARCA.
+        /// </summary>
         private ArcaRequestDTO BuildArcaRequest(FiscalDocument doc)
         {
-            // 2) VAT must be grouped by aliquot (VATId) - not one entry per item
+            // VAT must be grouped by aliquot (VATId) - ARCA requires aggregated amounts
+            // not one entry per item
             var vatGrouped = doc.Items
                 .GroupBy(i => i.VATId)
                 .Select(g => new ArcaVAT
@@ -344,7 +355,7 @@ namespace FiscalDocumentationService.Business.Services
                 {
                     new ArcaDetail
                     {
-                        concept = 1, // Products (for this company)
+                        concept = 1, // Products
                         buyerDocumentType = doc.BuyerDocumentType,
                         buyerDocumentNumber = doc.BuyerDocumentNumber,
                         invoiceFrom = doc.InvoiceFrom,
@@ -362,9 +373,13 @@ namespace FiscalDocumentationService.Business.Services
             };
         }
 
+        /// <summary>
+        /// Generates a random invoice number for dummy authorization.
+        /// This is replaced by WSFE's next-number logic in real mode.
+        /// </summary>
         private long GenerateInvoiceNumber()
         {
-            // Dummy only. Will be replaced by WSFE next-number logic.
+            // Dummy only - generates based on UTC ticks to ensure uniqueness
             return DateTime.UtcNow.Ticks % 100000000;
         }
 
@@ -441,23 +456,27 @@ namespace FiscalDocumentationService.Business.Services
             return dto;
         }
 
+        /// <summary>
+        /// Generates an AFIP QR URL for printing on fiscal documents.
+        /// The QR contains encoded fiscal document information as per AFIP standard.
+        /// </summary>
         private string GenerateAfipQrUrl(FiscalDocument doc, FiscalDocumentDTO dto)
         {
             var qrData = new QrData
             {
-                ver = 1,
-                fecha = doc.Date.ToString("yyyy-MM-dd"),
-                cuit = long.Parse(doc.IssuerTaxId),
-                ptoVta = doc.PointOfSale,
-                tipoCmp = doc.InvoiceType,
-                nroCmp = doc.InvoiceFrom,
-                importe = doc.TotalAmount,
-                moneda = doc.Currency,
-                ctz = doc.ExchangeRate,
-                tipoDocRec = doc.BuyerDocumentType,
-                nroDocRec = doc.BuyerDocumentNumber,
-                tipoCodAut = "E",
-                codAut = doc.CAE
+                ver = 1,                              // QR version
+                fecha = doc.Date.ToString("yyyy-MM-dd"), // Document date
+                cuit = long.Parse(doc.IssuerTaxId),    // Issuer CUIT
+                ptoVta = doc.PointOfSale,             // Point of sale
+                tipoCmp = doc.InvoiceType,            // Document type code
+                nroCmp = doc.InvoiceFrom,             // Document number
+                importe = doc.TotalAmount,            // Total amount
+                moneda = doc.Currency,                // Currency
+                ctz = doc.ExchangeRate,               // Exchange rate
+                tipoDocRec = doc.BuyerDocumentType,   // Receiver document type
+                nroDocRec = doc.BuyerDocumentNumber,  // Receiver document number
+                tipoCodAut = "E",                     // Authorization type code (E=Electronic)
+                codAut = doc.CAE                      // Authorization code (CAE)
             };
 
             var json = JsonSerializer.Serialize(qrData);
@@ -465,6 +484,10 @@ namespace FiscalDocumentationService.Business.Services
             return $"https://www.arca.gob.ar/fe/qr/?p={base64}";
         }
 
+        /// <summary>
+        /// Internal class for QR data structure.
+        /// Follows AFIP/ARCA QR format specification.
+        /// </summary>
         private class QrData
         {
             public int ver { get; set; }
@@ -482,26 +505,30 @@ namespace FiscalDocumentationService.Business.Services
             public string codAut { get; set; } = "";
         }
 
+        /// <summary>
+        /// Validates buyer document data based on invoice type requirements.
+        /// Different invoice types have different document type requirements per ARCA rules.
+        /// </summary>
         private void ValidateBuyerDataByInvoiceType(FiscalDocumentCreateDTO dto)
         {
-            // Minimal safety rules (we can refine later with official ARCA doc type codes)
+            // Minimal safety rules per ARCA specifications
+            // (can be refined later with official ARCA document type codes)
 
-            // Invoice A (code 1): requires CUIT as receiver in most real scenarios.
-            // We enforce: BuyerDocumentType must be "CUIT" and number must be 11 digits.
+            // Factura A (code 1): requires CUIT as receiver
+            // Rule: BuyerDocumentType must be CUIT and number must be 11 digits
             if (dto.InvoiceType == 1)
             {
                 // CUIT must be 11 digits
                 if (dto.BuyerDocumentNumber < 10000000000 || dto.BuyerDocumentNumber > 99999999999)
                     throw new FiscalValidationException("Factura A requires a valid 11-digit CUIT as buyer document number.");
 
-                // BuyerDocumentType must be set (we'll enforce exact ARCA code later via FEParamGetTiposDoc)
+                // BuyerDocumentType must be set (exact ARCA code validation via FEParamGetTiposDoc)
                 if (dto.BuyerDocumentType <= 0)
                     throw new FiscalValidationException("Factura A requires a valid buyer document type.");
             }
 
-
-            // Invoice B (code 6): can be DNI/CUIT/CF depending on rules and amounts.
-            // Minimal rule: document type must be > 0 and number > 0 (you already validate number > 0)
+            // Factura B (code 6): flexible - can be DNI, CUIT, or CF depending on rules and amounts
+            // Minimal rule: document type must be valid and number > 0
             if (dto.InvoiceType == 6)
             {
                 if (dto.BuyerDocumentType <= 0)
