@@ -143,21 +143,33 @@ Authorization: Bearer {token}
 
 El servicio incluye endpoints de diagnóstico para verificar la conectividad con ARCA:
 
-- `GET /api/Diagnostics/wsaa`: Prueba la conexión con WSAA
-- `GET /api/Diagnostics/wsfe/dummy`: Prueba la conexión con WSFE (FEDummy)
+- `GET /api/Diagnostics/wsaa`: Prueba la conexión con WSAA (obtiene ticket de acceso)
+- `GET /api/Diagnostics/wsfe/dummy`: Prueba la conexión básica con WSFE (FEDummy)
+- `GET /api/Diagnostics/wsfe/param/tipos-cbte`: Obtiene los tipos de comprobantes disponibles en ARCA
+- `GET /api/Diagnostics/wsfe/comp/ultimo-autorizado?cbteType=1`: Obtiene el último número de comprobante autorizado para un tipo específico
+- `POST /api/Diagnostics/wsfe/cae/hardcoded`: Genera una factura hardcodeada de prueba para verificar todo el flujo de generación de CAE
 
 ## Notas Importantes
 
 1. **Servicios Dummy**: Los servicios en la carpeta `Dummy/` están claramente identificados y documentados. Solo deben usarse en desarrollo/testing.
 
-2. **Idempotencia**: El servicio implementa idempotencia para facturas basándose en `SalesOrderId`. Si ya existe una factura para una orden de venta, retorna la existente.
+2. **Idempotencia**: El servicio implementa idempotencia para facturas basándose en `SalesOrderId`. Si ya existe una factura para una orden de venta, retorna la existente. Las notas de crédito y débito no son idempotentes.
 
 3. **Validaciones**: El servicio valida:
    - Totales de importes (neto + IVA + exento + no gravado + otros impuestos = total)
    - Datos del comprador según el tipo de factura
    - Configuración de ARCA cuando está habilitado
+   - Campos requeridos para notas de crédito/débito (ReferencedInvoiceType, ReferencedPointOfSale, ReferencedInvoiceNumber)
+   - Formato y longitud de documentos según tipo de comprobante
 
 4. **Ambiente**: El servicio valida que el ambiente configurado en `Arca:Environment` coincida con el configurado en el servicio de compañía.
+
+5. **QR URL**: Cada respuesta incluye un `ArcaQrUrl` generado según el estándar AFIP/ARCA para facilitar la impresión de comprobantes con código QR.
+
+6. **Notas de Crédito y Débito**: Requieren referencia a un comprobante original (invoice). Deben proporcionar:
+   - `ReferencedInvoiceType`: Tipo del comprobante original (ej: 1 para Factura A, 6 para Factura B)
+   - `ReferencedPointOfSale`: Punto de venta del comprobante original
+   - `ReferencedInvoiceNumber`: Número del comprobante original
 
 ## Dependencias Principales
 
