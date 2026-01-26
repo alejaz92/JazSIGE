@@ -7,6 +7,7 @@ using SalesService.Business.Models.Sale.accounting;
 using SalesService.Business.Models.Sale.fiscalDocs;
 using SalesService.Infrastructure.Interfaces;
 using SalesService.Infrastructure.Models.Sale;
+using System.Text.RegularExpressions;
 
 
 namespace SalesService.Business.Services
@@ -866,6 +867,9 @@ namespace SalesService.Business.Services
 
 
             //// 5) Armar request al servicio Fiscal
+            ///
+            //convert baseInvoice.DocumentNumber to long
+
 
             var request = new FiscalDocumentCreateDTO
             {
@@ -880,7 +884,11 @@ namespace SalesService.Business.Services
                 SalesOrderId = saleId,
                 Items = items,
                 Currency = "PES", // Default currency
-                ExchangeRate = 1
+                ExchangeRate = 1,
+
+                ReferencedInvoiceType = baseInvoice.InvoiceType,
+                ReferencedPointOfSale = baseInvoice.PointOfSale,
+                ReferencedInvoiceNumber = ConvertDocumentNumberRightToLong(baseInvoice.DocumentNumber)
             };
 
 
@@ -1052,7 +1060,11 @@ namespace SalesService.Business.Services
                 SalesOrderId = saleId,
                 Items = items,
                 Currency = "PES", // Default currency
-                ExchangeRate = 1
+                ExchangeRate = 1,
+
+                ReferencedInvoiceType = baseInvoice.InvoiceType,
+                ReferencedPointOfSale = baseInvoice.PointOfSale,
+                ReferencedInvoiceNumber = ConvertDocumentNumberRightToLong(baseInvoice.DocumentNumber)
             };
 
             var created = await _fiscalServiceClient.CreateFiscalNoteAsync(request);
@@ -1487,5 +1499,24 @@ namespace SalesService.Business.Services
             };
 
         }
+
+        // helper to extract right-hand numeric part of document number like "0001-00001234" -> 1234
+        private static long ConvertDocumentNumberRightToLong(string documentNumber)
+        {
+            if (string.IsNullOrWhiteSpace(documentNumber))
+                throw new InvalidOperationException("Invalid referenced document number.");
+
+            // split by '-' and take right-most segment
+            var parts = documentNumber.Split('-');
+            var right = parts.Length > 1 ? parts[parts.Length - 1] : parts[0];
+
+            // keep only digits
+            var digits = Regex.Replace(right, "\\D", "");
+            if (string.IsNullOrWhiteSpace(digits) || !long.TryParse(digits, out var result))
+                throw new InvalidOperationException($"Invalid referenced document number format: '{documentNumber}'");
+
+            return result;
+        }
+
     }
 }

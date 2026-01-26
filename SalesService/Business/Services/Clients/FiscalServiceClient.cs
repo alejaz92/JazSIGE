@@ -42,7 +42,7 @@ namespace SalesService.Business.Services.Clients
         public async Task<FiscalDocumentResponseDTO?> GetBySaleIdAsync(int salesOrderId)
         {
             var client = CreateAuthorizedClient();
-            var response = await client.GetAsync($"{_fiscalBaseUrl}/by-sales-order/{salesOrderId}");
+            var response = await client.GetAsync($"{_fiscalBaseUrl}by-sales-order/{salesOrderId}");
             if (!response.IsSuccessStatusCode)
             {
                 if (response.StatusCode == System.Net.HttpStatusCode.NotFound)

@@ -23,6 +23,11 @@
         public string Currency { get; set; } = "PES"; // Default currency
         public decimal ExchangeRate { get; set; } = 1; // Default exchange rate
         //public string IssuerTaxId { get; set; }
+
+        // Referencia a factura original (requerido para notas de débito y crédito)
+        public int? ReferencedInvoiceType { get; set; } // Tipo de comprobante referenciado (ej: 1, 6)
+        public int? ReferencedPointOfSale { get; set; } // Punto de venta del comprobante referenciado
+        public long? ReferencedInvoiceNumber { get; set; } // Número del comprobante referenciado
     }
 
     public class FiscalDocumentItemDTO
