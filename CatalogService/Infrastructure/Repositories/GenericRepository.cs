@@ -20,7 +20,7 @@ namespace CatalogService.Infrastructure.Repositories
             _dbSet = context.Set<T>();
         }
 
-        public async Task<IEnumerable<T>> GetAllAsync() => await _dbSet.ToListAsync();
+        public async Task<IEnumerable<T>> GetAllAsync() => await _dbSet.OrderByNameOrDescription().ToListAsync();
         public async Task<T> GetByIdAsync(int id) => await _dbSet.FindAsync(id);
         public async Task<IEnumerable<T>> GetAllIncludingAsync(params Expression<Func<T, object>>[] includes)
         {
@@ -30,6 +30,8 @@ namespace CatalogService.Infrastructure.Repositories
             {
                 query = query.Include(include);
             }
+
+            query = query.OrderByNameOrDescription();
 
             return await query.ToListAsync();
         }
