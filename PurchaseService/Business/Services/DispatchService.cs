@@ -12,8 +12,8 @@ namespace PurchaseService.Business.Services
         private readonly IPurchaseService _purchaseService;
 
         public DispatchService(
-            IDispatchRepository dispatchRepository, 
-            ICatalogServiceClient catalogServiceClient, 
+            IDispatchRepository dispatchRepository,
+            ICatalogServiceClient catalogServiceClient,
             IUserServiceClient userServiceClient,
             IPurchaseService purchaseService)
         {
@@ -52,7 +52,6 @@ namespace PurchaseService.Business.Services
 
         private async Task<DispatchDTO> MapToDTOAsync(Infrastructure.Models.Dispatch dispatch)
         {
-
             return new DispatchDTO
             {
                 Id = dispatch.Id,
@@ -63,16 +62,19 @@ namespace PurchaseService.Business.Services
             };
         }
 
-        // create dispatch. first check if purchase importation and does not have dispatch yet  
-        public async Task<int> CreateAsync(DispatchCreateDTO dto, int userId, int purchaseId)
+        // create dispatch. purchaseId puede ser null -> despacho independiente
+        public async Task<int> CreateAsync(DispatchCreateDTO dto, int userId, int? purchaseId)
         {
-            var purchase = await _purchaseService.GetByIdAsync(purchaseId);
-            if (purchase == null)
-                throw new Exception("Purchase not found");
+            // si se asocia a compra, validar existenca y que no tenga despacho ya
+            if (purchaseId.HasValue)
+            {
+                var purchase = await _purchaseService.GetByIdAsync(purchaseId.Value);
+                if (purchase == null)
+                    throw new Exception("Purchase not found");
 
-            //chec if purchase.Dispatch exists
-            if (purchase.Dispatch != null)
-                throw new Exception("Purchase already has a dispatch");
+                if (purchase.Dispatch != null)
+                    throw new Exception("Purchase already has a dispatch");
+            }
 
             // check if user exists
             var user = await _userServiceClient.GetUserNameAsync(userId);
@@ -91,6 +93,5 @@ namespace PurchaseService.Business.Services
 
             return dispatch.Id;
         }
-
     }
 }

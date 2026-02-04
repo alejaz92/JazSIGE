@@ -7,7 +7,7 @@
         public string Origin { get; set; } = null!;
         public DateTime Date { get; set; }
 
-        public int PurchaseId { get; set; } 
+        public int? PurchaseId { get; set; } 
         
 
     }

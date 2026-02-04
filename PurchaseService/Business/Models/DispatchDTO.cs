@@ -6,6 +6,6 @@
         public string Code { get; set; } = string.Empty;
         public string Origin { get; set; } = string.Empty;
         public DateTime Date { get; set; }
-        public int PurchaseId { get; set; }
+        public int? PurchaseId { get; set; }
     }
 }

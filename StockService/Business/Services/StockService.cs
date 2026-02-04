@@ -302,7 +302,7 @@ namespace StockService.Business.Services
             if (movements == null)
                 return Enumerable.Empty<ArticleCostsDTO>();
 
-            var purchaseMovements = movements.Where(m => m.MovementType == StockMovementType.Purchase);
+            var purchaseMovements = movements.Where(m => m.AvgUnitCost != null);
 
             var costs = purchaseMovements
                 .Select(m => new ArticleCostsDTO

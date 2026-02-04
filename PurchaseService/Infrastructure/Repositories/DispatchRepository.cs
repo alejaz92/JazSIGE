@@ -19,7 +19,7 @@ namespace PurchaseService.Infrastructure.Repositories
         }
 
         public async Task<Dispatch?> GetByIdAsync(int id) => await _context.Dispatches
-                .FirstOrDefaultAsync(d => d.PurchaseId == id);
+                .FirstOrDefaultAsync(d => d.Id == id); // CORRECCIÓN: buscar por Id
 
         public async Task<IEnumerable<Dispatch>> GetAllAsync() => await _context.Dispatches
                 .OrderByDescending(d => d.Date)
@@ -33,7 +33,6 @@ namespace PurchaseService.Infrastructure.Repositories
 
         public async Task<int> GetTotalCountAsync() => await _context.Dispatches.CountAsync();
 
-        //save changes to the database
         public async Task SaveChangesAsync()
         {
             await _context.SaveChangesAsync();

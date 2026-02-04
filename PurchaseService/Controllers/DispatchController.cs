@@ -39,7 +39,7 @@ public class DispatchController : ControllerBase
 
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] DispatchCreateDTO dto, [FromQuery] int purchaseId)
+    public async Task<IActionResult> Create([FromBody] DispatchCreateDTO dto, [FromQuery] int? purchaseId)
     {
         var userIdHeader = HttpContext.Request.Headers["X-UserId"].ToString();
         if (!int.TryParse(userIdHeader, out int userId))
@@ -51,7 +51,6 @@ public class DispatchController : ControllerBase
         }
         catch (Exception ex)
         {
-            // Handle specific exceptions if needed
             return StatusCode(500, new { error = ex.Message });
         }
     }
