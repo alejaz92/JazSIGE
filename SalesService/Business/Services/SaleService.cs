@@ -273,6 +273,9 @@ namespace SalesService.Business.Services
             await ValidateCustomerBlockAsync(dto);     // (ver helpers abajo)
             await ValidateArticlesAndStockAsync(dto);  // (ver helpers abajo)
 
+            if (!dto.IsCash && dto.IsFinalConsumer)
+                throw new InvalidOperationException("Non-cash sales cannot be made to final consumers.");
+
             using var tx = await _unitOfWork.SaleRepository.BeginTransactionAsync();
             try
             {
@@ -329,8 +332,8 @@ namespace SalesService.Business.Services
                 sale.IsFullyDelivered = true;
 
 
-                // 4) Emitir Factura
-                var invoice = await CreateInvoiceAsync(sale.Id);
+                // 4) Emitir Factura ( y recibo si es al contado)
+                var invoice = await CreateInvoiceAsync(sale.Id, dto.IsCash);
 
 
                 // 5) Marcar flags (por si tu lógica interna no lo hizo ya)
@@ -364,7 +367,7 @@ namespace SalesService.Business.Services
             await _unitOfWork.SaleRepository.DeleteAsync(id);
             await _unitOfWork.SaveAsync();
         }        
-        public async Task<InvoiceBasicDTO> CreateInvoiceAsync(int saleId)
+        public async Task<InvoiceBasicDTO> CreateInvoiceAsync(int saleId, bool IsCash)
         {
             var sale = await _unitOfWork.SaleRepository.GetIncludingAsync(saleId, s => s.Articles);
             if (sale == null)
@@ -379,6 +382,9 @@ namespace SalesService.Business.Services
 
             if (!sale.IsFullyDelivered)
                 throw new InvalidOperationException("Sale must be fully delivered before generating an invoice.");
+
+            if (!IsCash && sale.IsFinalConsumer)
+                throw new InvalidOperationException("Non-cash sales cannot be invoiced to final consumers.");
 
             // get delivery notes using _deliveryNoteService.GetAllBySaleIdAsync
             var deliveryNotes = await _deliveryNoteService.GetAllBySaleIdAsync(sale.Id);
@@ -406,6 +412,9 @@ namespace SalesService.Business.Services
                     throw new InvalidOperationException("Customer not found.");
 
             }
+
+           
+
 
             var items = new List<FiscalDocumentItemDTO>();
             decimal netAmount = 0;
@@ -466,7 +475,6 @@ namespace SalesService.Business.Services
 
             }
 
-
             int buyerDocumentType = 0;
             switch (sale.CustomerIdType)
             {
@@ -525,7 +533,8 @@ namespace SalesService.Business.Services
                         DocumentDate = result.Date,
                         Currency = "ARS",
                         FxRate = 1,
-                        AmountARS = result.TotalAmount
+                        AmountARS = result.TotalAmount,
+                        IsCash = IsCash
                     });
 
                 }

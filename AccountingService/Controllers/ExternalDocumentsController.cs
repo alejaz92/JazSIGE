@@ -25,6 +25,7 @@ namespace AccountingService.Controllers
             string ExternalRefNumber,
             DateTime DocumentDate,
             decimal AmountARS,
+            bool? IsCash,
             string Currency = "ARS",
             decimal FxRate = 1m
         );
@@ -45,6 +46,7 @@ namespace AccountingService.Controllers
                     req.ExternalRefNumber,
                     req.DocumentDate,
                     req.AmountARS,
+                    req.IsCash,
                     req.Currency,
                     req.FxRate
                 );

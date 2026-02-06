@@ -1,4 +1,5 @@
 ﻿using AccountingService.Business.Interfaces;
+using AccountingService.Business.Models.Receipts;
 using AccountingService.Infrastructure.Interfaces;
 using AccountingService.Infrastructure.Models;
 using static AccountingService.Infrastructure.Models.Enums;
@@ -8,13 +9,18 @@ namespace AccountingService.Business.Services
     public class ExternalDocumentIngestionService : IExternalDocumentIngestionService
     {
         private readonly IUnitOfWork _uow;
+        private readonly IReceiptService _receiptService;
 
-        public ExternalDocumentIngestionService(IUnitOfWork uow) => _uow = uow;
+        public ExternalDocumentIngestionService(IUnitOfWork uow, IReceiptService receiptService)
+        {
+            _uow = uow;
+            _receiptService = receiptService;
+        }
 
         public async Task<int> UpsertFiscalDocumentAsync(
             PartyType partyType, int partyId,
             LedgerDocumentKind kind, int externalRefId,string externalRefNumber , DateTime documentDate,
-            decimal amountARS, string currency = "ARS", decimal fxRate = 1m)
+            decimal amountARS, bool? isCash, string currency = "ARS", decimal fxRate = 1m)
         {
             if (kind == LedgerDocumentKind.Receipt)
                 throw new InvalidOperationException("Receipts are local documents; do not ingest as external.");
@@ -53,8 +59,34 @@ namespace AccountingService.Business.Services
                 Status = DocumentStatus.Active
             };
 
-            await _uow.LedgerDocuments.AddAsync(doc);
+            await _uow.LedgerDocuments.AddAsync(doc);   
             await _uow.SaveChangesAsync();
+
+            if (isCash == true)
+            {
+                var receipt = new ReceiptCreateDTO
+                {
+                    PartyType = PartyType.Customer,
+                    PartyId = partyId,
+                    DocumentDate = documentDate,
+                    Notes = $"Pago de contado",
+                    DebitDocumentIds = new List<int> { doc.Id },
+                    Payments = new List<ReceiptPaymentCreateDTO>
+                    {
+                        new ReceiptPaymentCreateDTO
+                        {
+                            Method = PaymentMethod.Cash,
+                            Currency = currency,
+                            FxRate = fxRate,
+                            AmountOriginal = amountARS,
+                            AmountARS = amountARS
+                        }
+                    }
+                };
+                await _receiptService.CreateAsync(receipt);
+            }
+
+
             return doc.Id;
         }
 

@@ -11,6 +11,8 @@ namespace SalesService.Business.Models.Sale
         public string? DeliveryNoteObservation { get; set; }
         // Observación opcional para la factura autogenerada (si la querés distinguir)
         public string? InvoiceObservation { get; set; }
+
+        public bool IsCash { get; set; }
     }
 
     public class QuickSaleResultDTO

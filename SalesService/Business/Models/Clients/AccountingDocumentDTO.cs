@@ -22,7 +22,9 @@
 
         // Total en ARS usado por Accounting para Pending/Amount
         public decimal AmountARS { get; set; }
-    }
+
+        public bool? IsCash { get; set; }
+}
 
     public class ReceiptCreditDTO
     {

@@ -144,16 +144,17 @@ namespace SalesService.Controllers
         }
 
         [HttpPost("{saleId}/invoice")]
-        public async Task<ActionResult<FiscalDocumentResponseDTO>> CreateInvoice(int saleId)
+        public async Task<ActionResult<FiscalDocumentResponseDTO>> CreateInvoice(int saleId,[FromQuery] bool isCash)
         {
             try
             {
                 var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
                 if (userIdClaim == null)
-                    return Unauthorized();
+                    return Unauthorized();          
+
 
                 // opcional: podrías usar userId más adelante si querés registrar quién generó la factura
-                var result = await _saleService.CreateInvoiceAsync(saleId);
+                var result = await _saleService.CreateInvoiceAsync(saleId, isCash);
                 return Ok(result);
             }
             catch (InvalidOperationException ex)
