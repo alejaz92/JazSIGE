@@ -504,7 +504,7 @@ namespace SalesService.Business.Services
             {
                 InvoiceType = invoiceType,
                 BuyerDocumentType = buyerDocumentType,
-                BuyerDocumentNumber = long.Parse(sale.CustomerTaxId),
+                BuyerDocumentNumber = long.Parse(sale.CustomerTaxId.Replace("-", "")),
                 ReceiverVatConditionId = customer.IVATypeArcaCode,
                 NetAmount = Math.Round(netAmount, 2),
                 VatAmount = Math.Round(vatAmount, 2),
