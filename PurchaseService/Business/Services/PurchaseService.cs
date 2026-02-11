@@ -57,58 +57,7 @@ namespace PurchaseService.Business.Services
 
             return await MapToDTOAsync(purchase);
         }
-        private async Task UpdateStockConsolidated(int userId, int warehouseId, string reference, int? dispatchId, List<PurchaseArticleCreateDTO> articles)
-        {
-            // Impactar stock
-            try
-            {
 
-
-
-                await _stockServiceClient.RegisterPurchaseMovementsAsync(
-                    userId,
-                    warehouseId,
-                    articles.Select(a => (a.ArticleId, a.Quantity, a.UnitCost)).ToList(),
-                    reference,
-                    dispatchId
-                );
-
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error al impactar stock: {ex.Message}");
-                throw new PartialSuccessException("La compra fue registrada, pero no se pudo actualizar el stock.");
-            }
-        }
-        private async Task UpdateStockPending(int purchaseId, List<PurchaseArticleCreateDTO> articles)
-        {
-            foreach (var item in articles)
-            {
-                var pendingDto = new PendingStockEntryCreateDTO
-                {
-                    PurchaseId = purchaseId,
-                    ArticleId = item.ArticleId,
-                    Quantity = item.Quantity
-                };
-
-                await _stockServiceClient.RegisterPendingStockAsync(pendingDto);
-            }
-        }
-        private async Task<int> RegisterDispatch(int purchaseId, DateTime date, string origin, string code)
-        {
-            var dispatch = new Dispatch
-            {
-                PurchaseId = purchaseId,
-                Date = date,
-                Origin = origin,
-                Code = code
-            };
-
-            await _dispatchRepository.AddAsync(dispatch);
-            await _purchaseRepository.SaveChangesAsync(); // Asegurarse de guardar los cambios después de agregar el despacho
-
-            return dispatch.Id;
-        }
 
         public async Task<PurchaseDocumentDTO?> CreateAsync(PurchaseCreateDTO dto, int userId)
         {
@@ -373,14 +322,81 @@ namespace PurchaseService.Business.Services
 
         private async Task<IEnumerable<PurchaseDTO>> MapToDTOListAsync(IEnumerable<Purchase> purchases)
         {
+            // Prefetch catalog and user data in bulk to avoid per-purchase HTTP calls
+            var suppliers = await _catalogServiceClient.GetAllSuppliersAsync();
+            var warehouses = await _catalogServiceClient.GetAllWarehousesAsync();
+            var articles = await _catalogServiceClient.GetAllArticlesAsync();
+            var users = await _userServiceClient.GetAllUsersAsync();
+
+            var supplierDict = suppliers.ToDictionary(s => s.Id, s => s.CompanyName);
+            var warehouseDict = warehouses.ToDictionary(w => w.Id, w => w.Description);
+            var articleDict = articles.ToDictionary(a => a.Id, a => a.Description);
+            var userDict = users.ToDictionary(u => u.Id, u => $"{u.FirstName} {u.LastName}");
+
+            return await MapToDTOListUsingCaches(purchases, supplierDict, warehouseDict, articleDict, userDict);
+        }
+
+        private async Task<IEnumerable<PurchaseDTO>> MapToDTOListUsingCaches(
+            IEnumerable<Purchase> purchases,
+            IDictionary<int, string> supplierDict,
+            IDictionary<int, string> warehouseDict,
+            IDictionary<int, string> articleDict,
+            IDictionary<int, string> userDict)
+        {
             var purchaseDTOs = new List<PurchaseDTO>();
+
             foreach (var purchase in purchases)
             {
-                var purchaseDTO = await MapToDTOAsync(purchase);
-                purchaseDTOs.Add(purchaseDTO);
+                var supplierName = supplierDict.TryGetValue(purchase.SupplierId, out var s) ? s : "N/A";
+
+                string? warehouseName = null;
+                if (purchase.WarehouseId != null)
+                    warehouseName = warehouseDict.TryGetValue(purchase.WarehouseId.Value, out var w) ? w : "N/A";
+
+                var userName = userDict.TryGetValue(purchase.UserId, out var u) ? u : "N/A";
+
+                var articleDTOs = new List<PurchaseArticleDTO>();
+                foreach (var article in purchase.Articles)
+                {
+                    var articleName = articleDict.TryGetValue(article.ArticleId, out var an) ? an : "N/A";
+                    articleDTOs.Add(new PurchaseArticleDTO
+                    {
+                        ArticleId = article.ArticleId,
+                        ArticleName = articleName,
+                        Quantity = article.Quantity,
+                        UnitCost = article.UnitCost
+                    });
+                }
+
+                var hasInvoice = await _purchaseDocumentRepository.ExistsInvoiceAsync(purchase.Id, onlyActive: true);
+
+                purchaseDTOs.Add(new PurchaseDTO
+                {
+                    Id = purchase.Id,
+                    Date = purchase.Date,
+                    SupplierId = purchase.SupplierId,
+                    SupplierName = supplierName,
+                    WarehouseId = purchase.WarehouseId,
+                    WarehouseName = warehouseName,
+                    UserId = purchase.UserId,
+                    UserName = userName,
+                    HasInvoice = hasInvoice,
+                    Articles = articleDTOs,
+                    IsImportation = purchase.IsImportation,
+                    IsDelivered = purchase.IsDelivered,
+                    Dispatch = purchase.Dispatch != null ? new DispatchDTO
+                    {
+                        Id = purchase.Dispatch.Id,
+                        Code = purchase.Dispatch.Code,
+                        Origin = purchase.Dispatch.Origin,
+                        Date = purchase.Dispatch.Date
+                    } : null
+                });
             }
+
             return purchaseDTOs;
         }
+
         private async Task<PurchaseDTO> MapToDTOAsync(Purchase purchase)
         {
             var supplierName = await _catalogServiceClient.GetSupplierNameAsync(purchase.SupplierId) ?? "N/A";
@@ -420,8 +436,6 @@ namespace PurchaseService.Business.Services
                 UserId = purchase.UserId,
                 UserName = userName,
                 HasInvoice = hasInvoice,
-                //HasDispatch = purchase.Dispatch != null,
-                //StockUpdated = purchase.StockUpdated,
                 Articles = articleDTOs,
                 IsImportation = purchase.IsImportation,
                 IsDelivered = purchase.IsDelivered,
@@ -434,7 +448,5 @@ namespace PurchaseService.Business.Services
                 } : null
             };
         }
-
-
     }
 }

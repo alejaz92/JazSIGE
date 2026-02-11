@@ -32,5 +32,13 @@ namespace SalesService.Business.Services.Clients
             if (!response.IsSuccessStatusCode) return null;
             return await response.Content.ReadFromJsonAsync<UserDTO>();
         }
+
+        public async Task<List<UserDTO>> GetAllUsersAsync()
+        {
+            var client = CreateAuthorizedClient();
+            var response = await client.GetAsync(_userBaseUrl);
+            if (!response.IsSuccessStatusCode) return new List<UserDTO>();
+            return await response.Content.ReadFromJsonAsync<List<UserDTO>>() ?? new List<UserDTO>();
+        }
     }
 }

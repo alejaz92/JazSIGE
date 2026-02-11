@@ -5,6 +5,7 @@ namespace SalesService.Business.Interfaces.Clients
 {
     public interface ICatalogServiceClient
     {
+        Task<List<CustomerDTO>> GetAllCustomersAsync();
         Task<ArticleDTO?> GetArticleByIdAsync(int articleId);
         Task<CustomerDTO?> GetCustomerByIdAsync(int customerId);
         Task<PostalCodeDTO?> GetPostalCodeByIdAsync(int postalCodeId);

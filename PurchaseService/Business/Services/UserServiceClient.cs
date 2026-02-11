@@ -27,6 +27,15 @@ namespace PurchaseService.Business.Services
             return response != null ? $"{response.FirstName} {response.LastName}" : null;
         }
 
+        public async Task<List<UserDTO>> GetAllUsersAsync()
+        {
+            var client = CreateAuthorizedClient();
+            var response = await client.GetFromJsonAsync<List<UserDTO>>($"{_userBaseUrl}");
+            return response ?? new List<UserDTO>();
+        }
+
+
+
         private HttpClient CreateAuthorizedClient()
         {
             var client = _httpClientFactory.CreateClient();

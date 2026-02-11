@@ -1,5 +1,6 @@
 ﻿using PurchaseService.Business.Interfaces;
 using PurchaseService.Business.Models;
+using PurchaseService.Business.Models.Clients;
 
 namespace PurchaseService.Business.Services
 {
@@ -35,6 +36,27 @@ namespace PurchaseService.Business.Services
             var client = CreateAuthorizedClient();
             var response = await client.GetFromJsonAsync<ArticleDTO>($"{_catalogBaseUrl}Article/{articleId}");
             return response?.Description;
+        }
+
+        public async Task<List<SupplierListDTO>> GetAllSuppliersAsync()
+        {
+            var client = CreateAuthorizedClient();
+            var response = await client.GetFromJsonAsync<List<SupplierListDTO>>($"{_catalogBaseUrl}Supplier");
+            return response ?? new List<SupplierListDTO>();
+        }
+
+        public async Task<List<WarehouseListDTO>> GetAllWarehousesAsync()
+        {
+            var client = CreateAuthorizedClient();
+            var response = await client.GetFromJsonAsync<List<WarehouseListDTO>>($"{_catalogBaseUrl}Warehouse");
+            return response ?? new List<WarehouseListDTO>();
+        }
+
+        public async Task<List<ArticleListDTO>> GetAllArticlesAsync()
+        {
+            var client = CreateAuthorizedClient();
+            var response = await client.GetFromJsonAsync<List<ArticleListDTO>>($"{_catalogBaseUrl}Article");
+            return response ?? new List<ArticleListDTO>();
         }
 
         private HttpClient CreateAuthorizedClient()

@@ -48,39 +48,30 @@ namespace SalesService.Business.Services
             var sales = await _unitOfWork.SaleRepository.GetAllIncludingAsync(s => s.Articles);
             var result = new List<SaleDTO>();
 
+            var customers = await _catalogService.GetAllCustomersAsync();
+            var customerDict = customers.ToDictionary(c => c.Id, c => c.CompanyName);
+
+            
+
             foreach (var sale in sales)
             {
                 // if sale.customerId is not null
 
-
-
-
                 if (!sale.IsFinalConsumer && sale.CustomerId.HasValue)
                 {
-                    var customer = await _catalogService.GetCustomerByIdAsync(sale.CustomerId.Value);
-                    sale.CustomerName = customer?.CompanyName ?? "N/A";
+                    sale.CustomerName = customerDict.TryGetValue(sale.CustomerId.Value, out var name) ? name : "N/A";
 
                 }
-
-                var seller = await _userService.GetUserByIdAsync(sale.SellerId);
-
-                var subtotal = sale.Articles.Sum(a =>
-                    a.UnitPrice * a.Quantity * (1 - a.DiscountPercent / 100));
-
-                var ivaTotal = sale.Articles.Sum(a =>
-                {
-                    var baseAmount = a.UnitPrice * a.Quantity * (1 - a.DiscountPercent / 100);
-                    return baseAmount * (a.IVAPercent / 100);
-                });
+ 
 
                 result.Add(new SaleDTO
                 {
                     Id = sale.Id,
                     IsFinalConsumer = sale.IsFinalConsumer,
                     CustomerName = sale.CustomerName,
-                    SellerName = $"{seller.FirstName} {seller.LastName}",
+                    SellerName = sale.SellerName,
                     Date = sale.Date,
-                    Total = Math.Round(subtotal + ivaTotal, 2),
+                    Total = sale.TotalAmount,
                     ExchangeRate = sale.ExchangeRate,
                     HasInvoice = sale.HasInvoice,
                     IsFullyDelivered = sale.IsFullyDelivered,
@@ -135,7 +126,7 @@ namespace SalesService.Business.Services
             }
 
 
-            var seller = await _userService.GetUserByIdAsync(sale.SellerId);
+            
 
             var articleDTOs = new List<SaleArticleDetailDTO>();
 
@@ -190,7 +181,7 @@ namespace SalesService.Business.Services
                 CustomerIVAType = customer.IVAType,
 
                 SellerId = sale.SellerId,
-                SellerName = $"{seller.FirstName} {seller.LastName}",
+                SellerName = sale.SellerName,
 
                 Articles = articleDTOs,
                 Warnings = warningDTOs,
@@ -218,7 +209,7 @@ namespace SalesService.Business.Services
         public async Task<SaleDetailDTO> CreateAsync(SaleCreateDTO dto)
         {
 
-            await ValidateSellerAsync(dto.SellerId);
+            var sellerName = await ValidateSellerAsync(dto.SellerId);
             await ValidateCustomerBlockAsync(dto);
             await ValidateArticlesAndStockAsync(dto);
 
@@ -226,6 +217,13 @@ namespace SalesService.Business.Services
             using var transaction = await _unitOfWork.SaleRepository.BeginTransactionAsync();
             try
             {
+                // calculate total amount
+                var TotalAmount = dto.Articles.Sum(a =>
+                {
+                    var priceWithDiscount = a.UnitPrice * (1 - a.DiscountPercent / 100);
+                    return priceWithDiscount * a.Quantity * (1 + a.IVAPercent / 100);
+                });
+
                 var sale = new Sale
                 {
                     IsFinalConsumer = dto.IsFinalConsumer,
@@ -235,8 +233,10 @@ namespace SalesService.Business.Services
                     CustomerId = dto.CustomerId,
                     CustomerPostalCodeId = dto.CustomerPostalCodeId,
                     SellerId = dto.SellerId,
+                    SellerName = sellerName,
                     Date = dto.Date,
                     ExchangeRate = dto.ExchangeRate,
+                    TotalAmount = Math.Round(TotalAmount, 2),
                     Observations = dto.Observations,
                     Articles = dto.Articles.Select(a => new Sale_Article
                     {
@@ -269,7 +269,7 @@ namespace SalesService.Business.Services
         {
             // 1) Validaciones iguales a CreateAsync (usuario, cliente / final consumer, artículos, stock, etc.)
             // Reuso la lógica existente para que no diverja.
-            await ValidateSellerAsync(dto.SellerId);
+            var sellerName = await ValidateSellerAsync(dto.SellerId);
             await ValidateCustomerBlockAsync(dto);     // (ver helpers abajo)
             await ValidateArticlesAndStockAsync(dto);  // (ver helpers abajo)
 
@@ -279,6 +279,14 @@ namespace SalesService.Business.Services
             using var tx = await _unitOfWork.SaleRepository.BeginTransactionAsync();
             try
             {
+
+                // calculate total amount
+                var TotalAmount = dto.Articles.Sum(a =>
+                {
+                    var priceWithDiscount = a.UnitPrice * (1 - a.DiscountPercent / 100);
+                    return priceWithDiscount * a.Quantity * (1 + a.IVAPercent / 100);
+                });
+
                 // 2) Crear la venta (igual a CreateAsync pero SIN registrar committed stock)
                 var sale = new Sale
                 {
@@ -289,8 +297,10 @@ namespace SalesService.Business.Services
                     CustomerId = dto.CustomerId,
                     CustomerPostalCodeId = dto.CustomerPostalCodeId,
                     SellerId = dto.SellerId,
+                    SellerName = sellerName, 
                     Date = dto.Date,
                     ExchangeRate = dto.ExchangeRate,
+                    TotalAmount = Math.Round(TotalAmount, 2),
                     Observations = dto.Observations,
                     Articles = dto.Articles.Select(a => new Sale_Article
                     {
@@ -1433,10 +1443,12 @@ namespace SalesService.Business.Services
             VatAmount = f.VatAmount,
             TotalAmount = f.TotalAmount
         };
-        private async Task ValidateSellerAsync(int sellerId)
+        private async Task<string> ValidateSellerAsync(int sellerId)
         {
             var user = await _userService.GetUserByIdAsync(sellerId);
             if (user == null) throw new ArgumentException("Invalid seller ID.");
+
+            return $"{user.FirstName} {user.LastName}";
         }
         private async Task ValidateCustomerBlockAsync(SaleCreateDTO dto)
         {

@@ -25,9 +25,9 @@ namespace CatalogService.Business.Services
         private readonly ICustomerRepository _repository;
 
         public CustomerService(
-            ICustomerRepository repository, 
-            IHttpClientFactory httpClientFactory, 
-            IConfiguration configuration, 
+            ICustomerRepository repository,
+            IHttpClientFactory httpClientFactory,
+            IConfiguration configuration,
             IHttpContextAccessor httpContextAccessor,
             IIVATypeService ivaTypeService,
             IWarehouseService warehouseService,
@@ -123,31 +123,7 @@ namespace CatalogService.Business.Services
             entity.AssignedPriceListId = dto.AssignedPriceListId;
         }
 
-        private async Task<string> GetSellerNameAsync(int sellerId)
-        {
-            var client = _httpClientFactory.CreateClient();
 
-            // Extraer el token JWT del contexto HTTP
-            var token = _httpContextAccessor.HttpContext?.Request.Headers["Authorization"].ToString();
-
-            // Agregar el token al encabezado de la solicitud
-            if (!string.IsNullOrEmpty(token))
-            {
-                client.DefaultRequestHeaders.Add("Authorization", token);
-            }
-
-            var response = await client.GetAsync($"{_gatewayUserServiceUrl}{sellerId}");
-
-
-            if (!response.IsSuccessStatusCode) return null;
-
-            var json = await response.Content.ReadAsStringAsync();
-            var user = JsonSerializer.Deserialize<UserDTO>(json, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
-            return user != null ? $"{user.FirstName} {user.LastName}" : "Unknown";
-        }
 
         public override async Task<string?> ValidateBeforeSave(CustomerCreateDTO model)
         {
@@ -179,7 +155,7 @@ namespace CatalogService.Business.Services
 
 
             var response = await client.GetAsync($"{_gatewayUserServiceUrl}{sellerId}");
-            if(!response.IsSuccessStatusCode) return null;
+            if (!response.IsSuccessStatusCode) return null;
 
             var json = await response.Content.ReadAsStringAsync();
             return JsonSerializer.Deserialize<UserDTO>(json, new JsonSerializerOptions
@@ -214,7 +190,7 @@ namespace CatalogService.Business.Services
 
         protected override async Task EnsureHierarchyActivationAsync(Customer entity)
         {
-            IVATypeDTO ivaType = await _ivaTypeService.GetByIdAsync( entity.IVATypeId );
+            IVATypeDTO ivaType = await _ivaTypeService.GetByIdAsync(entity.IVATypeId);
             if (!ivaType.IsActive) await _ivaTypeService.UpdateStatusAsync(ivaType.Id, true);
 
             WarehouseDTO warehouse = await _warehouseService.GetByIdAsync(entity.WarehouseId);
@@ -227,7 +203,7 @@ namespace CatalogService.Business.Services
             if (!sellCondition.IsActive) await _sellConditionService.UpdateStatusAsync(sellCondition.Id, true);
 
             PriceListDTO priceList = await _priceListService.GetByIdAsync(entity.AssignedPriceListId);
-            if (!priceList.IsActive) await _priceListService.UpdateStatusAsync(priceList.Id, true); 
+            if (!priceList.IsActive) await _priceListService.UpdateStatusAsync(priceList.Id, true);
         }
 
 
@@ -236,10 +212,15 @@ namespace CatalogService.Business.Services
             var entities = await GetAllWithIncludes();
             var result = new List<CustomerDTO>();
 
+            var sellers = await GetAllSellersAsync();
+
+            // build a dictionary for fast lookup
+            var sellerDict = sellers.ToDictionary(s => s.Id, s => $"{s.FirstName} {s.LastName}");
+
             foreach (var entity in entities)
             {
-                var sellerName = await GetSellerNameAsync(entity.SellerId);
-                _cachedSellerName = sellerName; // necesario porque MapToDTO lo usa
+                sellerDict.TryGetValue(entity.SellerId, out var sellerName);
+                _cachedSellerName = sellerName ?? "Unknown"; // MapToDTO uses this
                 result.Add(MapToDTO(entity));
             }
 
@@ -257,6 +238,53 @@ namespace CatalogService.Business.Services
 
             return MapToDTO(entity);
         }
+
+
+        private async Task<string> GetSellerNameAsync(int sellerId)
+        {
+            var client = _httpClientFactory.CreateClient();
+
+            // Extraer el token JWT del contexto HTTP
+            var token = _httpContextAccessor.HttpContext?.Request.Headers["Authorization"].ToString();
+
+            // Agregar el token al encabezado de la solicitud
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Add("Authorization", token);
+            }
+
+            var response = await client.GetAsync($"{_gatewayUserServiceUrl}{sellerId}");
+
+
+            if (!response.IsSuccessStatusCode) return null;
+
+            var json = await response.Content.ReadAsStringAsync();
+            var user = JsonSerializer.Deserialize<UserDTO>(json, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+            return user != null ? $"{user.FirstName} {user.LastName}" : "Unknown";
+        }
+
+        private async Task<List<UserDTO>> GetAllSellersAsync()
+        {
+            var client = _httpClientFactory.CreateClient();
+            // Extraer el token JWT del contexto HTTP
+            var token = _httpContextAccessor.HttpContext?.Request.Headers["Authorization"].ToString();
+            // Agregar el token al encabezado de la solicitud
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Add("Authorization", token);
+            }
+            var response = await client.GetAsync($"{_gatewayUserServiceUrl}");
+            if (!response.IsSuccessStatusCode) return new List<UserDTO>();
+            var json = await response.Content.ReadAsStringAsync();
+            return JsonSerializer.Deserialize<List<UserDTO>>(json, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            }) ?? new List<UserDTO>();
+        }
+
     }
 }
 

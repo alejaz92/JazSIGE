@@ -11,7 +11,9 @@
         public string CustomerName { get; set; } = string.Empty;
         public int? CustomerPostalCodeId { get; set; }
         public int SellerId { get; set; }
+        public string SellerName { get; set; } = string.Empty;
         public decimal ExchangeRate { get; set; }
+        public decimal TotalAmount { get; set; }
         public string? Observations { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

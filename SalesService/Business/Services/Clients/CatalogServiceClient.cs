@@ -41,6 +41,13 @@ namespace SalesService.Business.Services.Clients
             return await response.Content.ReadFromJsonAsync<CustomerDTO>();
         }
 
+        public async Task<List<CustomerDTO>> GetAllCustomersAsync()
+        {
+            var client = CreateAuthorizedClient();
+            var response = await client.GetFromJsonAsync<List<CustomerDTO>>($"{_catalogBaseUrl}Customer");
+            return response ?? new List<CustomerDTO>();
+        }
+
         public async Task<TransportDTO?> GetTransportByIdAsync(int transportId)
         {
             var client = CreateAuthorizedClient();

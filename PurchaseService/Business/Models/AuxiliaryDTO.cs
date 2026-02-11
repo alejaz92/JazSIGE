@@ -5,6 +5,7 @@
     public class ArticleDTO { public string Description { get; set; } = ""; }
     public class UserDTO
     {
+        public int Id { get; set; }
         public string FirstName { get; set; } = "";
         public string LastName { get; set; } = "";
     }
