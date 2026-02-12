@@ -48,20 +48,14 @@ namespace SalesService.Business.Services
             var sales = await _unitOfWork.SaleRepository.GetAllIncludingAsync(s => s.Articles);
             var result = new List<SaleDTO>();
 
-            var customers = await _catalogService.GetAllCustomersAsync();
-            var customerDict = customers.ToDictionary(c => c.Id, c => c.CompanyName);
-
+            
             
 
             foreach (var sale in sales)
             {
                 // if sale.customerId is not null
 
-                if (!sale.IsFinalConsumer && sale.CustomerId.HasValue)
-                {
-                    sale.CustomerName = customerDict.TryGetValue(sale.CustomerId.Value, out var name) ? name : "N/A";
-
-                }
+                
  
 
                 result.Add(new SaleDTO

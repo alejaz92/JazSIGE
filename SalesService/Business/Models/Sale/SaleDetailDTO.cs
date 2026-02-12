@@ -55,7 +55,7 @@ namespace SalesService.Business.Models.Sale
         public decimal UnitPrice { get; set; }
         public decimal DiscountPercent { get; set; }
         public decimal IVAPercent { get; set; }
-        public decimal Subtotal => Math.Round((UnitPrice * Quantity) * (1 - DiscountPercent / 100), 2);
-        public decimal IVAAmount => Math.Round(Subtotal * IVAPercent / 100, 2);
+        public decimal Subtotal => Math.Round((UnitPrice * Quantity) * (1 - DiscountPercent / 100), 2, System.MidpointRounding.AwayFromZero);
+        public decimal IVAAmount => Math.Round(Subtotal * IVAPercent / 100, 2, System.MidpointRounding.AwayFromZero);
     }
 }
