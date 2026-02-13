@@ -24,6 +24,13 @@ namespace CatalogService.Business.Services
             var entity = await GetWithIncludes(id);
             return entity != null ? MapToDTO(entity) : default(TDto);
         }
+        // function get by ids with includes 
+        public virtual async Task<IEnumerable<TDto>> GetByIdsAsync(IEnumerable<int> ids)
+        {
+            var entities = await GetAllWithIncludes();
+            return entities.Where(e => ids.Contains(e.Id)).Select(MapToDTO).ToList();
+        }
+
         public async Task<TDto> CreateAsync(TCreateDto model)
         {
 

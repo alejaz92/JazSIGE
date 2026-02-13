@@ -7,6 +7,7 @@ namespace SalesService.Business.Interfaces.Clients
     {
         Task<List<CustomerDTO>> GetAllCustomersAsync();
         Task<ArticleDTO?> GetArticleByIdAsync(int articleId);
+        Task<List<ArticleDTO>> GetArticlesByIdsAsync(List<int> articleIds);
         Task<CustomerDTO?> GetCustomerByIdAsync(int customerId);
         Task<PostalCodeDTO?> GetPostalCodeByIdAsync(int postalCodeId);
         Task<PriceListDTO?> GetPriceListByIdAsync(int priceListId);

@@ -119,14 +119,21 @@ namespace SalesService.Business.Services
                 customer.SellCondition = "Contado";
             }
 
-
-            
-
             var articleDTOs = new List<SaleArticleDetailDTO>();
+
+            // Batch fetch article info to avoid N HTTP calls
+            var articleIds = sale.Articles.Select(a => a.ArticleId).Distinct().ToList();
+            var articleInfos = new Dictionary<int, SalesService.Business.Models.Clients.ArticleDTO?>();
+            if (articleIds.Any())
+            {
+                var infos = await _catalogService.GetArticlesByIdsAsync(articleIds);
+                articleInfos = infos.ToDictionary(a => a.Id, a => a as SalesService.Business.Models.Clients.ArticleDTO);
+            }
 
             foreach (var article in sale.Articles)
             {
-                var articleInfo = await _catalogService.GetArticleByIdAsync(article.ArticleId);
+                if (!articleInfos.TryGetValue(article.ArticleId, out var articleInfo) || articleInfo == null)
+                    throw new InvalidOperationException($"Article {article.ArticleId} not found.");
 
                 articleDTOs.Add(new SaleArticleDetailDTO
                 {
@@ -263,9 +270,13 @@ namespace SalesService.Business.Services
         {
             // 1) Validaciones iguales a CreateAsync (usuario, cliente / final consumer, artículos, stock, etc.)
             // Reuso la lógica existente para que no diverja.
-            var sellerName = await ValidateSellerAsync(dto.SellerId);
-            await ValidateCustomerBlockAsync(dto);     // (ver helpers abajo)
-            await ValidateArticlesAndStockAsync(dto);  // (ver helpers abajo)
+            var sellerTask = ValidateSellerAsync(dto.SellerId);
+            var validateCustomerTask = ValidateCustomerBlockAsync(dto);     // (ver helpers abajo)
+            var validateArticlesTask = ValidateArticlesAndStockAsync(dto);  // (ver helpers abajo)
+
+            // Ejecutar validaciones en paralelo para reducir la latencia total
+            await Task.WhenAll(sellerTask, validateCustomerTask, validateArticlesTask);
+            var sellerName = await sellerTask; // obtener resultado
 
             if (!dto.IsCash && dto.IsFinalConsumer)
                 throw new InvalidOperationException("Non-cash sales cannot be made to final consumers.");
@@ -390,9 +401,26 @@ namespace SalesService.Business.Services
             if (!IsCash && sale.IsFinalConsumer)
                 throw new InvalidOperationException("Non-cash sales cannot be invoiced to final consumers.");
 
-            // get delivery notes using _deliveryNoteService.GetAllBySaleIdAsync
-            var deliveryNotes = await _deliveryNoteService.GetAllBySaleIdAsync(sale.Id);
+            // Hacer llamadas independientes en paralelo: delivery notes y customer (si aplica)
+            var deliveryNotesTask = _deliveryNoteService.GetAllBySaleIdAsync(sale.Id);
+            Task<CustomerDTO?> customerTask = sale.IsFinalConsumer
+                ? Task.FromResult<CustomerDTO?>(null)
+                : _catalogService.GetCustomerByIdAsync(sale.CustomerId!.Value);
 
+            // preparar lista única de articleIds para evitar llamadas duplicadas y pedir en batch
+            var articleIds = sale.Articles.Select(a => a.ArticleId).Distinct().ToList();
+            var articlesTask = articleIds.Any()
+                ? _catalogService.GetArticlesByIdsAsync(articleIds)
+                : Task.FromResult(new List<SalesService.Business.Models.Clients.ArticleDTO>() as List<SalesService.Business.Models.Clients.ArticleDTO>);
+
+            await Task.WhenAll(deliveryNotesTask, customerTask, articlesTask);
+
+            var deliveryNotes = await deliveryNotesTask;
+            var customerFromCatalog = await customerTask;
+            var articleInfosList = await articlesTask;
+
+            // mapear articleId -> articleInfo
+            var articleInfoById = articleInfosList.ToDictionary(a => a.Id, a => a as SalesService.Business.Models.Clients.ArticleDTO);
 
             CustomerDTO customer = new CustomerDTO
             {
@@ -405,19 +433,14 @@ namespace SalesService.Business.Services
                 Province = "N/A",
                 Country = "N/A",
                 SellCondition = "N/A",
-                IVAType = "N/A", 
-                IVATypeArcaCode= 5
+                IVAType = "N/A",
+                IVATypeArcaCode = 5
             };
 
             if (!sale.IsFinalConsumer)
             {
-                customer = await _catalogService.GetCustomerByIdAsync(sale.CustomerId.Value);
-                if (customer == null)
-                    throw new InvalidOperationException("Customer not found.");
-
+                customer = customerFromCatalog ?? throw new InvalidOperationException("Customer not found.");
             }
-
-           
 
 
             var items = new List<FiscalDocumentItemDTO>();
@@ -427,14 +450,9 @@ namespace SalesService.Business.Services
             // recorrer articles de sales. luego recorrer articles de deliveryNotes y generar FiscalDocumentItemDTO
             foreach (var article in sale.Articles)
             {
-
-                var articleInfo = await _catalogService.GetArticleByIdAsync(article.ArticleId);
-                if (articleInfo == null)
+                if (!articleInfoById.TryGetValue(article.ArticleId, out var articleInfo) || articleInfo == null)
                     throw new InvalidOperationException($"Article {article.ArticleId} not found.");
 
-
-
-                // Replace with this corrected code:
                 var deliveryNoteArticles = deliveryNotes
                     .SelectMany(dn => dn.Articles)
                     .Where(a => a.ArticleId == article.ArticleId)
@@ -465,7 +483,7 @@ namespace SalesService.Business.Services
                         Quantity = (int)i.Quantity,
                         VatBase = baseAmount,
                         VatAmount = iva,
-                        VatId = (int)(article.IVAPercent ==21 ?5 :4), // Dummy ejemplo
+                        VatId = (int)(article.IVAPercent == 21 ? 5 : 4), // Dummy ejemplo
                         DispatchCode = i.DispatchCode,
                         Warranty = articleInfo.Warranty
 

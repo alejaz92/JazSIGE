@@ -9,6 +9,7 @@ namespace CatalogService.Business.Interfaces
         Task<bool> DeleteAsync(int id);
         Task<IEnumerable<TDto>> GetAllAsync();
         Task<TDto> GetByIdAsync(int id);
+        Task<IEnumerable<TDto>> GetByIdsAsync(IEnumerable<int> ids);
         Task<TDto> UpdateAsync(int id, TCreateDto model);
         Task<bool> UpdateStatusAsync(int id, bool isActive);
         Task<string?> ValidateBeforeSave(TCreateDto model);

@@ -60,6 +60,26 @@ namespace CatalogService.Controllers
             }
         }
 
+        // get by ids
+        [HttpPost("batch")]
+        public virtual async Task<IActionResult> GetByIds([FromBody] List<int> ids)
+        {
+            try
+            {
+                var dtos = await _service.GetByIdsAsync(ids);
+                return Ok(dtos);
+            }
+            catch (Exception ex)
+            {
+                // Podés loguear si tenés un ILogger
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    message = "Error ocurred.",
+                    detail = ex.Message
+                });
+            }
+        }
+
         [HttpPost]
         public virtual async Task<IActionResult> Create(TCreateDto model)
         {

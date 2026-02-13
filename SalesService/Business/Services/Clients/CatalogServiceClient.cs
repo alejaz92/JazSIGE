@@ -71,6 +71,13 @@ namespace SalesService.Business.Services.Clients
             if (!response.IsSuccessStatusCode) return null;
             return await response.Content.ReadFromJsonAsync<ArticleDTO>();
         }
+        public async Task<List<ArticleDTO>> GetArticlesByIdsAsync(List<int> articleIds)
+        {
+            var client = CreateAuthorizedClient();
+            var response = await client.PostAsJsonAsync($"{_catalogBaseUrl}Article/Batch", articleIds);
+            if (!response.IsSuccessStatusCode) return new List<ArticleDTO>();
+            return await response.Content.ReadFromJsonAsync<List<ArticleDTO>>() ?? new List<ArticleDTO>();
+        }
 
         public async Task<WarehouseDTO?> GetWarehouseByIdAsync(int warehouseId)
         {
