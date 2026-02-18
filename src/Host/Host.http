@@ -1,0 +1,12 @@
+@HostAddress = http://localhost:5110
+
+GET {{HostAddress}}/
+Accept: application/json
+
+###
+GET {{HostAddress}}/api/catalog/v1/items
+Accept: application/json
+
+###
+GET {{HostAddress}}/api/sales/v1/orders
+Accept: application/json
