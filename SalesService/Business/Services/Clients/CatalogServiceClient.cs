@@ -73,10 +73,34 @@ namespace SalesService.Business.Services.Clients
         }
         public async Task<List<ArticleDTO>> GetArticlesByIdsAsync(List<int> articleIds)
         {
+            if (articleIds == null || articleIds.Count == 0)
+                return new List<ArticleDTO>();
+
+            // validate ids
+            if (articleIds.Any(id => id <= 0))
+                throw new ArgumentException("Article ids must be positive integers.", nameof(articleIds));
+
+            const int MaxBatchSize = 100; // limit per request to avoid too large payloads
             var client = CreateAuthorizedClient();
-            var response = await client.PostAsJsonAsync($"{_catalogBaseUrl}Article/Batch", articleIds);
-            if (!response.IsSuccessStatusCode) return new List<ArticleDTO>();
-            return await response.Content.ReadFromJsonAsync<List<ArticleDTO>>() ?? new List<ArticleDTO>();
+            var result = new List<ArticleDTO>();
+
+            // If too many ids, split into chunks and sequentially request (could be parallel if desired)
+            for (int i = 0; i < articleIds.Count; i += MaxBatchSize)
+            {
+                var chunk = articleIds.Skip(i).Take(MaxBatchSize).ToList();
+                var response = await client.PostAsJsonAsync($"{_catalogBaseUrl}Article/Batch", chunk);
+                if (!response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    throw new InvalidOperationException($"CatalogService error when fetching articles batch: {response.StatusCode} - {content}");
+                }
+
+                var articles = await response.Content.ReadFromJsonAsync<List<ArticleDTO>>() ?? new List<ArticleDTO>();
+                result.AddRange(articles);
+            }
+
+            // remove duplicates just in case
+            return result.GroupBy(a => a.Id).Select(g => g.First()).ToList();
         }
 
         public async Task<WarehouseDTO?> GetWarehouseByIdAsync(int warehouseId)
