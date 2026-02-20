@@ -1,5 +1,6 @@
 using Catalog.Api;
 using Sales.Api;
+using Accounting.Api;
 using SharedKernel.Modularity;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,7 +10,8 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddModuleInstallers(
     builder.Configuration,
     typeof(CatalogModuleInstaller),
-    typeof(SalesModuleInstaller));
+    typeof(SalesModuleInstaller),
+    typeof(AccountingModuleInstaller));
 
 var app = builder.Build();
 

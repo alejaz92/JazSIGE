@@ -12,5 +12,6 @@
     <ProjectReference Include="../SharedKernel/SharedKernel.csproj" />
     <ProjectReference Include="../Modules/Catalog/Api/Catalog.Api.csproj" />
     <ProjectReference Include="../Modules/Sales/Api/Sales.Api.csproj" />
+    <ProjectReference Include="../Modules/Accounting/Accounting.csproj" />
   </ItemGroup>
 </Project>
